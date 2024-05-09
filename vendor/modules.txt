@@ -1,0 +1,1 @@
+# github.com/ciscoecosystem/mso-go-client => /Users/sajagana/go/src/github.com/ciscoecosystem/mso-go-client
