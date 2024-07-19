@@ -39,16 +39,14 @@ type ndProvider struct {
 
 // ndProviderModel describes the provider data model.
 type ndProviderModel struct {
-	Username   types.String `tfsdk:"username"`
-	Password   types.String `tfsdk:"password"`
-	IsInsecure types.Bool   `tfsdk:"insecure"`
-	ProxyUrl   types.String `tfsdk:"proxy_url"`
-	URL        types.String `tfsdk:"url"`
-	Domain     types.String `tfsdk:"domain"`
-	PrivateKey types.String `tfsdk:"private_key"`
-	Certname   types.String `tfsdk:"cert_name"`
-	ProxyCreds types.String `tfsdk:"proxy_creds"`
-	MaxRetries types.Int64  `tfsdk:"retries"`
+	Username    types.String `tfsdk:"username"`
+	Password    types.String `tfsdk:"password"`
+	URL         types.String `tfsdk:"url"`
+	LoginDomain types.String `tfsdk:"login_domain"`
+	IsInsecure  types.Bool   `tfsdk:"insecure"`
+	ProxyUrl    types.String `tfsdk:"proxy_url"`
+	ProxyCreds  types.String `tfsdk:"proxy_creds"`
+	MaxRetries  types.Int64  `tfsdk:"retries"`
 }
 
 // Metadata returns the provider type name.
@@ -62,11 +60,19 @@ func (p *ndProvider) Schema(ctx context.Context, req provider.SchemaRequest, res
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"username": schema.StringAttribute{
-				Description: "Username for the ND Account. This can also be set as the ND_USERNAME environment variable.",
+				Description: "Username for the Nexus Dashboard Account. This can also be set as the ND_USERNAME environment variable.",
 				Optional:    true,
 			},
 			"password": schema.StringAttribute{
-				Description: "Password for the ND Account. This can also be set as the ND_PASSWORD environment variable.",
+				Description: "Password for the Nexus Dashboard Account. This can also be set as the ND_PASSWORD environment variable.",
+				Optional:    true,
+			},
+			"url": schema.StringAttribute{
+				Description: "URL of the Cisco Nexus Dashboard web interface. This can also be set as the ND_URL environment variable.",
+				Optional:    true,
+			},
+			"login_domain": schema.StringAttribute{
+				Description: "Login domain for the Nexus Dashboard Account. This can also be set as the ND_LOGIN_DOMAIN environment variable. Defaults to `DefaultAuth`.",
 				Optional:    true,
 			},
 			"insecure": schema.BoolAttribute{
@@ -75,22 +81,6 @@ func (p *ndProvider) Schema(ctx context.Context, req provider.SchemaRequest, res
 			},
 			"proxy_url": schema.StringAttribute{
 				Description: "Proxy Server URL with port number. This can also be set as the ND_PROXY_URL environment variable.",
-				Optional:    true,
-			},
-			"url": schema.StringAttribute{
-				Description: "URL of the Cisco ND web interface. This can also be set as the ND_URL environment variable.",
-				Optional:    true,
-			},
-			"private_key": schema.StringAttribute{
-				Description: "Private key path for signature calculation. This can also be set as the ND_PRIVATE_KEY environment variable.",
-				Optional:    true,
-			},
-			"domain": schema.StringAttribute{
-				Description: "URL of the Cisco ND web interface. This can also be set as the ND_DOMAIN environment variable.",
-				Optional:    true,
-			},
-			"cert_name": schema.StringAttribute{
-				Description: "Certificate name for the User in Cisco ND. This can also be set as the ND_CERT_NAME environment variable.",
 				Optional:    true,
 			},
 			"proxy_creds": schema.StringAttribute{
@@ -107,7 +97,6 @@ func (p *ndProvider) Schema(ctx context.Context, req provider.SchemaRequest, res
 
 // Configure prepares a ND API client for data sources and resources.
 func (p *ndProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-
 	var data ndProviderModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
@@ -121,9 +110,7 @@ func (p *ndProvider) Configure(ctx context.Context, req provider.ConfigureReques
 	isInsecure := getBoolAttribute(resp, data.IsInsecure, "ND_INSECURE", true)
 	proxyUrl := getStringAttribute(data.ProxyUrl, "ND_PROXY_URL")
 	url := getStringAttribute(data.URL, "ND_URL")
-	domain := getStringAttribute(data.Domain, "ND_DOMAIN")
-	privateKey := getStringAttribute(data.PrivateKey, "ND_PRIVATE_KEY")
-	certName := getStringAttribute(data.Certname, "ND_CERT_NAME")
+	loginDomain := getStringAttribute(data.LoginDomain, "ND_LOGIN_DOMAIN")
 	proxyCreds := getStringAttribute(data.ProxyCreds, "ND_PROXY_CREDS")
 	maxRetries := getIntAttribute(resp, data.MaxRetries, "ND_RETRIES", 2)
 
@@ -134,11 +121,15 @@ func (p *ndProvider) Configure(ctx context.Context, req provider.ConfigureReques
 		)
 	}
 
-	if password == "" && (privateKey == "" || certName == "") {
+	if password == "" {
 		resp.Diagnostics.AddError(
 			"Authentication details not provided",
-			"Either 'password' OR 'private_key' and 'cert_name' must be provided for the ND provider",
+			"Password must be provided for the ND provider",
 		)
+	}
+
+	if loginDomain == "" {
+		loginDomain = "DefaultAuth"
 	}
 
 	if url == "" {
@@ -162,7 +153,7 @@ func (p *ndProvider) Configure(ctx context.Context, req provider.ConfigureReques
 
 	var ndClient *Client
 	if password != "" {
-		ndClient = GetClient(url, username, Password(password), Insecure(isInsecure), ProxyUrl(proxyUrl), ProxyCreds(proxyCreds), Domain(domain))
+		ndClient = GetClient(url, username, Password(password), Insecure(isInsecure), ProxyUrl(proxyUrl), ProxyCreds(proxyCreds), Domain(loginDomain))
 	} else {
 		ndClient = nil
 	}
@@ -185,16 +176,13 @@ func (p *ndProvider) Resources(ctx context.Context) []func() resource.Resource {
 }
 
 func getStringAttribute(attribute basetypes.StringValue, envKey string) string {
-
 	if attribute.IsNull() {
 		return os.Getenv(envKey)
 	}
 	return attribute.ValueString()
-
 }
 
 func getBoolAttribute(resp *provider.ConfigureResponse, attribute basetypes.BoolValue, envKey string, defaultValue bool) bool {
-
 	if attribute.IsNull() {
 		envValue := os.Getenv(envKey)
 		if envValue == "" {
@@ -210,11 +198,9 @@ func getBoolAttribute(resp *provider.ConfigureResponse, attribute basetypes.Bool
 		return boolValue
 	}
 	return attribute.ValueBool()
-
 }
 
 func getIntAttribute(resp *provider.ConfigureResponse, attribute basetypes.Int64Value, envKey string, defaultValue int) int {
-
 	if attribute.IsNull() {
 		envValue := os.Getenv(envKey)
 		if envValue == "" {

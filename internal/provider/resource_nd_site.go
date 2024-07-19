@@ -52,13 +52,13 @@ type SiteResource struct {
 // SiteResourceModel describes the resource data model.
 type SiteResourceModel struct {
 	Id           types.String `tfsdk:"id"`
-	SiteName     types.String `tfsdk:"site_name"`
-	SitePassword types.String `tfsdk:"site_password"`
-	SiteUsername types.String `tfsdk:"site_username"`
+	SiteName     types.String `tfsdk:"name"`
+	SitePassword types.String `tfsdk:"password"`
+	SiteUsername types.String `tfsdk:"username"`
 	LoginDomain  types.String `tfsdk:"login_domain"`
 	InbandEpg    types.String `tfsdk:"inband_epg"`
 	Url          types.String `tfsdk:"url"`
-	SiteType     types.String `tfsdk:"site_type"`
+	SiteType     types.String `tfsdk:"type"`
 	Latitude     types.String `tfsdk:"latitude"`
 	Longitude    types.String `tfsdk:"longitude"`
 }
@@ -73,18 +73,18 @@ func (r *SiteResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 	tflog.Debug(ctx, "Start schema of resource: nd_site")
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "The site resource for the Nexus Dashboard",
+		MarkdownDescription: "Manages Sites for Nexus Dashboard",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The id of the site.",
+				MarkdownDescription: "The ID of the site.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"site_name": schema.StringAttribute{
+			"name": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The name of the site.",
 				PlanModifiers: []planmodifier.String{
@@ -94,15 +94,15 @@ func (r *SiteResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			},
 			"url": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "The URL to reference the APICs.",
+				MarkdownDescription: "The URL of the site.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"site_type": schema.StringAttribute{
+			"type": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "The site type of the APICs.",
+				MarkdownDescription: "The type of the site.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
@@ -111,17 +111,17 @@ func (r *SiteResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 					stringvalidator.OneOf("aci", "dcnm", "third_party", "cloud_aci", "dcnm_ng", "ndfc"),
 				},
 			},
-			"site_username": schema.StringAttribute{
+			"username": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "The username for the APIC.",
+				MarkdownDescription: "The username of the site.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"site_password": schema.StringAttribute{
+			"password": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "The password for the APIC.",
+				MarkdownDescription: "The password of the site.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
@@ -130,7 +130,7 @@ func (r *SiteResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"login_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The AAA login domain for the username of the APIC.",
+				MarkdownDescription: "The login domain of the site.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
@@ -139,7 +139,7 @@ func (r *SiteResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"inband_epg": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The In-Band Endpoint Group (EPG) used to connect Nexus Dashboard to the fabric.",
+				MarkdownDescription: "The In-Band Endpoint Group (EPG) used to connect ND to the site.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
@@ -148,7 +148,7 @@ func (r *SiteResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"latitude": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The latitude of the location of the site.",
+				MarkdownDescription: "The latitude location of the site.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -156,7 +156,7 @@ func (r *SiteResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"longitude": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The longitude of the location of the site.",
+				MarkdownDescription: "The longitude location of the site.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -211,11 +211,10 @@ func (r *SiteResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	DoRestRequest(ctx, &resp.Diagnostics, r.client, sitePath, "POST", jsonPayload)
 
-	setSiteId(ctx, data)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	setSiteId(ctx, data)
 
 	getAndSetSiteAttributes(ctx, &resp.Diagnostics, r.client, data)
 
@@ -277,6 +276,7 @@ func (r *SiteResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	setSiteId(ctx, data)
 
 	getAndSetSiteAttributes(ctx, &resp.Diagnostics, r.client, data)
 
@@ -318,13 +318,13 @@ func (r *SiteResource) ImportState(ctx context.Context, req resource.ImportState
 	if username == "" {
 		resp.Diagnostics.AddError("Missing input", "A username must be provided during import, please set the ND_SITE_USERNAME environment variable")
 	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("site_username"), username)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("username"), username)...)
 
 	password := os.Getenv("ND_SITE_PASSWORD")
 	if password == "" {
 		resp.Diagnostics.AddError("Missing input", "A password must be provided during import, please set the ND_SITE_PASSWORD environment variable")
 	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("site_password"), password)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("password"), password)...)
 
 	loginDomain := os.Getenv("ND_LOGIN_DOMAIN")
 	if loginDomain == "" {
@@ -338,7 +338,6 @@ func (r *SiteResource) ImportState(ctx context.Context, req resource.ImportState
 
 func getSiteCreateJsonPayload(ctx context.Context, diags *diag.Diagnostics, data *SiteResourceModel) *gabs.Container {
 	payloadMap := map[string]interface{}{}
-	siteType := ""
 
 	if !data.SitePassword.IsNull() && !data.SitePassword.IsUnknown() {
 		payloadMap["password"] = data.SitePassword.ValueString()
@@ -352,8 +351,10 @@ func getSiteCreateJsonPayload(ctx context.Context, diags *diag.Diagnostics, data
 		payloadMap["loginDomain"] = data.LoginDomain.ValueString()
 	}
 
+	inbandEpg := ""
 	if !data.InbandEpg.IsNull() && !data.InbandEpg.IsUnknown() {
-		payloadMap["inband_epg"] = data.InbandEpg.ValueString()
+		inbandEpg = data.InbandEpg.ValueString()
+		payloadMap["inband_epg"] = inbandEpg
 	}
 
 	if !data.SiteName.IsNull() && !data.SiteName.IsUnknown() {
@@ -362,11 +363,6 @@ func getSiteCreateJsonPayload(ctx context.Context, diags *diag.Diagnostics, data
 
 	if !data.Url.IsNull() && !data.Url.IsUnknown() {
 		payloadMap["host"] = data.Url.ValueString()
-	}
-
-	if !data.SiteType.IsNull() && !data.SiteType.IsUnknown() {
-		payloadMap["siteType"] = data.SiteType.ValueString()
-		siteType = data.SiteType.ValueString()
 	}
 
 	if !data.Latitude.IsNull() && !data.Latitude.IsUnknown() {
@@ -378,24 +374,26 @@ func getSiteCreateJsonPayload(ctx context.Context, diags *diag.Diagnostics, data
 	}
 
 	siteConfiguration := map[string]interface{}{}
-	if siteType == "aci" || siteType == "cloud_aci" {
-		siteTypeParam := siteType
-		if siteType == "cloud_aci" {
-			siteTypeParam = siteTypeMap[siteType]
-		}
+	siteType := ""
 
-		inbandEpg := ""
-		if payloadMap["inband_epg"] != nil {
-			inbandEpg = payloadMap["inband_epg"].(string)
-		}
-		siteConfiguration[siteTypeParam] = map[string]interface{}{
-			"InbandEPGDN": inbandEpg,
-		}
-	} else if siteType == "ndfc" || siteType == "dcnm" {
-		siteConfiguration[siteType] = map[string]string{
-			"fabricName":       payloadMap["name"].(string),
-			"fabricTechnology": "External",
-			"fabricType":       "External",
+	if !data.SiteType.IsNull() && !data.SiteType.IsUnknown() {
+		siteType = data.SiteType.ValueString()
+
+		if siteType == "aci" || siteType == "cloud_aci" {
+			siteTypeParam := siteType
+			if siteType == "cloud_aci" {
+				siteTypeParam = siteTypeMap[siteType]
+			}
+
+			siteConfiguration[siteTypeParam] = map[string]interface{}{
+				"InbandEPGDN": inbandEpg,
+			}
+		} else if siteType == "ndfc" || siteType == "dcnm" {
+			siteConfiguration[siteType] = map[string]string{
+				"fabricName":       payloadMap["name"].(string),
+				"fabricTechnology": "External",
+				"fabricType":       "External",
+			}
 		}
 	}
 
@@ -440,7 +438,6 @@ func getAndSetSiteAttributes(ctx context.Context, diags *diag.Diagnostics, clien
 		specReadInfo := responseReadInfo["spec"].(map[string]interface{})
 		for attributeName, attributeValue := range specReadInfo {
 			if attributeName == "name" {
-				data.Id = basetypes.NewStringValue(attributeValue.(string))
 				data.SiteName = basetypes.NewStringValue(attributeValue.(string))
 			}
 

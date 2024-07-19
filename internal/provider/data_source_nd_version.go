@@ -48,7 +48,7 @@ func (d *VersionDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 	tflog.Debug(ctx, "Start schema of datasource: nd_version")
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "The version datasource for the 'ND Platform Version' information",
+		MarkdownDescription: "Data source for Nexus Dashboard Version",
 
 		Attributes: map[string]schema.Attribute{
 			"commit_id": schema.StringAttribute{
@@ -133,8 +133,6 @@ func (d *VersionDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	setVersionId(ctx, data)
-
 	tflog.Debug(ctx, fmt.Sprintf("Read of datasource nd_version with id '%s'", data.Id.ValueString()))
 
 	getAndSetVersionAttributes(ctx, &resp.Diagnostics, d.client, data)
@@ -147,10 +145,6 @@ func (d *VersionDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	tflog.Debug(ctx, fmt.Sprintf("End read of datasource nd_version with id '%s'", data.Id.ValueString()))
-}
-
-func setVersionId(ctx context.Context, data *VersionResourceModel) {
-	data.Id = types.StringValue(data.Id.ValueString())
 }
 
 func getAndSetVersionAttributes(ctx context.Context, diags *diag.Diagnostics, client *Client, data *VersionResourceModel) {

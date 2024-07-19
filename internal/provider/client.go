@@ -120,7 +120,7 @@ func initClient(clientUrl, username string, options ...Option) *Client {
 // GetClient returns a singleton
 func GetClient(clientUrl, username string, options ...Option) *Client {
 	if clientImpl == nil {
-		clientImpl = initClient(clientUrl, username, options...)
+		return initClient(clientUrl, username, options...)
 	}
 	return clientImpl
 }
@@ -161,11 +161,7 @@ func (c *Client) useInsecureHTTPClient(insecure bool) *http.Transport {
 	return transport
 }
 
-func (c *Client) MakeRestRequest(method string, path string, body *gabs.Container, authenticated bool) (*http.Request, error) {
-	return c.makeRestRequest(method, path, body, authenticated, c.skipLoggingPayload)
-}
-
-func (c *Client) makeRestRequest(method string, path string, body *gabs.Container, authenticated bool, skipLoggingPayload bool) (*http.Request, error) {
+func (c *Client) MakeRestRequest(method string, path string, body *gabs.Container, authenticated bool, skipLoggingPayload bool) (*http.Request, error) {
 	if path != "/login" {
 		if strings.HasPrefix(path, "/") {
 			path = path[1:]
@@ -218,15 +214,7 @@ func (c *Client) makeRestRequest(method string, path string, body *gabs.Containe
 
 // Authenticate is used to
 func (c *Client) Authenticate() error {
-	method := "POST"
-	path := "/api/v1/auth/login"
-
-	authPayload := ndAuthPayload
-	if c.domain == "" {
-		c.domain = "DefaultAuth"
-	}
-	path = "/login"
-	body, err := gabs.ParseJSON([]byte(fmt.Sprintf(authPayload, c.username, c.password)))
+	body, err := gabs.ParseJSON([]byte(fmt.Sprintf(ndAuthPayload, c.username, c.password)))
 	if err != nil {
 		return err
 	}
@@ -235,12 +223,13 @@ func (c *Client) Authenticate() error {
 		body.Set(c.domain, "domain")
 	}
 
-	req, err := c.MakeRestRequest(method, path, body, false)
+	req, err := c.MakeRestRequest("POST", "/login", body, false, c.skipLoggingPayload)
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
 
-	obj, _, err := c.Do(req)
+	obj, _, err := c.Do(req, c.skipLoggingPayload)
 
 	if err != nil {
 		return err
@@ -249,9 +238,8 @@ func (c *Client) Authenticate() error {
 	if obj == nil {
 		return errors.New("Empty response")
 	}
-	req.Header.Set("Content-Type", "application/json")
 
-	token := StripQuotes(obj.S("token").String())
+	token := obj.S("token").String()
 
 	if token == "" || token == "{}" {
 		return errors.New("Invalid Username or Password")
@@ -261,30 +249,20 @@ func (c *Client) Authenticate() error {
 		c.AuthToken = &Auth{}
 	}
 
-	c.AuthToken.Token = StripQuotes(token)
+	c.AuthToken.Token = token
 	c.AuthToken.CalculateExpiry(1200) //refreshTime=1200 Sec
 
 	return nil
 }
 
-func StripQuotes(word string) string {
-	if strings.HasPrefix(word, "\"") && strings.HasSuffix(word, "\"") {
-		return strings.TrimSuffix(strings.TrimPrefix(word, "\""), "\"")
-	}
-	return word
-}
-
-func (c *Client) Do(req *http.Request) (*gabs.Container, *http.Response, error) {
-	return c.do(req, c.skipLoggingPayload)
-}
-
-func (c *Client) do(req *http.Request, skipLoggingPayload bool) (*gabs.Container, *http.Response, error) {
-
-	log.Printf("[DEBUG] Begining DO method %s", req.URL.String())
+func (c *Client) Do(req *http.Request, skipLoggingPayload bool) (*gabs.Container, *http.Response, error) {
+	log.Printf("[DEBUG] Beginning DO method %s", req.URL.String())
 	log.Printf("[TRACE] HTTP Request Method and URL: %s %s", req.Method, req.URL.String())
+
 	if !skipLoggingPayload {
 		log.Printf("[TRACE] HTTP Request Body: %v", req.Body)
 	}
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, nil, err
@@ -300,19 +278,21 @@ func (c *Client) do(req *http.Request, skipLoggingPayload bool) (*gabs.Container
 	if err != nil {
 		return nil, nil, err
 	}
+
 	bodyStr := string(bodyBytes)
 	err = resp.Body.Close()
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if !skipLoggingPayload {
 		log.Printf("[DEBUG] HTTP response unique string %s %s %s", req.Method, req.URL.String(), bodyStr)
 	}
+
 	if req.Method != "DELETE" && resp.StatusCode != 204 {
 		obj, err := gabs.ParseJSON(bodyBytes)
-
 		if err != nil {
-			log.Printf("Error occured while json parsing %+v", err)
+			log.Printf("Error occurred while json parsing %+v", err)
 			return nil, resp, err
 		}
 		log.Printf("[DEBUG] Exit from do method")
@@ -333,7 +313,7 @@ func DoRestRequest(ctx context.Context, diags *diag.Diagnostics, client *Client,
 	var restRequest *http.Request
 	var err error
 
-	restRequest, err = client.MakeRestRequest(method, path, payload, true)
+	restRequest, err = client.MakeRestRequest(method, path, payload, true, client.skipLoggingPayload)
 	if err != nil {
 		diags.AddError(
 			"Creation of rest request failed",
@@ -342,23 +322,24 @@ func DoRestRequest(ctx context.Context, diags *diag.Diagnostics, client *Client,
 		return nil
 	}
 
-	cont, restResponse, err := client.Do(restRequest)
+	cont, restResponse, err := client.Do(restRequest, client.skipLoggingPayload)
 
 	// Return nil when the object is not found and ignore 404 not found error
+	// The resource ID will be set it to nil and the state file content will be deleted when the object is not found
 	if restResponse.StatusCode == 404 {
 		return nil
 	}
 
 	if restResponse != nil && cont.Data() != nil && (restResponse.StatusCode != 200 && restResponse.StatusCode != 201) {
 		diags.AddError(
-			fmt.Sprintf("The %s rest request failed inside status code check", strings.ToLower(method)),
+			fmt.Sprintf("The %s %s rest request failed.", method, path),
 			fmt.Sprintf("Code: %d Response: %s, err: %s. Please report this issue to the provider developers.", restResponse.StatusCode, cont.Data().(map[string]interface{})["errors"], err),
 		)
 		tflog.Debug(ctx, fmt.Sprintf("%v", cont.Search("errors")))
 		return nil
 	} else if err != nil {
 		diags.AddError(
-			fmt.Sprintf("The %s rest request failed else part of the != 200", strings.ToLower(method)),
+			fmt.Sprintf("The %s %s rest request failed.", method, path),
 			fmt.Sprintf("Err: %s. Please report this issue to the provider developers.", err),
 		)
 		return nil
