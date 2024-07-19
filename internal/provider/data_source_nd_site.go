@@ -31,48 +31,48 @@ func (d *SiteDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 	tflog.Debug(ctx, "Start schema of datasource: nd_site")
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "The site datasource for the 'ND Platform Site' information",
+		MarkdownDescription: "Data source for Nexus Dashboard Sites",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The id of the site.",
+				MarkdownDescription: "The ID of the site.",
 			},
-			"site_name": schema.StringAttribute{
+			"name": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The name of the site.",
 			},
 			"url": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The URL to reference the APICs.",
+				MarkdownDescription: "The URL of the site.",
 			},
-			"site_type": schema.StringAttribute{
+			"type": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The site type of the APICs.",
+				MarkdownDescription: "The type of the site.",
 			},
-			"site_username": schema.StringAttribute{
+			"username": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The username for the APIC.",
+				MarkdownDescription: "The username of the site.",
 			},
-			"site_password": schema.StringAttribute{
+			"password": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The password for the APIC.",
+				MarkdownDescription: "The password of the site.",
 			},
 			"login_domain": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The AAA login domain for the username of the APIC.",
+				MarkdownDescription: "The login domain of the site.",
 			},
 			"inband_epg": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The In-Band Endpoint Group (EPG) used to connect Nexus Dashboard to the fabric.",
+				MarkdownDescription: "The In-Band Endpoint Group (EPG) used to connect ND to the site.",
 			},
 			"latitude": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The latitude of the location of the site.",
+				MarkdownDescription: "The latitude location of the site.",
 			},
 			"longitude": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The longitude of the location of the site.",
+				MarkdownDescription: "The longitude location of the site.",
 			},
 		},
 	}

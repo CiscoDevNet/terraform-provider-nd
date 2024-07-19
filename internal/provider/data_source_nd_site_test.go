@@ -20,10 +20,10 @@ func TestAccDataSourceNdSite(t *testing.T) {
 					resource.TestCheckResourceAttr("nd_site.example_0", "latitude", ""),
 					resource.TestCheckResourceAttr("nd_site.example_0", "login_domain", ""),
 					resource.TestCheckResourceAttr("nd_site.example_0", "longitude", ""),
-					resource.TestCheckResourceAttr("nd_site.example_0", "site_name", "example_0"),
-					resource.TestCheckResourceAttr("nd_site.example_0", "site_password", "password"),
-					resource.TestCheckResourceAttr("nd_site.example_0", "site_type", "aci"),
-					resource.TestCheckResourceAttr("nd_site.example_0", "site_username", "admin"),
+					resource.TestCheckResourceAttr("nd_site.example_0", "name", "example_0"),
+					resource.TestCheckResourceAttr("nd_site.example_0", "password", "password"),
+					resource.TestCheckResourceAttr("nd_site.example_0", "type", "aci"),
+					resource.TestCheckResourceAttr("nd_site.example_0", "username", "admin"),
 					resource.TestCheckResourceAttr("nd_site.example_0", "url", "10.195.219.154"),
 				),
 			},
@@ -37,13 +37,13 @@ func TestAccDataSourceNdSite(t *testing.T) {
 
 const testConfigNdSite = testConfigNdSiteMinDependencyForDataSource + `
 data "nd_site" "example_0" {
-  site_name = "example_0"
+  name = "example_0"
   depends_on = [nd_site.example_0]
 }
 `
 
 const testConfigNdSiteNonExisting = `
 data "nd_site" "test" {
-  site_name = "ansible_test_non_existing"
+  name = "non_existing"
 }
 `

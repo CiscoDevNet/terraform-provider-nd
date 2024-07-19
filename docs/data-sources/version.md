@@ -4,12 +4,17 @@ layout: "nd"
 page_title: "ND: nd_version"
 sidebar_current: "docs-nd-data-source-nd_version"
 description: |-
-  Data source for the Nexus Dashboard Version
+  Data source for Nexus Dashboard Version
 ---
 
 # nd_site #
 
-Data source for the Nexus Dashboard Version
+Data source for Nexus Dashboard Version
+
+## API Information ##
+
+* Site Management [API Information](https://developer.cisco.com/docs/nexus-dashboard/3-1-1/api-reference/)
+* API Endpoint: `nexus/api/sitemanagement/v4/sites`
 
 ## GUI Information ##
 
