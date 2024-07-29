@@ -3,7 +3,7 @@
 
 [changelog]
 header = """
-# Terraform Provider ACI - Changelog\n
+# Terraform Provider ND - Changelog\n
 All notable changes to this project will be documented in this file.\n
 """
 # template for the changelog body

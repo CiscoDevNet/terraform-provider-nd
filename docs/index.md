@@ -82,7 +82,7 @@ resource "nd_site" "example" {
 - `insecure` (Boolean) Allow insecure HTTPS client.
   - Default: `true`
   - Environment variable: `ND_INSECURE`
-- `proxy_creds` (String) Proxy server credentials in the form of username:password.
+- `proxy_creds` (String) Proxy server credentials in the form of `username:password`.
   - Environment variable: `ND_PROXY_CREDS`
 - `proxy_url` (String) Proxy Server URL with port number.
   - Environment variable: `ND_PROXY_URL`
