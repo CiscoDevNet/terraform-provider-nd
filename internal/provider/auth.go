@@ -38,6 +38,7 @@ func (client *Client) InjectAuthenticationHeader(req *http.Request, path string)
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", client.AuthToken.Token))
+	// The header "Cookie" must be set for the Nexus Dashboard 2.3 and later versions.
 	req.Header.Set("Cookie", fmt.Sprintf("AuthCookie=%s", client.AuthToken.Token))
 
 	return req, nil

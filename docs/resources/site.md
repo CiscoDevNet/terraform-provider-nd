@@ -67,7 +67,7 @@ All examples for the Site resource can be found in the [examples](https://github
 
 ## Importing
 
-~> `ND_SITE_USERNAME`, `ND_SITE_PASSWORD` and `ND_LOGIN_DOMAIN` must be set in order to import.
+~> The environment variables `ND_SITE_USERNAME`, `ND_SITE_PASSWORD` and `ND_LOGIN_DOMAIN` must be set in order to import.
 
 An existing Site can be [imported](https://www.terraform.io/docs/import/index.html) into this resource with its name (name), via the following command:
 

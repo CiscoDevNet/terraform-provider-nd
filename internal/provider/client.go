@@ -37,75 +37,47 @@ type Client struct {
 	proxyUrl           string
 	proxyCreds         string
 	domain             string
-	version            string
 	skipLoggingPayload bool
 }
 
 // singleton implementation of a client
 var clientImpl *Client
 
-type Option func(*Client)
+func initClient(clientUrl, username, password, proxyUrl, proxyCreds, loginDomain string, isInsecure bool) *Client {
 
-func Insecure(insecure bool) Option {
-	return func(client *Client) {
-		client.insecure = insecure
-	}
-}
-
-func Password(password string) Option {
-	return func(client *Client) {
-		client.password = password
-	}
-}
-
-func ProxyUrl(pUrl string) Option {
-	return func(client *Client) {
-		client.proxyUrl = pUrl
-	}
-}
-
-func ProxyCreds(pcreds string) Option {
-	return func(client *Client) {
-		client.proxyCreds = pcreds
-	}
-}
-
-func Domain(domain string) Option {
-	return func(client *Client) {
-		client.domain = domain
-	}
-}
-
-func Version(version string) Option {
-	return func(client *Client) {
-		client.version = version
-	}
-}
-
-func SkipLoggingPayload(skipLoggingPayload bool) Option {
-	return func(client *Client) {
-		client.skipLoggingPayload = skipLoggingPayload
-	}
-}
-
-func initClient(clientUrl, username string, options ...Option) *Client {
-	var transport *http.Transport
 	bUrl, err := url.Parse(clientUrl)
 	if err != nil {
 		// cannot move forward if url is undefined
 		log.Fatal(err)
 	}
+
 	client := &Client{
 		BaseURL:    bUrl,
 		username:   username,
 		httpClient: http.DefaultClient,
+		password:   password,
+		insecure:   isInsecure,
+		proxyUrl:   proxyUrl,
+		proxyCreds: proxyCreds,
+		domain:     loginDomain,
 	}
 
-	for _, option := range options {
-		option(client)
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			},
+			PreferServerCipherSuites: true,
+			InsecureSkipVerify:       client.insecure,
+			MinVersion:               tls.VersionTLS11,
+			MaxVersion:               tls.VersionTLS13,
+		},
 	}
 
-	transport = client.useInsecureHTTPClient(client.insecure)
 	if client.proxyUrl != "" {
 		transport = client.configProxy(transport)
 	}
@@ -118,9 +90,9 @@ func initClient(clientUrl, username string, options ...Option) *Client {
 }
 
 // GetClient returns a singleton
-func GetClient(clientUrl, username string, options ...Option) *Client {
+func GetClient(clientUrl, username, password, proxyUrl, proxyCreds, loginDomain string, isInsecure bool) *Client {
 	if clientImpl == nil {
-		return initClient(clientUrl, username, options...)
+		return initClient(clientUrl, username, password, proxyUrl, proxyCreds, loginDomain, isInsecure)
 	}
 	return clientImpl
 }
@@ -138,26 +110,6 @@ func (c *Client) configProxy(transport *http.Transport) *http.Transport {
 		transport.ProxyConnectHeader = http.Header{}
 		transport.ProxyConnectHeader.Add("Proxy-Authorization", basicAuth)
 	}
-	return transport
-}
-
-func (c *Client) useInsecureHTTPClient(insecure bool) *http.Transport {
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			},
-			PreferServerCipherSuites: true,
-			InsecureSkipVerify:       insecure,
-			MinVersion:               tls.VersionTLS11,
-			MaxVersion:               tls.VersionTLS13,
-		},
-	}
-
 	return transport
 }
 
@@ -212,7 +164,6 @@ func (c *Client) MakeRestRequest(method string, path string, body *gabs.Containe
 	return req, nil
 }
 
-// Authenticate is used to
 func (c *Client) Authenticate() error {
 	body, err := gabs.ParseJSON([]byte(fmt.Sprintf(ndAuthPayload, c.username, c.password)))
 	if err != nil {

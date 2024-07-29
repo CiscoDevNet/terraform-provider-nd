@@ -4,13 +4,16 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
-	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
@@ -62,18 +65,33 @@ func (p *ndProvider) Schema(ctx context.Context, req provider.SchemaRequest, res
 			"username": schema.StringAttribute{
 				Description: "Username for the Nexus Dashboard Account. This can also be set as the ND_USERNAME environment variable.",
 				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
 			"password": schema.StringAttribute{
 				Description: "Password for the Nexus Dashboard Account. This can also be set as the ND_PASSWORD environment variable.",
 				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
 			"url": schema.StringAttribute{
 				Description: "URL of the Cisco Nexus Dashboard web interface. This can also be set as the ND_URL environment variable.",
 				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^(https?)://[^\s/$.?#].[^\s]*$`),
+						"The url must contain only alphanumeric characters",
+					),
+				},
 			},
 			"login_domain": schema.StringAttribute{
 				Description: "Login domain for the Nexus Dashboard Account. This can also be set as the ND_LOGIN_DOMAIN environment variable. Defaults to `DefaultAuth`.",
 				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
 			"insecure": schema.BoolAttribute{
 				Description: "Allow insecure HTTPS client. This can also be set as the ND_INSECURE environment variable. Defaults to `true`.",
@@ -82,14 +100,26 @@ func (p *ndProvider) Schema(ctx context.Context, req provider.SchemaRequest, res
 			"proxy_url": schema.StringAttribute{
 				Description: "Proxy Server URL with port number. This can also be set as the ND_PROXY_URL environment variable.",
 				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^(https?)://[^\s/$.?#].[^\s]*$`),
+						"The proxy_url must contain only alphanumeric characters",
+					),
+				},
 			},
 			"proxy_creds": schema.StringAttribute{
 				Description: "Proxy server credentials in the form of username:password. This can also be set as the ND_PROXY_CREDS environment variable.",
 				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
 			"retries": schema.Int64Attribute{
 				Description: "Number of retries for REST API calls. This can also be set as the ND_RETRIES environment variable. Defaults to `2`.",
 				Optional:    true,
+				Validators: []validator.Int64{
+					int64validator.Between(0, 10),
+				},
 			},
 		},
 	}
@@ -132,31 +162,32 @@ func (p *ndProvider) Configure(ctx context.Context, req provider.ConfigureReques
 		loginDomain = "DefaultAuth"
 	}
 
-	if url == "" {
+	var urlRegex = regexp.MustCompile(`^(https?)://[^\s/$.?#].[^\s]*$`)
+
+	if !urlRegex.MatchString(url) {
 		resp.Diagnostics.AddError(
-			"Url not provided",
-			"Url must be provided for the ND provider",
-		)
-	} else if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-		resp.Diagnostics.AddError(
-			"Incorrect url prefix",
-			fmt.Sprintf("Url '%s' must start with 'http://' or 'https://'", url),
+			"Incorrect url format",
+			fmt.Sprintf("The url '%s' must contain only alphanumeric characters", url),
 		)
 	}
 
-	if maxRetries < 0 || maxRetries > 9 {
+	if proxyUrl != "" {
+		if !urlRegex.MatchString(proxyUrl) {
+			resp.Diagnostics.AddError(
+				"Incorrect proxy url format",
+				fmt.Sprintf("The proxy_url '%s' must contain only alphanumeric characters", proxyUrl),
+			)
+		}
+	}
+
+	if maxRetries < 0 || maxRetries > 10 {
 		resp.Diagnostics.AddError(
 			"Incorrect retry amount",
-			fmt.Sprintf("Retries must be between 0 and 9 inclusive, got: %d", maxRetries),
+			fmt.Sprintf("The retries must be between 0 and 10 inclusive, got: %d", maxRetries),
 		)
 	}
 
-	var ndClient *Client
-	if password != "" {
-		ndClient = GetClient(url, username, Password(password), Insecure(isInsecure), ProxyUrl(proxyUrl), ProxyCreds(proxyCreds), Domain(loginDomain))
-	} else {
-		ndClient = nil
-	}
+	ndClient := GetClient(url, username, password, proxyUrl, proxyCreds, loginDomain, isInsecure)
 
 	resp.DataSourceData = ndClient
 	resp.ResourceData = ndClient

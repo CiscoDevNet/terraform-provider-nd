@@ -14,7 +14,7 @@ Data source for Nexus Dashboard Version
 ## API Information ##
 
 * Site Management [API Information](https://developer.cisco.com/docs/nexus-dashboard/3-1-1/api-reference/)
-* API Endpoint: `nexus/api/sitemanagement/v4/sites`
+* API Endpoint: `version.json`
 
 ## GUI Information ##
 
