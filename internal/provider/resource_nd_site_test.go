@@ -99,7 +99,7 @@ resource "nd_site" "example_0" {
   name     = "example_0"
   username = "admin"
   password = "password"
-  url           = "10.195.219.154"
+  url      = "10.195.219.154"
   type     = "aci"
 }
 `
@@ -109,35 +109,35 @@ resource "nd_site" "example_1" {
   name     = "example_1"
   username = "admin"
   password = "password"
-  url           = "10.195.219.154"
+  url      = "10.195.219.154"
   type     = "aci"
 }
 `
 
 const testConfigNdSiteMinDependencyCreate = `
 resource "nd_site" "example_2" {
-  name     = "example_2"
-  username = "admin"
-  password = "password"
-  url           = "10.195.219.155"
-  type     = "aci"
-  inband_epg    = "test_epg"
-  latitude      = ""
-  longitude     = ""
-  login_domain  = "local"
+  name         = "example_2"
+  username     = "admin"
+  password     = "password"
+  url          = "10.195.219.155"
+  type         = "aci"
+  inband_epg   = "test_epg"
+  latitude     = ""
+  longitude    = ""
+  login_domain = "local"
 }
 `
 
 const testConfigNdSiteAllDependencyUpdate = `
 resource "nd_site" "example_2" {
-  name     = "example_2"
-  username = "admin"
-  password = "password"
-  url           = "10.195.219.155"
-  type     = "aci"
-  inband_epg    = "test_epg"
-  latitude      = "19.36475238603211"
-  longitude     = "-155.28865502961474"
-  login_domain  = "local"
+  name         = "example_2"
+  username     = "admin"
+  password     = "password"
+  url          = "10.195.219.155"
+  type         = "aci"
+  inband_epg   = "test_epg"
+  latitude     = "19.36475238603211"
+  longitude    = "-155.28865502961474"
+  login_domain = "local"
 }
 `

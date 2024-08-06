@@ -40,7 +40,7 @@ func main() {
 
 	opts := providerserver.ServeOpts{
 		// NOTE: This is not a typical Terraform Registry provider address,
-		// such as registry.terraform.io/hashicorp/nd. This specific
+		// such as https://registry.terraform.io/providers/CiscoDevNet/nd/latest. This specific
 		// provider address is used in these tutorials in conjunction with a
 		// specific Terraform CLI configuration for manual development testing
 		// of this provider.

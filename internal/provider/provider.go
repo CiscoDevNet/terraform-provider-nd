@@ -142,7 +142,7 @@ func (p *ndProvider) Configure(ctx context.Context, req provider.ConfigureReques
 	url := getStringAttribute(data.URL, "ND_URL")
 	loginDomain := getStringAttribute(data.LoginDomain, "ND_LOGIN_DOMAIN")
 	proxyCreds := getStringAttribute(data.ProxyCreds, "ND_PROXY_CREDS")
-	maxRetries := getIntAttribute(resp, data.MaxRetries, "ND_RETRIES", 2)
+	maxRetries := int64(getIntAttribute(resp, data.MaxRetries, "ND_RETRIES", 2))
 
 	if username == "" {
 		resp.Diagnostics.AddError(
@@ -162,32 +162,7 @@ func (p *ndProvider) Configure(ctx context.Context, req provider.ConfigureReques
 		loginDomain = "DefaultAuth"
 	}
 
-	var urlRegex = regexp.MustCompile(`^(https?)://[^\s/$.?#].[^\s]*$`)
-
-	if !urlRegex.MatchString(url) {
-		resp.Diagnostics.AddError(
-			"Incorrect url format",
-			fmt.Sprintf("The url '%s' must contain only alphanumeric characters", url),
-		)
-	}
-
-	if proxyUrl != "" {
-		if !urlRegex.MatchString(proxyUrl) {
-			resp.Diagnostics.AddError(
-				"Incorrect proxy url format",
-				fmt.Sprintf("The proxy_url '%s' must contain only alphanumeric characters", proxyUrl),
-			)
-		}
-	}
-
-	if maxRetries < 0 || maxRetries > 10 {
-		resp.Diagnostics.AddError(
-			"Incorrect retry amount",
-			fmt.Sprintf("The retries must be between 0 and 10 inclusive, got: %d", maxRetries),
-		)
-	}
-
-	ndClient := GetClient(url, username, password, proxyUrl, proxyCreds, loginDomain, isInsecure)
+	ndClient := GetClient(url, username, password, proxyUrl, proxyCreds, loginDomain, isInsecure, maxRetries)
 
 	resp.DataSourceData = ndClient
 	resp.ResourceData = ndClient
