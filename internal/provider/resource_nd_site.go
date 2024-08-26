@@ -63,6 +63,21 @@ type SiteResourceModel struct {
 	Longitude    types.String `tfsdk:"longitude"`
 }
 
+func getBaseSiteResourceModel(username, password, login_domain string) *SiteResourceModel {
+	return &SiteResourceModel{
+		Id:           basetypes.NewStringNull(),
+		SiteName:     basetypes.NewStringNull(),
+		SitePassword: basetypes.NewStringValue(password),
+		SiteUsername: basetypes.NewStringValue(username),
+		LoginDomain:  basetypes.NewStringValue(login_domain),
+		InbandEpg:    basetypes.NewStringNull(),
+		Url:          basetypes.NewStringNull(),
+		SiteType:     basetypes.NewStringNull(),
+		Latitude:     basetypes.NewStringNull(),
+		Longitude:    basetypes.NewStringNull(),
+	}
+}
+
 func (r *SiteResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	tflog.Debug(ctx, "Start metadata of resource: nd_site")
 	resp.TypeName = req.ProviderTypeName + "_site"
@@ -428,6 +443,7 @@ func setSiteId(ctx context.Context, data *SiteResourceModel) {
 func getAndSetSiteAttributes(ctx context.Context, diags *diag.Diagnostics, client *Client, data *SiteResourceModel) {
 
 	responseData := DoRestRequest(ctx, diags, client, fmt.Sprintf("%s/%s", sitePath, data.Id.ValueString()), "GET", nil)
+	*data = *getBaseSiteResourceModel(data.SiteUsername.ValueString(), data.SitePassword.ValueString(), data.LoginDomain.ValueString())
 
 	if diags.HasError() {
 		return
@@ -439,6 +455,7 @@ func getAndSetSiteAttributes(ctx context.Context, diags *diag.Diagnostics, clien
 		for attributeName, attributeValue := range specReadInfo {
 			if attributeName == "name" {
 				data.SiteName = basetypes.NewStringValue(attributeValue.(string))
+				data.Id = basetypes.NewStringValue(attributeValue.(string))
 			}
 
 			if attributeName == "siteConfig" {
@@ -463,7 +480,7 @@ func getAndSetSiteAttributes(ctx context.Context, diags *diag.Diagnostics, clien
 
 			if os.Getenv("ND_LOGIN_DOMAIN") != "" {
 				data.LoginDomain = basetypes.NewStringValue(os.Getenv("ND_LOGIN_DOMAIN"))
-			} else if attributeName == "loginDomain" && data.LoginDomain.IsUnknown() {
+			} else if attributeName == "loginDomain" {
 				data.LoginDomain = basetypes.NewStringValue(attributeValue.(string))
 			}
 		}

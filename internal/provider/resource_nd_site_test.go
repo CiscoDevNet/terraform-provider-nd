@@ -62,17 +62,6 @@ func TestAccResourceNdSiteWithImportTest(t *testing.T) {
 				ResourceName:      "nd_site.example_2",
 				ImportState:       true,
 				ImportStateVerify: true,
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("nd_site.example_2", "inband_epg", "test_epg"),
-					resource.TestCheckResourceAttr("nd_site.example_2", "latitude", ""),
-					resource.TestCheckResourceAttr("nd_site.example_2", "login_domain", "local"),
-					resource.TestCheckResourceAttr("nd_site.example_2", "longitude", ""),
-					resource.TestCheckResourceAttr("nd_site.example_2", "name", "example_2"),
-					resource.TestCheckResourceAttr("nd_site.example_2", "password", "password"),
-					resource.TestCheckResourceAttr("nd_site.example_2", "type", "aci"),
-					resource.TestCheckResourceAttr("nd_site.example_2", "username", "admin"),
-					resource.TestCheckResourceAttr("nd_site.example_2", "url", "10.195.219.155"),
-				),
 			},
 			// Update with full config and verify default ND values
 			{

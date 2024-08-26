@@ -35,7 +35,7 @@ func New(version string) func() provider.Provider {
 // ndProvider is the provider implementation.
 type ndProvider struct {
 	// version is set to the provider version on release, "dev" when the
-	// provider is built and ran locally, and "test" when running acceptance
+	// provider is built and run locally, and "test" when running acceptance
 	// testing.
 	version string
 }
