@@ -1,4 +1,4 @@
-module terraform-provider-nd
+module github.com/CiscoDevNet/terraform-provider-nd
 
 go 1.21
 

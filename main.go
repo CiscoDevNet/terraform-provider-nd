@@ -8,7 +8,7 @@ import (
 	"flag"
 	"log"
 
-	"terraform-provider-nd/internal/provider"
+	"github.com/CiscoDevNet/terraform-provider-nd/internal/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
