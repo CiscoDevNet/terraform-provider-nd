@@ -36,7 +36,7 @@ func TestAccResourceNdSiteTest(t *testing.T) {
 func TestAccResourceNdSiteWithImportTest(t *testing.T) {
 	t.Setenv("ND_SITE_USERNAME", "admin")
 	t.Setenv("ND_SITE_PASSWORD", "password")
-	t.Setenv("ND_LOGIN_DOMAIN", "local")
+	t.Setenv("ND_SITE_LOGIN_DOMAIN", "local")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
