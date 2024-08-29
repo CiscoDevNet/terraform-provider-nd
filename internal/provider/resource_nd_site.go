@@ -331,19 +331,20 @@ func (r *SiteResource) ImportState(ctx context.Context, req resource.ImportState
 
 	username := os.Getenv("ND_SITE_USERNAME")
 	if username == "" {
-		resp.Diagnostics.AddError("Missing input", "A username must be provided during import, please set the ND_SITE_USERNAME environment variable")
+		resp.Diagnostics.AddError("Missing input", "The username of the ND site must be provided during import, please set the ND_SITE_USERNAME environment variable")
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("username"), username)...)
 
 	password := os.Getenv("ND_SITE_PASSWORD")
 	if password == "" {
-		resp.Diagnostics.AddError("Missing input", "A password must be provided during import, please set the ND_SITE_PASSWORD environment variable")
+		resp.Diagnostics.AddError("Missing input", "The password of the ND site must be provided during import, please set the ND_SITE_PASSWORD environment variable")
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("password"), password)...)
 
 	loginDomain := os.Getenv("ND_LOGIN_DOMAIN")
 	if loginDomain == "" {
-		resp.Diagnostics.AddError("Missing input", "A login_domain must be provided during import, please set the ND_LOGIN_DOMAIN environment variable")
+		resp.Diagnostics.AddError("Missing input", "The login_domain of the ND site must be provided during import, please set the ND_LOGIN_DOMAIN environment variable")
+
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("login_domain"), loginDomain)...)
 
@@ -480,8 +481,6 @@ func getAndSetSiteAttributes(ctx context.Context, diags *diag.Diagnostics, clien
 
 			if os.Getenv("ND_LOGIN_DOMAIN") != "" {
 				data.LoginDomain = basetypes.NewStringValue(os.Getenv("ND_LOGIN_DOMAIN"))
-			} else if attributeName == "loginDomain" {
-				data.LoginDomain = basetypes.NewStringValue(attributeValue.(string))
 			}
 		}
 	} else {
