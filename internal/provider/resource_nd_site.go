@@ -329,6 +329,8 @@ func (r *SiteResource) ImportState(ctx context.Context, req resource.ImportState
 	var stateData *SiteResourceModel
 	resp.Diagnostics.Append(resp.State.Get(ctx, &stateData)...)
 
+	// The API does not return the username, password, and login_domain attributes.
+	// Therefore, these attributes will be assigned based on the values of environment variables.
 	username := os.Getenv("ND_SITE_USERNAME")
 	if username == "" {
 		resp.Diagnostics.AddError("Missing input", "The username of the ND site must be provided during import, please set the ND_SITE_USERNAME environment variable")
@@ -344,7 +346,6 @@ func (r *SiteResource) ImportState(ctx context.Context, req resource.ImportState
 	loginDomain := os.Getenv("ND_SITE_LOGIN_DOMAIN")
 	if loginDomain == "" {
 		resp.Diagnostics.AddError("Missing input", "The login_domain of the ND site must be provided during import, please set the ND_SITE_LOGIN_DOMAIN environment variable")
-
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("login_domain"), loginDomain)...)
 
@@ -444,6 +445,8 @@ func setSiteId(ctx context.Context, data *SiteResourceModel) {
 func getAndSetSiteAttributes(ctx context.Context, diags *diag.Diagnostics, client *Client, data *SiteResourceModel) {
 
 	responseData := DoRestRequest(ctx, diags, client, fmt.Sprintf("%s/%s", sitePath, data.Id.ValueString()), "GET", nil)
+	// The API does not return the username, password, and login_domain attributes.
+	// Therefore, these attributes will be assigned based on the user's configuration settings or the values of environment variables.
 	*data = *getBaseSiteResourceModel(data.SiteUsername.ValueString(), data.SitePassword.ValueString(), data.LoginDomain.ValueString())
 
 	if diags.HasError() {
@@ -477,10 +480,6 @@ func getAndSetSiteAttributes(ctx context.Context, diags *diag.Diagnostics, clien
 
 			if attributeName == "longitude" {
 				data.Longitude = basetypes.NewStringValue(attributeValue.(string))
-			}
-
-			if os.Getenv("ND_SITE_LOGIN_DOMAIN") != "" {
-				data.LoginDomain = basetypes.NewStringValue(os.Getenv("ND_SITE_LOGIN_DOMAIN"))
 			}
 		}
 	} else {
