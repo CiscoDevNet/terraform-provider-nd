@@ -25,6 +25,7 @@ func TestAccDataSourceNdSite(t *testing.T) {
 					resource.TestCheckResourceAttr("nd_site.example_0", "type", "aci"),
 					resource.TestCheckResourceAttr("nd_site.example_0", "username", "admin"),
 					resource.TestCheckResourceAttr("nd_site.example_0", "url", "10.195.219.154"),
+					resource.TestCheckResourceAttr("nd_site.example_0", "use_proxy", "false"),
 				),
 			},
 			{

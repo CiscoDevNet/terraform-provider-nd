@@ -38,6 +38,7 @@ resource "nd_site" "example" {
   login_domain = "local"
   latitude     = "19.36475238603211"
   longitude    = "-155.28865502961474"
+  use_proxy    = false
 }
 ```
 
@@ -60,6 +61,8 @@ All examples for the Site resource can be found in the [examples](https://github
 * `inband_epg` (inband_epg) - (String) The In-Band Endpoint Group (EPG) used to connect ND to the site.
 * `latitude` (latitude) - (String) The latitude location of the site.
 * `longitude` (longitude) - (String) The longitude location of the site.
+* `use_proxy` (useProxy) - (Bool) The use proxy of the site, used to route network traffic through a proxy server.
+  * Default: false
 
 ### Read-Only ###
 
@@ -67,7 +70,7 @@ All examples for the Site resource can be found in the [examples](https://github
 
 ## Importing
 
-~> The environment variables `ND_SITE_USERNAME`, `ND_SITE_PASSWORD` and `ND_LOGIN_DOMAIN` must be set in order to import.
+~> The details for `username`, `password`, and `login_domain` will be set to `null` when the `nd_site` resource imports an already registered site from the Nexus Dashboard. Modifying the `username`, `password`, and `login_domain` will not update the imported site configuration on the Nexus Dashboard.
 
 An existing Site can be [imported](https://www.terraform.io/docs/import/index.html) into this resource with its name (name), via the following command:
 

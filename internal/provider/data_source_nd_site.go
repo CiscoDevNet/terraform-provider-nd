@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/CiscoDevNet/terraform-provider-nd/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -18,7 +19,7 @@ func NewSiteDataSource() datasource.DataSource {
 
 // SiteDataSource defines the data source implementation.
 type SiteDataSource struct {
-	client *Client
+	client *client.Client
 }
 
 func (d *SiteDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -74,6 +75,10 @@ func (d *SiteDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 				Computed:            true,
 				MarkdownDescription: "The longitude location of the site.",
 			},
+			"use_proxy": schema.BoolAttribute{
+				Computed:            true,
+				MarkdownDescription: "The use proxy of the site.",
+			},
 		},
 	}
 	tflog.Debug(ctx, "End schema of datasource: nd_site")
@@ -86,7 +91,7 @@ func (d *SiteDataSource) Configure(ctx context.Context, req datasource.Configure
 		return
 	}
 
-	client, ok := req.ProviderData.(*Client)
+	client, ok := req.ProviderData.(*client.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(

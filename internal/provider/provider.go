@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/CiscoDevNet/terraform-provider-nd/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -94,7 +95,7 @@ func (p *ndProvider) Schema(ctx context.Context, req provider.SchemaRequest, res
 				},
 			},
 			"insecure": schema.BoolAttribute{
-				Description: "Allow insecure HTTPS client. This can also be set as the ND_INSECURE environment variable. Defaults to `true`.",
+				Description: "Allow insecure HTTPS client. This can also be set as the ND_INSECURE environment variable. Defaults to `false`.",
 				Optional:    true,
 			},
 			"proxy_url": schema.StringAttribute{
@@ -137,7 +138,7 @@ func (p *ndProvider) Configure(ctx context.Context, req provider.ConfigureReques
 
 	username := getStringAttribute(data.Username, "ND_USERNAME")
 	password := getStringAttribute(data.Password, "ND_PASSWORD")
-	isInsecure := getBoolAttribute(resp, data.IsInsecure, "ND_INSECURE", true)
+	isInsecure := getBoolAttribute(resp, data.IsInsecure, "ND_INSECURE", false)
 	proxyUrl := getStringAttribute(data.ProxyUrl, "ND_PROXY_URL")
 	url := getStringAttribute(data.URL, "ND_URL")
 	loginDomain := getStringAttribute(data.LoginDomain, "ND_LOGIN_DOMAIN")
@@ -162,7 +163,7 @@ func (p *ndProvider) Configure(ctx context.Context, req provider.ConfigureReques
 		loginDomain = "DefaultAuth"
 	}
 
-	ndClient := GetClient(url, username, password, proxyUrl, proxyCreds, loginDomain, isInsecure, maxRetries)
+	ndClient := client.GetClient(url, username, password, proxyUrl, proxyCreds, loginDomain, isInsecure, maxRetries)
 
 	resp.DataSourceData = ndClient
 	resp.ResourceData = ndClient

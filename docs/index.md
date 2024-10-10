@@ -9,7 +9,7 @@ description: |-
 
 # Nexus Dashboard (ND)
 
-Cisco Nexus Dashboard is a central management console for multiple data center sites and a common platform for hosting Cisco data center operation services, such as Nexus Dashboard Insights and Nexus Dashboard Orchestrator. These services are available for all the data center sites and provide real time analytics, visibility, assurance for network policies and operations, as well as policy orchestration for the data center fabrics, such as Cisco ACI or Cisco NDFC.
+Cisco Nexus Dashboard is a central management console for multiple data center sites and a common analytics solution for Cisco data center operations. Nexus Dashboard allows users to manage multiple data center sites and provide real time analytics, visibility, assurance for network policies and operations, as well as policy orchestration for the data center fabrics, such as Cisco ACI or Cisco NDFC or standalone Nexus 9000 switches.
 
 # Cisco ND Provider
 
@@ -17,7 +17,7 @@ The Cisco ND terraform provider is used to interact with resources provided by C
 
 ## Authentication
 
-Authentication with user-id and password.
+Authentication with username and password.
  
 Example:
 
@@ -29,8 +29,6 @@ provider "nd" {
   login_domain = "DefaultAuth"
 }
 ```
-
-In this method, it will obtain an authentication token from Cisco Nexus Dashboard and will use that token to authenticate. A limitation with this approach is Nexus Dashboard counts the request to authenticate and threshold it to avoid DOS attack. After too many attempts this authentication method may fail as the threshold will be exceeded. To avoid the above-mentioned problem Cisco Nexus Dashboard supports signature-based authentication.
 
 ## Example Usage
 
@@ -47,7 +45,7 @@ provider "nd" {
   username = "admin"
   password = "password"
   url      = "https://my-cisco-nd.com"
-  insecure = true
+  insecure = false
 }
 
 resource "nd_site" "example" {
@@ -80,7 +78,7 @@ resource "nd_site" "example" {
   - Default: `DefaultAuth`
   - Environment variable: `ND_LOGIN_DOMAIN`
 - `insecure` (Boolean) Allow insecure HTTPS client.
-  - Default: `true`
+  - Default: `false`
   - Environment variable: `ND_INSECURE`
 - `proxy_creds` (String) Proxy server credentials in the form of `username:password`.
   - Environment variable: `ND_PROXY_CREDS`

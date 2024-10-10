@@ -1,4 +1,4 @@
-package provider
+package client
 
 import (
 	"bytes"
@@ -39,10 +39,10 @@ const DefaultBackoffDelayFactor float64 = 3
 
 // Client is the main entry point
 type Client struct {
-	BaseURL            *url.URL
+	baseURL            *url.URL
 	httpClient         *http.Client
-	AuthToken          *Auth
-	Mutex              sync.Mutex
+	authToken          *Auth
+	mutex              sync.Mutex
 	username           string
 	password           string
 	insecure           bool
@@ -68,7 +68,7 @@ func initClient(clientUrl, username, password, proxyUrl, proxyCreds, loginDomain
 	}
 
 	client := &Client{
-		BaseURL:    bUrl,
+		baseURL:    bUrl,
 		username:   username,
 		httpClient: http.DefaultClient,
 		password:   password,
@@ -147,7 +147,7 @@ func (c *Client) MakeRestRequest(method string, path string, body *gabs.Containe
 		validateString.Set("validate", "false")
 		url.RawQuery = validateString.Encode()
 	}
-	fURL := c.BaseURL.ResolveReference(url)
+	fURL := c.baseURL.ResolveReference(url)
 
 	var req *http.Request
 	if method == "GET" || method == "DELETE" {
@@ -213,12 +213,12 @@ func (c *Client) Authenticate() error {
 		return errors.New("Invalid Username or Password")
 	}
 
-	if c.AuthToken == nil {
-		c.AuthToken = &Auth{}
+	if c.authToken == nil {
+		c.authToken = &Auth{}
 	}
 
-	c.AuthToken.Token = token
-	c.AuthToken.CalculateExpiry(1200) //refreshTime=1200 Sec
+	c.authToken.Token = token
+	c.authToken.CalculateExpiry(1200) //refreshTime=1200 Sec
 
 	return nil
 }
@@ -312,14 +312,15 @@ func (c *Client) Do(req *http.Request, skipLoggingPayload bool) (*gabs.Container
 	}
 }
 
-func DoRestRequest(ctx context.Context, diags *diag.Diagnostics, client *Client, path, method string, payload *gabs.Container) *gabs.Container {
+// func (c *Client) DoRestRequest(ctx context.Context, diags *diag.Diagnostics, client *Client, path, method string, payload *gabs.Container) *gabs.Container {
+func (c *Client) DoRestRequest(ctx context.Context, diags *diag.Diagnostics, path, method string, payload *gabs.Container) *gabs.Container {
 	if !strings.HasPrefix("/", path) {
 		path = fmt.Sprintf("/%s", path)
 	}
 	var restRequest *http.Request
 	var err error
 
-	restRequest, err = client.MakeRestRequest(method, path, payload, true, client.skipLoggingPayload)
+	restRequest, err = c.MakeRestRequest(method, path, payload, true, c.skipLoggingPayload)
 	if err != nil {
 		diags.AddError(
 			"Creation of rest request failed",
@@ -328,7 +329,7 @@ func DoRestRequest(ctx context.Context, diags *diag.Diagnostics, client *Client,
 		return nil
 	}
 
-	cont, restResponse, err := client.Do(restRequest, client.skipLoggingPayload)
+	cont, restResponse, err := c.Do(restRequest, c.skipLoggingPayload)
 
 	// Return nil when the object is not found and ignore 404 not found error
 	// The resource ID will be set it to nil and the state file content will be deleted when the object is not found

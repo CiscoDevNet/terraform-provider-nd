@@ -1,4 +1,4 @@
-package provider
+package client
 
 import (
 	"fmt"
@@ -29,7 +29,7 @@ func (t *Auth) estimateExpireTime() int64 {
 
 func (client *Client) InjectAuthenticationHeader(req *http.Request, path string) (*http.Request, error) {
 	log.Printf("[DEBUG] Begin Injection")
-	if client.AuthToken == nil || !client.AuthToken.IsValid() {
+	if client.authToken == nil || !client.authToken.IsValid() {
 		err := client.Authenticate()
 		if err != nil {
 			return nil, err
@@ -37,9 +37,9 @@ func (client *Client) InjectAuthenticationHeader(req *http.Request, path string)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", client.AuthToken.Token))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", client.authToken.Token))
 	// The header "Cookie" must be set for the Nexus Dashboard 2.3 and later versions.
-	req.Header.Set("Cookie", fmt.Sprintf("AuthCookie=%s", client.AuthToken.Token))
+	req.Header.Set("Cookie", fmt.Sprintf("AuthCookie=%s", client.authToken.Token))
 
 	return req, nil
 }

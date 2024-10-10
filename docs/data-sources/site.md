@@ -44,3 +44,4 @@ data "nd_site" "example" {
 * `inband_epg` (inband_epg) - (String) The In-Band Endpoint Group (EPG) used to connect ND to the site.
 * `latitude` (latitude) - (String) The latitude location of the site.
 * `longitude` (longitude) - (String) The longitude location of the site.
+* `use_proxy` (useProxy) - (Bool) The use proxy of the site, used to route network traffic through a proxy server.

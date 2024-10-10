@@ -8,4 +8,5 @@ resource "nd_site" "example" {
   latitude     = "19.36475238603211"
   longitude    = "-155.28865502961474"
   login_domain = "local"
+  use_proxy    = true
 }

@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 
+	"github.com/CiscoDevNet/terraform-provider-nd/internal/client"
 	"github.com/Jeffail/gabs/v2"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -46,7 +47,7 @@ func NewSiteResource() resource.Resource {
 
 // SiteResource defines the resource implementation.
 type SiteResource struct {
-	client *Client
+	client *client.Client
 }
 
 // SiteResourceModel describes the resource data model.
@@ -61,20 +62,50 @@ type SiteResourceModel struct {
 	SiteType     types.String `tfsdk:"type"`
 	Latitude     types.String `tfsdk:"latitude"`
 	Longitude    types.String `tfsdk:"longitude"`
+	UseProxy     types.Bool   `tfsdk:"use_proxy"`
 }
 
 func getBaseSiteResourceModel(username, password, login_domain string) *SiteResourceModel {
 	return &SiteResourceModel{
 		Id:           basetypes.NewStringNull(),
 		SiteName:     basetypes.NewStringNull(),
-		SitePassword: basetypes.NewStringValue(password),
 		SiteUsername: basetypes.NewStringValue(username),
+		SitePassword: basetypes.NewStringValue(password),
 		LoginDomain:  basetypes.NewStringValue(login_domain),
 		InbandEpg:    basetypes.NewStringNull(),
 		Url:          basetypes.NewStringNull(),
 		SiteType:     basetypes.NewStringNull(),
 		Latitude:     basetypes.NewStringNull(),
 		Longitude:    basetypes.NewStringNull(),
+		UseProxy:     basetypes.NewBoolNull(),
+	}
+}
+
+func (r *SiteResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if !req.Plan.Raw.IsNull() {
+		var planData, stateData, configData *SiteResourceModel
+		resp.Diagnostics.Append(req.Plan.Get(ctx, &planData)...)
+		resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...)
+		resp.Diagnostics.Append(req.Config.Get(ctx, &configData)...)
+
+		if stateData != nil {
+			if resp.Diagnostics.HasError() {
+				return
+			}
+
+			if !configData.SiteUsername.IsNull() && stateData.SiteUsername.ValueString() == "" {
+				planData.SiteUsername = basetypes.NewStringValue("")
+			}
+
+			if !configData.SitePassword.IsNull() && stateData.SitePassword.ValueString() == "" {
+				planData.SitePassword = basetypes.NewStringValue("")
+			}
+
+			if !configData.LoginDomain.IsNull() && stateData.LoginDomain.ValueString() == "" {
+				planData.LoginDomain = basetypes.NewStringValue("")
+			}
+		}
+		resp.Diagnostics.Append(resp.Plan.Set(ctx, &planData)...)
 	}
 }
 
@@ -176,6 +207,14 @@ func (r *SiteResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"use_proxy": schema.BoolAttribute{
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "The use proxy of the site, used to route network traffic through a proxy server.",
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+			},
 		},
 	}
 	tflog.Debug(ctx, "End schema of resource: nd_site")
@@ -188,12 +227,12 @@ func (r *SiteResource) Configure(ctx context.Context, req resource.ConfigureRequ
 		return
 	}
 
-	client, ok := req.ProviderData.(*Client)
+	client, ok := req.ProviderData.(*client.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -224,7 +263,7 @@ func (r *SiteResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	DoRestRequest(ctx, &resp.Diagnostics, r.client, sitePath, "POST", jsonPayload)
+	r.client.DoRestRequest(ctx, &resp.Diagnostics, sitePath, "POST", jsonPayload)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -286,7 +325,7 @@ func (r *SiteResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	DoRestRequest(ctx, &resp.Diagnostics, r.client, fmt.Sprintf("%s/%s", sitePath, data.Id.ValueString()), "PUT", jsonPayload)
+	r.client.DoRestRequest(ctx, &resp.Diagnostics, fmt.Sprintf("%s/%s", sitePath, data.Id.ValueString()), "PUT", jsonPayload)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -315,7 +354,7 @@ func (r *SiteResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	DoRestRequest(ctx, &resp.Diagnostics, r.client, fmt.Sprintf("%s/%s", sitePath, data.Id.ValueString()), "DELETE", nil)
+	r.client.DoRestRequest(ctx, &resp.Diagnostics, fmt.Sprintf("%s/%s", sitePath, data.Id.ValueString()), "DELETE", nil)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -328,26 +367,6 @@ func (r *SiteResource) ImportState(ctx context.Context, req resource.ImportState
 
 	var stateData *SiteResourceModel
 	resp.Diagnostics.Append(resp.State.Get(ctx, &stateData)...)
-
-	// The API does not return the username, password, and login_domain attributes.
-	// Therefore, these attributes will be assigned based on the values of environment variables.
-	username := os.Getenv("ND_SITE_USERNAME")
-	if username == "" {
-		resp.Diagnostics.AddError("Missing input", "The username of the ND site must be provided during import, please set the ND_SITE_USERNAME environment variable")
-	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("username"), username)...)
-
-	password := os.Getenv("ND_SITE_PASSWORD")
-	if password == "" {
-		resp.Diagnostics.AddError("Missing input", "The password of the ND site must be provided during import, please set the ND_SITE_PASSWORD environment variable")
-	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("password"), password)...)
-
-	loginDomain := os.Getenv("ND_SITE_LOGIN_DOMAIN")
-	if loginDomain == "" {
-		resp.Diagnostics.AddError("Missing input", "The login_domain of the ND site must be provided during import, please set the ND_SITE_LOGIN_DOMAIN environment variable")
-	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("login_domain"), loginDomain)...)
 
 	tflog.Debug(ctx, fmt.Sprintf("Import state of resource nd_site with id '%s'", stateData.Id.ValueString()))
 	tflog.Debug(ctx, "End import of state resource: nd_site")
@@ -388,6 +407,10 @@ func getSiteCreateJsonPayload(ctx context.Context, diags *diag.Diagnostics, data
 
 	if !data.Longitude.IsNull() && !data.Longitude.IsUnknown() {
 		payloadMap["longitude"] = data.Longitude.ValueString()
+	}
+
+	if !data.UseProxy.IsNull() && !data.UseProxy.IsUnknown() {
+		payloadMap["useProxy"] = data.UseProxy.ValueBool()
 	}
 
 	siteConfiguration := map[string]interface{}{}
@@ -442,9 +465,8 @@ func setSiteId(ctx context.Context, data *SiteResourceModel) {
 	data.Id = types.StringValue(data.SiteName.ValueString())
 }
 
-func getAndSetSiteAttributes(ctx context.Context, diags *diag.Diagnostics, client *Client, data *SiteResourceModel) {
-
-	responseData := DoRestRequest(ctx, diags, client, fmt.Sprintf("%s/%s", sitePath, data.Id.ValueString()), "GET", nil)
+func getAndSetSiteAttributes(ctx context.Context, diags *diag.Diagnostics, client *client.Client, data *SiteResourceModel) {
+	responseData := client.DoRestRequest(ctx, diags, fmt.Sprintf("%s/%s", sitePath, data.Id.ValueString()), "GET", nil)
 	// The API does not return the username, password, and login_domain attributes.
 	// Therefore, these attributes will be assigned based on the user's configuration settings or the values of environment variables.
 	*data = *getBaseSiteResourceModel(data.SiteUsername.ValueString(), data.SitePassword.ValueString(), data.LoginDomain.ValueString())
@@ -480,6 +502,10 @@ func getAndSetSiteAttributes(ctx context.Context, diags *diag.Diagnostics, clien
 
 			if attributeName == "longitude" {
 				data.Longitude = basetypes.NewStringValue(attributeValue.(string))
+			}
+
+			if attributeName == "useProxy" {
+				data.UseProxy = basetypes.NewBoolValue(attributeValue.(bool))
 			}
 		}
 	} else {
