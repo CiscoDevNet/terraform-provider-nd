@@ -85,7 +85,7 @@ import {
 }
 ```
 
-~> The values for `username`, `password`, and `login_domain` attributes will not be imported when the nd_site resource imports an already registered site from the Nexus Dashboard. Use the `-replace` option to change the `username`, `password`, and `login_domain` attributes for the imported site.
+~> The values for `username`, `password`, and `login_domain` attributes will not be imported when the `nd_site` resource imports an already registered site from Nexus Dashboard. Modifying the `username`, `password`, and `login_domain` will not update the imported site configuration on Nexus Dashboard. Use the `-replace` option to force the site recreation and use the new provided `username`, `password`, and `login_domain` attributes for the imported site.
 
 ```
 terraform apply -replace="nd_site.example"
