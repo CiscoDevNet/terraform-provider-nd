@@ -62,6 +62,7 @@ jobs:
         nd_host:
           - name: v3.1
             url: "https://173.36.219.35/"
+            insecure: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -78,6 +79,7 @@ jobs:
           TF_ACC_STATE_LINEAGE: "1"
           ND_VAL_REL_DN: false
           ND_URL: ${{ matrix.nd_host.url }}
+          ND_INSECURE: ${{ matrix.nd_host.insecure }}
       - name: Upload coverage to Codecov
         # Upload Coverage on latest only
         if: ${{ matrix.nd_host.name == 'v3.1'}}
