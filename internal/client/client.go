@@ -130,17 +130,12 @@ func (c *Client) configProxy(transport *http.Transport) *http.Transport {
 	return transport
 }
 
-func (c *Client) MakeRestRequest(method string, path string, body *gabs.Container, authenticated bool, skipLoggingPayload bool) (*http.Request, error) {
-	if path != "/login" {
-		if strings.HasPrefix(path, "/") {
-			path = path[1:]
-		}
-		path = fmt.Sprintf("/%v", path)
-	}
+func (c *Client) makeFullUrl(method string, path string) (string, error) {
+	path = strings.TrimLeft(path, "/")
+	path = fmt.Sprintf("/%v", path)
 	url, err := url.Parse(path)
-
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if method == "PATCH" {
 		validateString := url.Query()
@@ -148,12 +143,19 @@ func (c *Client) MakeRestRequest(method string, path string, body *gabs.Containe
 		url.RawQuery = validateString.Encode()
 	}
 	fURL := c.baseURL.ResolveReference(url)
+	return fURL.String(), nil
+}
 
+func (c *Client) MakeRestRequest(method string, path string, body *gabs.Container, authenticated bool, skipLoggingPayload bool) (*http.Request, error) {
+	fURL, err := c.makeFullUrl(method, path)
+	if err != nil {
+		return nil, err
+	}
 	var req *http.Request
 	if method == "GET" || method == "DELETE" {
-		req, err = http.NewRequest(method, fURL.String(), nil)
+		req, err = http.NewRequest(method, fURL, nil)
 	} else {
-		req, err = http.NewRequest(method, fURL.String(), bytes.NewBuffer((body.Bytes())))
+		req, err = http.NewRequest(method, fURL, bytes.NewBuffer((body.Bytes())))
 	}
 	if err != nil {
 		return nil, err
