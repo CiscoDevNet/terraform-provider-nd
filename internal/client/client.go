@@ -277,7 +277,10 @@ func (c *Client) Do(req *http.Request, skipLoggingPayload bool) (*gabs.Container
 			log.Printf("[DEBUG] HTTP response unique string %s %s %s", req.Method, req.URL.String(), bodyStr)
 		}
 
-		if req.Method != "DELETE" && resp.StatusCode != 204 {
+		if req.Method == "POST" && resp.StatusCode == 200 && bodyStr == "" {
+			log.Printf("[DEBUG] Exit from do method")
+			return nil, resp, nil
+		} else if req.Method != "DELETE" && resp.StatusCode != 204 {
 			obj, err := gabs.ParseJSON(bodyBytes)
 			if err != nil {
 				log.Printf("Error occurred while json parsing %+v", err)

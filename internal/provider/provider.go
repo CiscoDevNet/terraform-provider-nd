@@ -173,12 +173,14 @@ func (p *ndProvider) DataSources(ctx context.Context) []func() datasource.DataSo
 	return []func() datasource.DataSource{
 		NewVersionDataSource,
 		NewSiteDataSource,
+		NewClusterDataSource,
 	}
 }
 
 func (p *ndProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewSiteResource,
+		NewClusterResource,
 	}
 }
 
