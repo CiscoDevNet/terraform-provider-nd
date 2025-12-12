@@ -91,15 +91,19 @@ func (d *ClusterDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 			},
 			"latitude": schema.Float64Attribute{
 				Computed:            true,
-				MarkdownDescription: "The latitude location of the cluster.",
+				MarkdownDescription: "The latitude coordinate of the cluster.",
 			},
 			"longitude": schema.Float64Attribute{
 				Computed:            true,
-				MarkdownDescription: "The longitude location of the cluster.",
+				MarkdownDescription: "The longitude coordinate of the cluster.",
 			},
 			"telemetry_streaming_protocol": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The telemetry streaming protocol of the cluster.",
+			},
+			"telemetry_network": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "The telemetry network type of the cluster.",
 			},
 		},
 	}
@@ -138,8 +142,7 @@ func (d *ClusterDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	setClusterId(ctx, data, data.FabricName.ValueString())
-
+	data.Id = types.StringValue(data.FabricName.ValueString())
 	tflog.Debug(ctx, fmt.Sprintf("Read of datasource nd_multi_cluster_connectivity with id '%s'", data.Id.ValueString()))
 
 	getAndSetClusterAttributes(ctx, &resp.Diagnostics, d.client, data)

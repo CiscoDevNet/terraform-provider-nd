@@ -40,6 +40,8 @@ data "nd_multi_cluster_connectivity" "example" {
 * `cluster_hostname` (onboardUrl) - (String) The URL or Hostname of the cluster.
 * `cluster_username` (user) - (String) The username of the cluster.
 * `cluster_password` (password) - (String) The password of the cluster.
+* `latitude` (latitude) - (Float) The latitude coordinate of the cluster.
+* `longitude` (longitude) - (Float) The longitude coordinate of the cluster.
 * `cluster_login_domain` (loginDomain) - (String) The login domain of the cluster.
 * `multi_cluster_login_domain` (multiClusterLoginDomainName) - (String) The multi cluster login domain of the cluster.
 * `license_tier` (licenseTier) - (String) The license tier of the cluster.
@@ -47,6 +49,5 @@ data "nd_multi_cluster_connectivity" "example" {
 * `inband_epg` (epg) - (String) The Inband EPG name of the cluster.
 * `security_domain` (securityDomain) - (String) The security domain of the cluster.
 * `validate_peer_certificate` (verifyCA) - (Bool) The validate peer certificate flag of the cluster.
-* `latitude` (latitude) - (Float) The latitude location of the cluster.
-* `longitude` (longitude) - (Float) The longitude location of the cluster.
 * `telemetry_streaming_protocol` (useProxy) - (String) The telemetry streaming protocol of the cluster.
+* `telemetry_network` (network) - (String) The telemetry network type of the cluster.

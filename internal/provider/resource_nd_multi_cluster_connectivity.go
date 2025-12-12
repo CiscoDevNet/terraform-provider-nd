@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -58,6 +57,7 @@ type ClusterResourceModel struct {
 	Latitude                   types.Float64 `tfsdk:"latitude"`
 	Longitude                  types.Float64 `tfsdk:"longitude"`
 	TelemetryStreamingProtocol types.String  `tfsdk:"telemetry_streaming_protocol"`
+	TelemetryNetwork           types.String  `tfsdk:"telemetry_network"`
 }
 
 func getBaseClusterResourceModel(username, password, clusterLoginDomain, multiClusterLoginDomain string) *ClusterResourceModel {
@@ -78,6 +78,7 @@ func getBaseClusterResourceModel(username, password, clusterLoginDomain, multiCl
 		Latitude:                   basetypes.NewFloat64Null(),
 		Longitude:                  basetypes.NewFloat64Null(),
 		TelemetryStreamingProtocol: basetypes.NewStringNull(),
+		TelemetryNetwork:           basetypes.NewStringNull(),
 	}
 }
 
@@ -87,6 +88,41 @@ func (r *ClusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPla
 		resp.Diagnostics.Append(req.Plan.Get(ctx, &planData)...)
 		resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...)
 		resp.Diagnostics.Append(req.Config.Get(ctx, &configData)...)
+
+		if configData.ClusterType.ValueString() == "nd" {
+			if configData.LicenseTier.ValueString() != "" {
+				resp.Diagnostics.AddError("The license_tier is invalid attribute for cluster_type: nd", "The license_tier attribute is only applicable when cluster_type is set to apic.")
+			}
+			if !configData.Features.IsNull() && !configData.Features.IsUnknown() {
+				resp.Diagnostics.AddError("The features is invalid attribute for cluster_type: nd", "The features attribute is only applicable when cluster_type is set to apic.")
+			}
+			if configData.InbandEpg.ValueString() != "" {
+				resp.Diagnostics.AddError("The inband_epg is invalid attribute for cluster_type: nd", "The inband_epg attribute is only applicable when cluster_type is set to apic.")
+			}
+			if configData.SecurityDomain.ValueString() != "" {
+				resp.Diagnostics.AddError("The security_domain is invalid attribute for cluster_type: nd", "The security_domain attribute is only applicable when cluster_type is set to apic.")
+			}
+			if !configData.ValidatePeerCertificate.IsNull() && !configData.ValidatePeerCertificate.IsUnknown() {
+				resp.Diagnostics.AddError("The validate_peer_certificate is invalid attribute for cluster_type: nd", "The validate_peer_certificate attribute is only applicable when cluster_type is set to apic.")
+			}
+			if configData.TelemetryStreamingProtocol.ValueString() != "" {
+				resp.Diagnostics.AddError("The telemetry_streaming_protocol is invalid attribute for cluster_type: nd", "The telemetry_streaming_protocol attribute is only applicable when cluster_type is set to apic.")
+			}
+			if configData.TelemetryNetwork.ValueString() != "" {
+				resp.Diagnostics.AddError("The telemetry_network is invalid attribute for cluster_type: nd", "The telemetry_network attribute is only applicable when cluster_type is set to apic.")
+			}
+		} else if planData.ClusterType.ValueString() == "apic" {
+			if configData.ClusterLoginDomain.ValueString() != "" {
+				resp.Diagnostics.AddError("The cluster_login_domain is invalid attribute for cluster_type: apic", "The cluster_login_domain attribute is only applicable when cluster_type is set to nd.")
+			}
+			if configData.MultiClusterLoginDomain.ValueString() != "" {
+				resp.Diagnostics.AddError("The multi_cluster_login_domain is invalid attribute for cluster_type: apic", "The multi_cluster_login_domain attribute is only applicable when cluster_type is set to nd.")
+			}
+		}
+
+		if resp.Diagnostics.HasError() {
+			return
+		}
 
 		if stateData != nil {
 			if resp.Diagnostics.HasError() {
@@ -101,12 +137,40 @@ func (r *ClusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPla
 				planData.ClusterPassword = basetypes.NewStringValue("")
 			}
 
-			if !configData.ClusterLoginDomain.IsNull() && stateData.ClusterLoginDomain.ValueString() == "" {
+			if (configData.ClusterLoginDomain.IsNull() || configData.ClusterLoginDomain.IsUnknown()) && (stateData.ClusterLoginDomain.IsNull() || stateData.ClusterLoginDomain.IsUnknown()) || stateData.ClusterLoginDomain.ValueString() == "" {
 				planData.ClusterLoginDomain = basetypes.NewStringValue("")
 			}
 
-			if !configData.MultiClusterLoginDomain.IsNull() && stateData.MultiClusterLoginDomain.ValueString() == "" {
+			if (configData.MultiClusterLoginDomain.IsNull() || configData.MultiClusterLoginDomain.IsUnknown()) && (stateData.MultiClusterLoginDomain.IsNull() || stateData.MultiClusterLoginDomain.IsUnknown()) || stateData.MultiClusterLoginDomain.ValueString() == "" {
 				planData.MultiClusterLoginDomain = basetypes.NewStringValue("")
+			}
+
+			if (configData.SecurityDomain.IsNull() || configData.SecurityDomain.IsUnknown()) && (stateData.SecurityDomain.IsNull() || stateData.SecurityDomain.IsUnknown()) {
+				planData.SecurityDomain = basetypes.NewStringNull()
+			}
+
+			if (configData.LicenseTier.IsNull() || configData.LicenseTier.IsUnknown()) && (stateData.LicenseTier.IsNull() || stateData.LicenseTier.IsUnknown()) {
+				planData.LicenseTier = basetypes.NewStringNull()
+			}
+
+			if (configData.InbandEpg.IsNull() || configData.InbandEpg.IsUnknown()) && (stateData.InbandEpg.IsNull() || stateData.InbandEpg.IsUnknown()) {
+				planData.InbandEpg = basetypes.NewStringNull()
+			}
+
+			if (configData.TelemetryNetwork.IsNull() || configData.TelemetryNetwork.IsUnknown()) && (stateData.TelemetryNetwork.IsNull() || stateData.TelemetryNetwork.IsUnknown()) {
+				planData.TelemetryNetwork = basetypes.NewStringNull()
+			}
+
+			if (configData.TelemetryStreamingProtocol.IsNull() || configData.TelemetryStreamingProtocol.IsUnknown()) && (stateData.TelemetryStreamingProtocol.IsNull() || stateData.TelemetryStreamingProtocol.IsUnknown()) {
+				planData.TelemetryStreamingProtocol = basetypes.NewStringNull()
+			}
+
+			if (configData.Features.IsNull() || configData.Features.IsUnknown()) && (stateData.Features.IsNull() || stateData.Features.IsUnknown()) {
+				planData.Features = basetypes.NewSetNull(types.StringType)
+			}
+
+			if (configData.ValidatePeerCertificate.IsNull() || configData.ValidatePeerCertificate.IsUnknown()) && (stateData.ValidatePeerCertificate.IsNull() || stateData.ValidatePeerCertificate.IsUnknown()) {
+				planData.ValidatePeerCertificate = basetypes.NewBoolNull()
 			}
 		}
 		resp.Diagnostics.Append(resp.Plan.Set(ctx, &planData)...)
@@ -130,17 +194,12 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Computed:            true,
 				MarkdownDescription: "The ID of the cluster.",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"cluster_type": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The type of the cluster. Allowed values are 'nd', or 'apic'.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
-				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("nd", "apic"),
 				},
@@ -148,56 +207,35 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"cluster_hostname": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The URL or Hostname of the cluster.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"cluster_username": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The username of the cluster.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"cluster_password": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The password of the cluster.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"cluster_login_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The login domain of the cluster.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				MarkdownDescription: "The login domain of the cluster. This attribute is only applicable when cluster_type is set to nd.",
 			},
 			"multi_cluster_login_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The multi cluster login domain of the cluster.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				MarkdownDescription: "The multi cluster login domain of the cluster. This attribute is only applicable when cluster_type is set to nd.",
 			},
 			"fabric_name": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The name of the cluster.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"license_tier": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The clusters license tier. Only one value can be specified at a time. Allowed values are 'advantage', or 'essentials', or 'premier'.",
+				MarkdownDescription: "The clusters license tier. Only one value can be specified at a time. Allowed values are 'advantage', or 'essentials', or 'premier'. This attribute is only applicable when cluster_type is set to apic.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
 				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("advantage", "essentials", "premier"),
@@ -207,10 +245,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
-				MarkdownDescription: "The features of the cluster. Allowed values are 'telemetry', 'orchestration'.",
-				PlanModifiers: []planmodifier.Set{
-					setplanmodifier.UseStateForUnknown(),
-				},
+				MarkdownDescription: "The features of the cluster. Allowed values are 'telemetry', 'orchestration'. This attribute is only applicable when cluster_type is set to apic.",
 				Validators: []validator.Set{
 					setvalidator.ValueStringsAre(
 						stringvalidator.OneOf("telemetry", "orchestration"),
@@ -220,24 +255,17 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"inband_epg": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The Inband EPG name of the cluster.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				MarkdownDescription: "The Inband EPG name of the cluster. This attribute is only applicable when cluster_type is set to apic.",
 			},
 			"security_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The security domain of the cluster.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				MarkdownDescription: "The security domain of the cluster. This attribute is only applicable when cluster_type is set to apic.",
 			},
 			"validate_peer_certificate": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The validate peer certificate flag of the cluster.",
-				PlanModifiers:       []planmodifier.Bool{},
+				MarkdownDescription: "The validate peer certificate flag of the cluster. This attribute is only applicable when cluster_type is set to apic.",
 			},
 			"latitude": schema.Float64Attribute{
 				Optional: true,
@@ -245,7 +273,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				PlanModifiers: []planmodifier.Float64{
 					float64planmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "The latitude location of the cluster.",
+				MarkdownDescription: "The latitude coordinate of the cluster.",
 			},
 			"longitude": schema.Float64Attribute{
 				Optional: true,
@@ -253,17 +281,30 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				PlanModifiers: []planmodifier.Float64{
 					float64planmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "The longitude location of the cluster.",
+				MarkdownDescription: "The longitude coordinate of the cluster.",
 			},
 			"telemetry_streaming_protocol": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The telemetry streaming protocol of the cluster. Only one value can be specified at a time. Allowed values are 'ipv4', or 'ipv6'.",
+				MarkdownDescription: "The telemetry streaming protocol of the cluster. Allowed values are 'ipv4', or 'ipv6'. This attribute is only applicable when cluster_type is set to apic.",
 				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("ipv4", "ipv6"),
+				},
+			},
+			"telemetry_network": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "The telemetry network type of the cluster. Allowed values are 'inband', or 'outband'. This attribute is only applicable when cluster_type is set to apic.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{
+					stringvalidator.OneOf("inband", "outband"),
 				},
 			},
 		},
@@ -308,7 +349,7 @@ func (r *ClusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	jsonPayload := getClusterCreateJsonPayload(ctx, &resp.Diagnostics, data, "POST")
+	jsonPayload := getClusterJsonPayload(ctx, &resp.Diagnostics, data, "POST")
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -320,7 +361,7 @@ func (r *ClusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	setClusterId(ctx, data, data.FabricName.ValueString())
+	data.Id = types.StringValue(data.FabricName.ValueString())
 	getAndSetClusterAttributes(ctx, &resp.Diagnostics, r.client, data)
 
 	// Save data into Terraform state
@@ -370,7 +411,7 @@ func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	tflog.Debug(ctx, fmt.Sprintf("Update of resource nd_multi_cluster_connectivity with id '%s'", data.Id.ValueString()))
 
-	jsonPayload := getClusterCreateJsonPayload(ctx, &resp.Diagnostics, data, "PUT")
+	jsonPayload := getClusterJsonPayload(ctx, &resp.Diagnostics, data, "PUT")
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -382,7 +423,6 @@ func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	setClusterId(ctx, data, data.Id.ValueString())
 	getAndSetClusterAttributes(ctx, &resp.Diagnostics, r.client, data)
 
 	// Save data into Terraform state
@@ -438,7 +478,7 @@ func (r *ClusterResource) ImportState(ctx context.Context, req resource.ImportSt
 	tflog.Debug(ctx, "End import of state resource: nd_multi_cluster_connectivity")
 }
 
-func getClusterCreateJsonPayload(ctx context.Context, diags *diag.Diagnostics, data *ClusterResourceModel, method string) *gabs.Container {
+func getClusterJsonPayload(ctx context.Context, diags *diag.Diagnostics, data *ClusterResourceModel, method string) *gabs.Container {
 	payloadMap := map[string]interface{}{}
 
 	clusterType := ""
@@ -452,7 +492,6 @@ func getClusterCreateJsonPayload(ctx context.Context, diags *diag.Diagnostics, d
 	}
 
 	if clusterType == "apic" {
-		clusterType = "APIC"
 		aciMap := map[string]interface{}{}
 		if !data.LicenseTier.IsNull() && !data.LicenseTier.IsUnknown() {
 			aciMap["licenseTier"] = data.LicenseTier.ValueString()
@@ -466,52 +505,40 @@ func getClusterCreateJsonPayload(ctx context.Context, diags *diag.Diagnostics, d
 			aciMap["verifyCA"] = data.ValidatePeerCertificate.ValueBool()
 		}
 
-		orchestrationStatus := "disabled"
-		telemetryStatus := "disabled"
 		if !data.Features.IsNull() && !data.Features.IsUnknown() {
 			featureStrings := make([]string, 0)
 			data.Features.ElementsAs(ctx, &featureStrings, false)
 			for _, feature := range featureStrings {
 				switch feature {
 				case "telemetry":
-					telemetryStatus = "enabled"
+					telemetryMap := map[string]string{"status": "enabled"}
+					if !data.TelemetryNetwork.IsNull() && !data.TelemetryNetwork.IsUnknown() {
+						telemetryMap["network"] = data.TelemetryNetwork.ValueString()
+					}
+					if !data.InbandEpg.IsNull() && !data.InbandEpg.IsUnknown() && data.InbandEpg.ValueString() != "" {
+						telemetryMap["epg"] = fmt.Sprintf("uni/tn-mgmt/mgmtp-default/inb-%s", data.InbandEpg.ValueString())
+					}
+					if !data.TelemetryStreamingProtocol.IsNull() && !data.TelemetryStreamingProtocol.IsUnknown() {
+						telemetryMap["streamingProtocol"] = data.TelemetryStreamingProtocol.ValueString()
+					}
+					aciMap["telemetry"] = telemetryMap
 				case "orchestration":
-					orchestrationStatus = "enabled"
+					aciMap["orchestration"] = map[string]interface{}{
+						"status": "enabled",
+					}
+
 				}
 			}
 		}
 
-		aciMap["orchestration"] = map[string]interface{}{
-			"status": orchestrationStatus,
-		}
-
-		epgDn := ""
-		telemetryNetworkType := "outband"
-		if !data.InbandEpg.IsNull() && !data.InbandEpg.IsUnknown() && data.InbandEpg.ValueString() != "" {
-			epgDn = fmt.Sprintf("uni/tn-mgmt/mgmtp-default/inb-%s", data.InbandEpg.ValueString())
-			telemetryNetworkType = "inband"
-		}
-
-		telemetryStreamingProtocol := "ipv4"
-		if !data.TelemetryStreamingProtocol.IsNull() && !data.TelemetryStreamingProtocol.IsUnknown() {
-			telemetryStreamingProtocol = data.TelemetryStreamingProtocol.ValueString()
-		}
-
-		aciMap["telemetry"] = map[string]interface{}{
-			"status":            telemetryStatus,
-			"network":           telemetryNetworkType,
-			"streamingProtocol": telemetryStreamingProtocol,
-			"epg":               epgDn,
-		}
 		payloadMap["aci"] = aciMap
 	} else if clusterType == "nd" {
-		clusterType = "ND"
 		if !data.MultiClusterLoginDomain.IsNull() && !data.MultiClusterLoginDomain.IsUnknown() {
 			payloadMap["nd"] = map[string]interface{}{"multiClusterLoginDomainName": data.MultiClusterLoginDomain.ValueString()}
 		}
 	}
 
-	payloadMap["clusterType"] = clusterType
+	payloadMap["clusterType"] = strings.ToUpper(clusterType)
 
 	if method == "PUT" {
 		payloadMap["name"] = fabricName
@@ -568,10 +595,6 @@ func getClusterCreateJsonPayload(ctx context.Context, diags *diag.Diagnostics, d
 	return jsonPayload
 }
 
-func setClusterId(ctx context.Context, data *ClusterResourceModel, fabricName string) {
-	data.Id = types.StringValue(fabricName)
-}
-
 func getAndSetClusterAttributes(ctx context.Context, diags *diag.Diagnostics, client *client.Client, data *ClusterResourceModel) {
 	responseData := client.DoRestRequest(ctx, diags, fmt.Sprintf("%s/%s", clusterPath, data.Id.ValueString()), "GET", nil)
 	// The API does not return the username, password, and login_domain attributes.
@@ -582,21 +605,16 @@ func getAndSetClusterAttributes(ctx context.Context, diags *diag.Diagnostics, cl
 	}
 
 	if responseData.Data() != nil {
-		responseReadInfo := responseData.Data().(map[string]interface{})
-		specReadInfo := responseReadInfo["spec"].(map[string]interface{})
+		specReadInfo := responseData.Data().(map[string]interface{})["spec"].(map[string]interface{})
 
 		for attributeName, attributeValue := range specReadInfo {
 			if attributeName == "name" {
 				data.FabricName = basetypes.NewStringValue(attributeValue.(string))
-				setClusterId(ctx, data, attributeValue.(string))
+				data.Id = types.StringValue(data.FabricName.ValueString())
 			}
 
 			if attributeName == "clusterType" {
-				if attributeValue.(string) == "APIC" {
-					data.ClusterType = basetypes.NewStringValue("apic")
-				} else {
-					data.ClusterType = basetypes.NewStringValue("nd")
-				}
+				data.ClusterType = basetypes.NewStringValue(strings.ToLower(attributeValue.(string)))
 			}
 			if attributeName == "onboardUrl" {
 				data.ClusterHostname = basetypes.NewStringValue(attributeValue.(string))
@@ -622,6 +640,9 @@ func getAndSetClusterAttributes(ctx context.Context, diags *diag.Diagnostics, cl
 				}
 
 				telemetryValueMap := aciValueMap["telemetry"].(map[string]interface{})
+				if telemetryValueMap["network"] != nil {
+					data.TelemetryNetwork = basetypes.NewStringValue(telemetryValueMap["network"].(string))
+				}
 				epgDn := telemetryValueMap["epg"].(string)
 				epgName := ""
 				if epgDn != "" {
