@@ -156,25 +156,25 @@ resource "nd_multi_cluster_connectivity" "onboard_apic" {
 
 const testConfigResourceNdMultiClusterConnectivityError = `
 resource "nd_multi_cluster_connectivity" "onboard_nd" {
-  fabric_name      = "nd1"
-  cluster_username = "admin"
-  cluster_password = "C1sco12345"
-  cluster_hostname = "198.18.133.203"
-  cluster_type     = "nd"
+  fabric_name       = "nd1"
+  cluster_username  = "admin"
+  cluster_password  = "C1sco12345"
+  cluster_hostname  = "198.18.133.203"
+  cluster_type      = "nd"
   telemetry_network = "inband"
 }
 `
 
 const testConfigResourceApicMultiClusterConnectivityError = `
 resource "nd_multi_cluster_connectivity" "onboard_apic" {
-  fabric_name      = "apic1"
-  cluster_username = "admin"
-  cluster_password = "C1sco12345"
-  cluster_hostname = "198.18.133.101"
-  cluster_type     = "apic"
-  license_tier     = "premier"
-  latitude         = 1.10
-  longitude        = 1.20
+  fabric_name                = "apic1"
+  cluster_username           = "admin"
+  cluster_password           = "C1sco12345"
+  cluster_hostname           = "198.18.133.101"
+  cluster_type               = "apic"
+  license_tier               = "premier"
+  latitude                   = 1.10
+  longitude                  = 1.20
   multi_cluster_login_domain = "test"
 }
 `

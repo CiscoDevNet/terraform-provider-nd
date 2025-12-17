@@ -38,12 +38,8 @@ data "nd_multi_cluster_connectivity" "example" {
 * `id` (id) - (String) The ID of the cluster.
 * `cluster_type` (clusterType) - (String) The type of the cluster.
 * `cluster_hostname` (onboardUrl) - (String) The URL or Hostname of the cluster.
-* `cluster_username` (user) - (String) The username of the cluster.
-* `cluster_password` (password) - (String) The password of the cluster.
 * `latitude` (latitude) - (Float) The latitude coordinate of the cluster.
 * `longitude` (longitude) - (Float) The longitude coordinate of the cluster.
-* `cluster_login_domain` (loginDomain) - (String) The login domain of the cluster.
-* `multi_cluster_login_domain` (multiClusterLoginDomainName) - (String) The multi cluster login domain of the cluster.
 * `license_tier` (licenseTier) - (String) The license tier of the cluster.
 * `features` (orchestration,telemetry) - (List) The features of the cluster.
 * `inband_epg` (epg) - (String) The Inband EPG name of the cluster.
