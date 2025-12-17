@@ -99,8 +99,22 @@ import {
 }
 ```
 
-~> The values for `cluster_username`, `cluster_password`, `cluster_login_domain` and `multi_cluster_login_domain` attributes will not be imported when the `nd_multi_cluster_connectivity` resource imports an already registered cluster from Nexus Dashboard. Modifying the `fabric_name`, `cluster_type`, `cluster_username`, `cluster_password` and `cluster_login_domain` will not update the imported cluster configuration on Nexus Dashboard. Use the `-replace` option to force the cluster recreation and use the new provided `fabric_name`, `cluster_type`, `cluster_username`, `cluster_password` and `cluster_login_domain` attributes for the imported cluster.
+~> The values for `cluster_username`, `cluster_password`, `cluster_login_domain` and `multi_cluster_login_domain` attributes will not be imported when the `nd_multi_cluster_connectivity` resource imports an already registered cluster from Nexus Dashboard. To update/delete the imported cluster, use one of the following methods:
 
+### Option 1: Using a Cluster Credentials File
+
+Specify the path to a JSON file containing cluster credentials using the `CLUSTER_CREDENTIALS_FILE_LOCATION` environment variable. The fabric name of the cluster will be used to match the corresponding username and password within this file.
+
+**Example `CLUSTER_CREDENTIALS_FILE_LOCATION` file content:**
+
+```json
+{
+    "nd1": {"username": "user1", "password": "password1"},
+    "apic1": {"username": "user2", "password": "password2"},
+    "apic2": {"username": "user3", "password": "password3"}
+}
 ```
-terraform apply -replace="nd_multi_cluster_connectivity.example"
-```
+
+### Option 2: Using Direct Environment Variables
+
+Provide the cluster's username and password directly through the `CLUSTER_USERNAME` and `CLUSTER_PASSWORD` environment variables.

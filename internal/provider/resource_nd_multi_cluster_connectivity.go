@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -15,8 +16,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -60,15 +63,15 @@ type ClusterResourceModel struct {
 	TelemetryNetwork           types.String  `tfsdk:"telemetry_network"`
 }
 
-func getBaseClusterResourceModel(username, password, clusterLoginDomain, multiClusterLoginDomain string) *ClusterResourceModel {
+func getBaseClusterResourceModel(username, password, clusterLoginDomain, multiClusterLoginDomain basetypes.StringValue) *ClusterResourceModel {
 	return &ClusterResourceModel{
 		Id:                         basetypes.NewStringNull(),
 		ClusterType:                basetypes.NewStringNull(),
 		ClusterHostname:            basetypes.NewStringNull(),
-		ClusterUsername:            basetypes.NewStringValue(username),
-		ClusterPassword:            basetypes.NewStringValue(password),
-		ClusterLoginDomain:         basetypes.NewStringValue(clusterLoginDomain),
-		MultiClusterLoginDomain:    basetypes.NewStringValue(multiClusterLoginDomain),
+		ClusterUsername:            basetypes.NewStringValue(username.ValueString()),
+		ClusterPassword:            basetypes.NewStringValue(password.ValueString()),
+		ClusterLoginDomain:         basetypes.NewStringValue(clusterLoginDomain.ValueString()),
+		MultiClusterLoginDomain:    basetypes.NewStringValue(multiClusterLoginDomain.ValueString()),
 		FabricName:                 basetypes.NewStringNull(),
 		LicenseTier:                basetypes.NewStringNull(),
 		Features:                   basetypes.NewSetNull(types.StringType),
@@ -129,49 +132,18 @@ func (r *ClusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPla
 				return
 			}
 
-			if !configData.ClusterUsername.IsNull() && stateData.ClusterUsername.ValueString() == "" {
+			// The cluster_username attribute is required, but it is not included in the ND API response data, so its state will be set to an empty string.
+			// When this condition is met, an empty string will be assigned to the plan's cluster_username attribute to ignore any plantime changes.
+			if configData.ClusterUsername.ValueString() != "" && stateData.ClusterUsername.ValueString() == "" {
 				planData.ClusterUsername = basetypes.NewStringValue("")
 			}
 
-			if !configData.ClusterPassword.IsNull() && stateData.ClusterPassword.ValueString() == "" {
+			// The cluster_password attribute is required, but it is not included in the ND API response data, so its state will be set to an empty string.
+			// When this condition is met, an empty string will be assigned to the plan's cluster_password attribute to ignore any plantime changes.
+			if configData.ClusterPassword.ValueString() != "" && stateData.ClusterPassword.ValueString() == "" {
 				planData.ClusterPassword = basetypes.NewStringValue("")
 			}
 
-			if (configData.ClusterLoginDomain.IsNull() || configData.ClusterLoginDomain.IsUnknown()) && (stateData.ClusterLoginDomain.IsNull() || stateData.ClusterLoginDomain.IsUnknown()) || stateData.ClusterLoginDomain.ValueString() == "" {
-				planData.ClusterLoginDomain = basetypes.NewStringValue("")
-			}
-
-			if (configData.MultiClusterLoginDomain.IsNull() || configData.MultiClusterLoginDomain.IsUnknown()) && (stateData.MultiClusterLoginDomain.IsNull() || stateData.MultiClusterLoginDomain.IsUnknown()) || stateData.MultiClusterLoginDomain.ValueString() == "" {
-				planData.MultiClusterLoginDomain = basetypes.NewStringValue("")
-			}
-
-			if (configData.SecurityDomain.IsNull() || configData.SecurityDomain.IsUnknown()) && (stateData.SecurityDomain.IsNull() || stateData.SecurityDomain.IsUnknown()) {
-				planData.SecurityDomain = basetypes.NewStringNull()
-			}
-
-			if (configData.LicenseTier.IsNull() || configData.LicenseTier.IsUnknown()) && (stateData.LicenseTier.IsNull() || stateData.LicenseTier.IsUnknown()) {
-				planData.LicenseTier = basetypes.NewStringNull()
-			}
-
-			if (configData.InbandEpg.IsNull() || configData.InbandEpg.IsUnknown()) && (stateData.InbandEpg.IsNull() || stateData.InbandEpg.IsUnknown()) {
-				planData.InbandEpg = basetypes.NewStringNull()
-			}
-
-			if (configData.TelemetryNetwork.IsNull() || configData.TelemetryNetwork.IsUnknown()) && (stateData.TelemetryNetwork.IsNull() || stateData.TelemetryNetwork.IsUnknown()) {
-				planData.TelemetryNetwork = basetypes.NewStringNull()
-			}
-
-			if (configData.TelemetryStreamingProtocol.IsNull() || configData.TelemetryStreamingProtocol.IsUnknown()) && (stateData.TelemetryStreamingProtocol.IsNull() || stateData.TelemetryStreamingProtocol.IsUnknown()) {
-				planData.TelemetryStreamingProtocol = basetypes.NewStringNull()
-			}
-
-			if (configData.Features.IsNull() || configData.Features.IsUnknown()) && (stateData.Features.IsNull() || stateData.Features.IsUnknown()) {
-				planData.Features = basetypes.NewSetNull(types.StringType)
-			}
-
-			if (configData.ValidatePeerCertificate.IsNull() || configData.ValidatePeerCertificate.IsUnknown()) && (stateData.ValidatePeerCertificate.IsNull() || stateData.ValidatePeerCertificate.IsUnknown()) {
-				planData.ValidatePeerCertificate = basetypes.NewBoolNull()
-			}
 		}
 		resp.Diagnostics.Append(resp.Plan.Set(ctx, &planData)...)
 	}
@@ -215,16 +187,23 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"cluster_password": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The password of the cluster.",
+				Sensitive:           true,
 			},
 			"cluster_login_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				MarkdownDescription: "The login domain of the cluster. This attribute is only applicable when cluster_type is set to nd.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"multi_cluster_login_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				MarkdownDescription: "The multi cluster login domain of the cluster. This attribute is only applicable when cluster_type is set to nd.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"fabric_name": schema.StringAttribute{
 				Required:            true,
@@ -251,21 +230,34 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 						stringvalidator.OneOf("telemetry", "orchestration"),
 					),
 				},
+				PlanModifiers: []planmodifier.Set{
+					setplanmodifier.UseStateForUnknown(),
+					setplanmodifier.RequiresReplace(),
+				},
 			},
 			"inband_epg": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				MarkdownDescription: "The Inband EPG name of the cluster. This attribute is only applicable when cluster_type is set to apic.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"security_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				MarkdownDescription: "The security domain of the cluster. This attribute is only applicable when cluster_type is set to apic.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"validate_peer_certificate": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
 				MarkdownDescription: "The validate peer certificate flag of the cluster. This attribute is only applicable when cluster_type is set to apic.",
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"latitude": schema.Float64Attribute{
 				Optional: true,
@@ -340,16 +332,16 @@ func (r *ClusterResource) Create(ctx context.Context, req resource.CreateRequest
 	var stateData *ClusterResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &stateData)...)
 
-	var data *ClusterResourceModel
+	var planData *ClusterResourceModel
 
 	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &planData)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	jsonPayload := getClusterJsonPayload(ctx, &resp.Diagnostics, data, "POST")
+	jsonPayload := getClusterJsonPayload(ctx, &resp.Diagnostics, planData, "POST")
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -361,110 +353,110 @@ func (r *ClusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	data.Id = types.StringValue(data.FabricName.ValueString())
-	getAndSetClusterAttributes(ctx, &resp.Diagnostics, r.client, data)
+	planData.Id = types.StringValue(planData.FabricName.ValueString())
+	getAndSetResourceClusterAttributes(ctx, &resp.Diagnostics, r.client, planData)
 
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-	tflog.Debug(ctx, fmt.Sprintf("End create of resource nd_multi_cluster_connectivity with id '%s'", data.Id.ValueString()))
+	resp.Diagnostics.Append(resp.State.Set(ctx, &planData)...)
+	tflog.Debug(ctx, fmt.Sprintf("End create of resource nd_multi_cluster_connectivity with id '%s'", planData.Id.ValueString()))
 }
 
 func (r *ClusterResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	tflog.Debug(ctx, "Start read of resource: nd_multi_cluster_connectivity")
-	var data *ClusterResourceModel
+	var stateData *ClusterResourceModel
 
 	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Read of resource nd_multi_cluster_connectivity with id '%s'", data.Id.ValueString()))
-
-	getAndSetClusterAttributes(ctx, &resp.Diagnostics, r.client, data)
-
-	// Save updated data into Terraform state
-	if data.Id.IsNull() {
-		var emptyData *ClusterResourceModel
-		resp.Diagnostics.Append(resp.State.Set(ctx, &emptyData)...)
-	} else {
-		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-	}
-
-	tflog.Debug(ctx, fmt.Sprintf("End read of resource nd_multi_cluster_connectivity with id '%s'", data.Id.ValueString()))
-}
-
-func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	tflog.Debug(ctx, "Start update of resource: nd_multi_cluster_connectivity")
-
-	var stateData *ClusterResourceModel
-	var data *ClusterResourceModel
-
-	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("Update of resource nd_multi_cluster_connectivity with id '%s'", data.Id.ValueString()))
+	tflog.Debug(ctx, fmt.Sprintf("Read of resource nd_multi_cluster_connectivity with id '%s'", stateData.Id.ValueString()))
 
-	jsonPayload := getClusterJsonPayload(ctx, &resp.Diagnostics, data, "PUT")
+	getAndSetResourceClusterAttributes(ctx, &resp.Diagnostics, r.client, stateData)
+
+	// Save updated data into Terraform state
+	if stateData.Id.IsNull() {
+		var emptyData *ClusterResourceModel
+		resp.Diagnostics.Append(resp.State.Set(ctx, &emptyData)...)
+	} else {
+		resp.Diagnostics.Append(resp.State.Set(ctx, &stateData)...)
+	}
+
+	tflog.Debug(ctx, fmt.Sprintf("End read of resource nd_multi_cluster_connectivity with id '%s'", stateData.Id.ValueString()))
+}
+
+func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	tflog.Debug(ctx, "Start update of resource: nd_multi_cluster_connectivity")
+
+	var stateData *ClusterResourceModel
+	var planData *ClusterResourceModel
+
+	// Read Terraform plan data and state data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &planData)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	r.client.DoRestRequest(ctx, &resp.Diagnostics, fmt.Sprintf("%s/%s", clusterPath, data.Id.ValueString()), "PUT", jsonPayload)
+	tflog.Debug(ctx, fmt.Sprintf("Update of resource nd_multi_cluster_connectivity with id '%s'", planData.Id.ValueString()))
+
+	jsonPayload := getClusterJsonPayload(ctx, &resp.Diagnostics, planData, "PUT")
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	getAndSetClusterAttributes(ctx, &resp.Diagnostics, r.client, data)
+	r.client.DoRestRequest(ctx, &resp.Diagnostics, fmt.Sprintf("%s/%s", clusterPath, planData.Id.ValueString()), "PUT", jsonPayload)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	getAndSetResourceClusterAttributes(ctx, &resp.Diagnostics, r.client, planData)
 
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &planData)...)
 	tflog.Debug(ctx, "End update of resource nd_multi_cluster_connectivity")
 }
 
 func (r *ClusterResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	tflog.Debug(ctx, "Start delete of resource: nd_multi_cluster_connectivity")
-	var data *ClusterResourceModel
+	var stateData *ClusterResourceModel
 
 	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	tflog.Debug(ctx, fmt.Sprintf("Delete of resource nd_multi_cluster_connectivity with id '%s'", data.Id.ValueString()))
+	tflog.Debug(ctx, fmt.Sprintf("Delete of resource nd_multi_cluster_connectivity with id '%s'", stateData.Id.ValueString()))
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	deletePayload := map[string]interface{}{}
-	if data.ClusterType.ValueString() == "apic" {
+	if stateData.ClusterType.ValueString() == "apic" {
 		deletePayload["force"] = true
 		deletePayload["credentials"] = map[string]string{
-			"loginDomain": data.ClusterLoginDomain.ValueString(),
-			"password":    data.ClusterPassword.ValueString(),
-			"user":        data.ClusterUsername.ValueString(),
+			"loginDomain": stateData.ClusterLoginDomain.ValueString(),
+			"password":    stateData.ClusterPassword.ValueString(),
+			"user":        stateData.ClusterUsername.ValueString(),
 		}
 
 	}
 	payload, _ := json.Marshal(deletePayload)
 	jsonPayload, _ := gabs.ParseJSON(payload)
-	r.client.DoRestRequest(ctx, &resp.Diagnostics, fmt.Sprintf("%s/%s/remove", clusterPath, data.Id.ValueString()), "POST", jsonPayload)
+	r.client.DoRestRequest(ctx, &resp.Diagnostics, fmt.Sprintf("%s/%s/remove", clusterPath, stateData.Id.ValueString()), "POST", jsonPayload)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	// Detaching the cluster from the controller may take a few seconds.
 	time.Sleep(5 * time.Second)
-	tflog.Debug(ctx, fmt.Sprintf("End delete of resource nd_multi_cluster_connectivity with id '%s'", data.Id.ValueString()))
+	tflog.Debug(ctx, fmt.Sprintf("End delete of resource nd_multi_cluster_connectivity with id '%s'", stateData.Id.ValueString()))
 }
 
 func (r *ClusterResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -473,6 +465,43 @@ func (r *ClusterResource) ImportState(ctx context.Context, req resource.ImportSt
 
 	var stateData *ClusterResourceModel
 	resp.Diagnostics.Append(resp.State.Get(ctx, &stateData)...)
+
+	// The username and password is required to update and delete the APIC cluster
+	var clusterUsername, clusterPassword string
+
+	// Read username and password from config file
+	configPath := os.Getenv("CLUSTER_CREDENTIALS_FILE_LOCATION")
+	if configPath != "" {
+		if _, err := os.Stat(configPath); os.IsNotExist(err) {
+			tflog.Error(ctx, fmt.Sprintf("Error: Config file does not exist at path: %s", configPath))
+			return
+		}
+
+		data, err := os.ReadFile(configPath)
+		if err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Error: Unable to read config file: %v", err))
+			return
+		}
+
+		var config map[string]map[string]string
+		if err := json.Unmarshal(data, &config); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Error: Invalid JSON in config file: %v", err))
+			return
+		}
+
+		importId := stateData.Id.ValueString()
+		if config[importId] != nil {
+			clusterUsername = config[importId]["username"]
+			clusterPassword = config[importId]["password"]
+		}
+	} else {
+		// Read username and password from environment variables
+		clusterUsername = getStringAttributeValue(ctx, stateData.ClusterUsername, "CLUSTER_USERNAME")
+		clusterPassword = getStringAttributeValue(ctx, stateData.ClusterPassword, "CLUSTER_PASSWORD")
+	}
+
+	resp.State.SetAttribute(ctx, path.Root("cluster_username"), basetypes.NewStringValue(clusterUsername))
+	resp.State.SetAttribute(ctx, path.Root("cluster_password"), basetypes.NewStringValue(clusterPassword))
 
 	tflog.Debug(ctx, fmt.Sprintf("Import state of resource nd_multi_cluster_connectivity with id '%s'", stateData.Id.ValueString()))
 	tflog.Debug(ctx, "End import of state resource: nd_multi_cluster_connectivity")
@@ -578,7 +607,7 @@ func getClusterJsonPayload(ctx context.Context, diags *diag.Diagnostics, data *C
 	if err != nil {
 		diags.AddError(
 			"Marshalling of json payload failed",
-			fmt.Sprintf("Err: %s. Please report this issue to the provider developers.", err),
+			fmt.Sprintf("Error: %s. Please report this issue to the provider developers.", err),
 		)
 		return nil
 	}
@@ -588,18 +617,20 @@ func getClusterJsonPayload(ctx context.Context, diags *diag.Diagnostics, data *C
 	if err != nil {
 		diags.AddError(
 			"Construction of json payload failed",
-			fmt.Sprintf("Err: %s. Please report this issue to the provider developers.", err),
+			fmt.Sprintf("Error: %s. Please report this issue to the provider developers.", err),
 		)
 		return nil
 	}
 	return jsonPayload
 }
 
-func getAndSetClusterAttributes(ctx context.Context, diags *diag.Diagnostics, client *client.Client, data *ClusterResourceModel) {
+func getAndSetResourceClusterAttributes(ctx context.Context, diags *diag.Diagnostics, client *client.Client, data *ClusterResourceModel) {
 	responseData := client.DoRestRequest(ctx, diags, fmt.Sprintf("%s/%s", clusterPath, data.Id.ValueString()), "GET", nil)
+	// When creating or updating the object the username, password, clusterLoginDomain, and multiClusterLoginDomain will be stored in the state file.
+	// When importing the object the username, password, clusterLoginDomain, and multiClusterLoginDomain will be set to empty strings in the state file.
 	// The API does not return the username, password, and login_domain attributes.
 	// Therefore, these attributes will be assigned based on the user's configuration settings.
-	*data = *getBaseClusterResourceModel(data.ClusterUsername.ValueString(), data.ClusterPassword.ValueString(), data.ClusterLoginDomain.ValueString(), data.MultiClusterLoginDomain.ValueString())
+	*data = *getBaseClusterResourceModel(data.ClusterUsername, data.ClusterPassword, data.ClusterLoginDomain, data.MultiClusterLoginDomain)
 	if diags.HasError() {
 		return
 	}
