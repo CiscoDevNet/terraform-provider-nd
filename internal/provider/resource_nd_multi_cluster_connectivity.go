@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -45,11 +46,11 @@ type ClusterResource struct {
 // ClusterResourceModel describes the resource data model.
 type ClusterResourceModel struct {
 	Id                         types.String  `tfsdk:"id"`
-	ClusterType                types.String  `tfsdk:"cluster_type"`
-	ClusterHostname            types.String  `tfsdk:"cluster_hostname"`
-	ClusterUsername            types.String  `tfsdk:"cluster_username"`
-	ClusterPassword            types.String  `tfsdk:"cluster_password"`
-	ClusterLoginDomain         types.String  `tfsdk:"cluster_login_domain"`
+	ClusterType                types.String  `tfsdk:"type"`
+	ClusterHostname            types.String  `tfsdk:"hostname"`
+	ClusterUsername            types.String  `tfsdk:"username"`
+	ClusterPassword            types.String  `tfsdk:"password"`
+	ClusterLoginDomain         types.String  `tfsdk:"login_domain"`
 	MultiClusterLoginDomain    types.String  `tfsdk:"multi_cluster_login_domain"`
 	FabricName                 types.String  `tfsdk:"fabric_name"`
 	LicenseTier                types.String  `tfsdk:"license_tier"`
@@ -94,32 +95,32 @@ func (r *ClusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPla
 
 		if configData.ClusterType.ValueString() == "nd" {
 			if configData.LicenseTier.ValueString() != "" {
-				resp.Diagnostics.AddError("The license_tier is invalid attribute for cluster_type: nd", "The license_tier attribute is only applicable when cluster_type is set to apic.")
+				resp.Diagnostics.AddError("The 'license_tier' is invalid attribute for 'type': nd", "The 'license_tier' attribute is only applicable when 'type' is set to apic.")
 			}
 			if !configData.Features.IsNull() && !configData.Features.IsUnknown() {
-				resp.Diagnostics.AddError("The features is invalid attribute for cluster_type: nd", "The features attribute is only applicable when cluster_type is set to apic.")
+				resp.Diagnostics.AddError("The 'features' is invalid attribute for 'type': nd", "The 'features' attribute is only applicable when 'type' is set to apic.")
 			}
 			if configData.InbandEpg.ValueString() != "" {
-				resp.Diagnostics.AddError("The inband_epg is invalid attribute for cluster_type: nd", "The inband_epg attribute is only applicable when cluster_type is set to apic.")
+				resp.Diagnostics.AddError("The 'inband_epg' is invalid attribute for 'type': nd", "The 'inband_epg' attribute is only applicable when 'type' is set to apic.")
 			}
 			if configData.SecurityDomain.ValueString() != "" {
-				resp.Diagnostics.AddError("The security_domain is invalid attribute for cluster_type: nd", "The security_domain attribute is only applicable when cluster_type is set to apic.")
+				resp.Diagnostics.AddError("The 'security_domain' is invalid attribute for 'type': nd", "The 'security_domain' attribute is only applicable when 'type' is set to apic.")
 			}
 			if !configData.ValidatePeerCertificate.IsNull() && !configData.ValidatePeerCertificate.IsUnknown() {
-				resp.Diagnostics.AddError("The validate_peer_certificate is invalid attribute for cluster_type: nd", "The validate_peer_certificate attribute is only applicable when cluster_type is set to apic.")
+				resp.Diagnostics.AddError("The 'validate_peer_certificate' is invalid attribute for 'type': nd", "The 'validate_peer_certificate' attribute is only applicable when 'type' is set to apic.")
 			}
 			if configData.TelemetryStreamingProtocol.ValueString() != "" {
-				resp.Diagnostics.AddError("The telemetry_streaming_protocol is invalid attribute for cluster_type: nd", "The telemetry_streaming_protocol attribute is only applicable when cluster_type is set to apic.")
+				resp.Diagnostics.AddError("The 'telemetry_streaming_protocol' is invalid attribute for 'type': nd", "The 'telemetry_streaming_protocol' attribute is only applicable when 'type' is set to apic.")
 			}
 			if configData.TelemetryNetwork.ValueString() != "" {
-				resp.Diagnostics.AddError("The telemetry_network is invalid attribute for cluster_type: nd", "The telemetry_network attribute is only applicable when cluster_type is set to apic.")
+				resp.Diagnostics.AddError("The 'telemetry_network' is invalid attribute for 'type': nd", "The 'telemetry_network' attribute is only applicable when 'type' is set to apic.")
 			}
 		} else if planData.ClusterType.ValueString() == "apic" {
 			if configData.ClusterLoginDomain.ValueString() != "" {
-				resp.Diagnostics.AddError("The cluster_login_domain is invalid attribute for cluster_type: apic", "The cluster_login_domain attribute is only applicable when cluster_type is set to nd.")
+				resp.Diagnostics.AddError("The 'login_domain' is invalid attribute for 'type': apic", "The 'login_domain' attribute is only applicable when 'type' is set to nd.")
 			}
 			if configData.MultiClusterLoginDomain.ValueString() != "" {
-				resp.Diagnostics.AddError("The multi_cluster_login_domain is invalid attribute for cluster_type: apic", "The multi_cluster_login_domain attribute is only applicable when cluster_type is set to nd.")
+				resp.Diagnostics.AddError("The 'multi_cluster_login_domain' is invalid attribute for 'type': apic", "The 'multi_cluster_login_domain' attribute is only applicable when 'type' is set to nd.")
 			}
 		}
 
@@ -132,14 +133,14 @@ func (r *ClusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPla
 				return
 			}
 
-			// The cluster_username attribute is required, but it is not included in the ND API response data, so its state will be set to an empty string.
-			// When this condition is met, an empty string will be assigned to the plan's cluster_username attribute to ignore any plantime changes.
+			// The username attribute is required, but it is not included in the ND API response data, so its state will be set to an empty string.
+			// When this condition is met, an empty string will be assigned to the plan's username attribute to ignore any plantime changes.
 			if configData.ClusterUsername.ValueString() != "" && stateData.ClusterUsername.ValueString() == "" {
 				planData.ClusterUsername = basetypes.NewStringValue("")
 			}
 
-			// The cluster_password attribute is required, but it is not included in the ND API response data, so its state will be set to an empty string.
-			// When this condition is met, an empty string will be assigned to the plan's cluster_password attribute to ignore any plantime changes.
+			// The password attribute is required, but it is not included in the ND API response data, so its state will be set to an empty string.
+			// When this condition is met, an empty string will be assigned to the plan's password attribute to ignore any plantime changes.
 			if configData.ClusterPassword.ValueString() != "" && stateData.ClusterPassword.ValueString() == "" {
 				planData.ClusterPassword = basetypes.NewStringValue("")
 			}
@@ -169,30 +170,32 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"cluster_type": schema.StringAttribute{
-				Required:            true,
+			"type": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString("nd"),
 				MarkdownDescription: "The type of the cluster. Allowed values are 'nd', or 'apic'.",
 				Validators: []validator.String{
 					stringvalidator.OneOf("nd", "apic"),
 				},
 			},
-			"cluster_hostname": schema.StringAttribute{
+			"hostname": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The URL or Hostname of the cluster.",
 			},
-			"cluster_username": schema.StringAttribute{
+			"username": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The username of the cluster.",
 			},
-			"cluster_password": schema.StringAttribute{
+			"password": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The password of the cluster.",
 				Sensitive:           true,
 			},
-			"cluster_login_domain": schema.StringAttribute{
+			"login_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The login domain of the cluster. This attribute is only applicable when cluster_type is set to nd.",
+				MarkdownDescription: "The login domain of the cluster. This attribute is only applicable when type is set to nd.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -200,7 +203,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"multi_cluster_login_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The multi cluster login domain of the cluster. This attribute is only applicable when cluster_type is set to nd.",
+				MarkdownDescription: "The multi cluster login domain of the cluster. This attribute is only applicable when type is set to nd.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -212,7 +215,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"license_tier": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The clusters license tier. Only one value can be specified at a time. Allowed values are 'advantage', or 'essentials', or 'premier'. This attribute is only applicable when cluster_type is set to apic.",
+				MarkdownDescription: "The clusters license tier. Only one value can be specified at a time. Allowed values are 'advantage', or 'essentials', or 'premier'. This attribute is only applicable when type is set to apic.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -224,7 +227,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
-				MarkdownDescription: "The features of the cluster. Allowed values are 'telemetry', 'orchestration'. This attribute is only applicable when cluster_type is set to apic.",
+				MarkdownDescription: "The features of the cluster. Allowed values are 'telemetry', 'orchestration'. This attribute is only applicable when type is set to apic.",
 				Validators: []validator.Set{
 					setvalidator.ValueStringsAre(
 						stringvalidator.OneOf("telemetry", "orchestration"),
@@ -238,7 +241,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"inband_epg": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The Inband EPG name of the cluster. This attribute is only applicable when cluster_type is set to apic.",
+				MarkdownDescription: "The Inband EPG name of the cluster. This attribute is only applicable when type is set to apic.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -246,7 +249,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"security_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The security domain of the cluster. This attribute is only applicable when cluster_type is set to apic.",
+				MarkdownDescription: "The security domain of the cluster. This attribute is only applicable when type is set to apic.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -254,7 +257,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"validate_peer_certificate": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The validate peer certificate flag of the cluster. This attribute is only applicable when cluster_type is set to apic.",
+				MarkdownDescription: "The validate peer certificate flag of the cluster. This attribute is only applicable when type is set to apic.",
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
@@ -278,7 +281,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"telemetry_streaming_protocol": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The telemetry streaming protocol of the cluster. Allowed values are 'ipv4', or 'ipv6'. This attribute is only applicable when cluster_type is set to apic.",
+				MarkdownDescription: "The telemetry streaming protocol of the cluster. Allowed values are 'ipv4', or 'ipv6'. This attribute is only applicable when type is set to apic.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
@@ -290,7 +293,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"telemetry_network": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "The telemetry network type of the cluster. Allowed values are 'inband', or 'outband'. This attribute is only applicable when cluster_type is set to apic.",
+				MarkdownDescription: "The telemetry network type of the cluster. Allowed values are 'inband', or 'outband'. This attribute is only applicable when type is set to apic.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
@@ -500,8 +503,8 @@ func (r *ClusterResource) ImportState(ctx context.Context, req resource.ImportSt
 		clusterPassword = getStringAttributeValue(ctx, stateData.ClusterPassword, "CLUSTER_PASSWORD")
 	}
 
-	resp.State.SetAttribute(ctx, path.Root("cluster_username"), basetypes.NewStringValue(clusterUsername))
-	resp.State.SetAttribute(ctx, path.Root("cluster_password"), basetypes.NewStringValue(clusterPassword))
+	resp.State.SetAttribute(ctx, path.Root("username"), basetypes.NewStringValue(clusterUsername))
+	resp.State.SetAttribute(ctx, path.Root("password"), basetypes.NewStringValue(clusterPassword))
 
 	tflog.Debug(ctx, fmt.Sprintf("Import state of resource nd_multi_cluster_connectivity with id '%s'", stateData.Id.ValueString()))
 	tflog.Debug(ctx, "End import of state resource: nd_multi_cluster_connectivity")
