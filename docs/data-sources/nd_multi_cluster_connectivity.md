@@ -36,8 +36,8 @@ data "nd_multi_cluster_connectivity" "example" {
 
 ### Read-Only ###
 * `id` (id) - (String) The ID of the cluster.
-* `cluster_type` (clusterType) - (String) The type of the cluster.
-* `cluster_hostname` (onboardUrl) - (String) The URL or Hostname of the cluster.
+* `type` (clusterType) - (String) The type of the cluster.
+* `hostname` (onboardUrl) - (String) The URL or Hostname of the cluster.
 * `latitude` (latitude) - (Float) The latitude coordinate of the cluster.
 * `longitude` (longitude) - (Float) The longitude coordinate of the cluster.
 * `license_tier` (licenseTier) - (String) The license tier of the cluster.

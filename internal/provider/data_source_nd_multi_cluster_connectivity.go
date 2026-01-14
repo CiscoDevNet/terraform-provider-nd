@@ -29,8 +29,8 @@ type ClusterDataSource struct {
 // ClusterDataModel describes the resource data model.
 type ClusterDataModel struct {
 	Id                         types.String  `tfsdk:"id"`
-	ClusterType                types.String  `tfsdk:"cluster_type"`
-	ClusterHostname            types.String  `tfsdk:"cluster_hostname"`
+	ClusterType                types.String  `tfsdk:"type"`
+	ClusterHostname            types.String  `tfsdk:"hostname"`
 	FabricName                 types.String  `tfsdk:"fabric_name"`
 	LicenseTier                types.String  `tfsdk:"license_tier"`
 	Features                   types.Set     `tfsdk:"features"`
@@ -60,11 +60,11 @@ func (d *ClusterDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 				Computed:            true,
 				MarkdownDescription: "The ID of the cluster.",
 			},
-			"cluster_type": schema.StringAttribute{
+			"type": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The type of the cluster.",
 			},
-			"cluster_hostname": schema.StringAttribute{
+			"hostname": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The URL or Hostname of the cluster.",
 			},
