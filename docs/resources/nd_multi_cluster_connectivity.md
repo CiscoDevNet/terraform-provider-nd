@@ -28,6 +28,13 @@ The configuration snippet below shows all possible attributes of the ND clusters
 !> This example might not be valid configuration and is only used to show all possible attributes.
 
 ```hcl
+resource "nd_multi_cluster_connectivity" "onboard_nd" {
+  fabric_name = "nd1"
+  username    = "admin"
+  password    = "password"
+  hostname    = "198.18.133.203"
+}
+
 resource "nd_multi_cluster_connectivity" "onboard_apic" {
   fabric_name  = "apic1"
   username     = "admin"
@@ -37,14 +44,6 @@ resource "nd_multi_cluster_connectivity" "onboard_apic" {
   license_tier = "premier"
   latitude     = 1.10
   longitude    = 1.20
-}
-
-resource "nd_multi_cluster_connectivity" "onboard_apic" {
-  fabric_name = "apic1"
-  username    = "admin"
-  password    = "password"
-  hostname    = "198.18.133.101"
-  type        = "apic"
 }
 ```
 
