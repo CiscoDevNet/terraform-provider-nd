@@ -172,14 +172,12 @@ func (p *ndProvider) Configure(ctx context.Context, req provider.ConfigureReques
 func (p *ndProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewVersionDataSource,
-		NewSiteDataSource,
 		NewClusterDataSource,
 	}
 }
 
 func (p *ndProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewSiteResource,
 		NewClusterResource,
 	}
 }
