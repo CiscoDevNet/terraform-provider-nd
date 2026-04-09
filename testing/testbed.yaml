@@ -1,0 +1,56 @@
+---
+nd:
+  url: "https://nd-controller"
+  user: admin
+  pwd: "password"
+  insecure: true
+  fabric: test_fabric_vxlan
+
+  switches:
+    - "SERIAL001"
+    - "SERIAL002"
+    - "SERIAL003"
+  switch_ip:
+    - "10.0.0.1"
+    - "10.0.0.2"
+    - "10.0.0.3"
+
+  # Prefixes for dynamically created resources during tests
+  fabric_prefix: "at_fabric_"
+
+  # Integration test configuration
+  integration_test:
+    fabric: at_int_test_vxlan
+    user: admin
+    pwd: "password"
+    switches:
+      - "SERIAL004"
+      - "SERIAL005"
+    inventory_devices:
+      - device: "10.0.0.10"
+        role: "spine"
+      - device: "10.0.0.11"
+        role: "leaf"
+      - device: "10.0.0.12"
+        role: "leaf"
+
+# Inventory-specific test configuration
+inventory:
+  fabric: test_fabric_vxlan
+  user: admin
+  pwd: "password"
+  mode: discovery
+  max_hop: 0
+  preserve_config: false
+  deploy: true
+  recalculate: true
+  switches:
+    - serial: "SERIAL001"
+      ip: "10.0.0.1"
+      role: "spine"
+    - serial: "SERIAL002"
+      ip: "10.0.0.2"
+      role: "leaf"
+    - serial: "SERIAL003"
+      ip: "10.0.0.3"
+      role: "leaf"

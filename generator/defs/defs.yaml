@@ -1,0 +1,6 @@
+---
+files:
+  - nd.yaml
+  - fabric.yaml
+  - inventory.yaml
+  #- sample.yaml

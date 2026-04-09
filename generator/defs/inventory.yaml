@@ -1,0 +1,243 @@
+resource:
+  name: inventory_switch
+  generate_tf_resource: true
+  skip_equality: false
+  attributes:
+  # Required - Fabric identifier
+  - model_name: fabricName
+    tf_name: fabric_name
+    description: Name of the fabric to add switches to
+    type: String
+    mandatory: true
+    example: my_fabric
+
+  # Mode selection
+  - model_name: mode
+    tf_name: mode
+    description: Operation mode - discovery (brownfield/greenfield) or bootstrap (POAP)
+    type: String
+    optional: true
+    default_value: discovery
+    example: discovery
+    tf_requires_replace: true
+  
+  - model_name: seedIpCollection
+    tf_name: seed_ip_collection
+    type: List:String
+    tf_hide: true
+
+  - &preserveConfig
+    model_name: preserveConfig
+    tf_name: preserve_config
+    description: Preserve existing config (true=brownfield, false=greenfield)
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    tf_requires_replace: true
+    example: true
+
+  # Switches map - key is serial number
+  - model_name: switches
+    tf_name: switches
+    description: Map of switches to manage, keyed by serial number
+    type: Map
+    mandatory: true
+    map_value_type: Struct
+    payload_hide: true
+    bulk: true
+    attributes:
+    - model_name: hostname
+      tf_name: hostname
+      description: Switch hostname
+      type: String
+      use_state: true
+      computed: true
+    
+    - model_name: serialNumber
+      tf_name: serial_number
+      description: Switch serial number
+      type: String
+      use_state: true
+      computed: true
+
+    - model_name: ip
+      tf_name: ip_address
+      unmarshal_tag: fabricManagementIp
+      description: Switch management IP address
+      type: String
+      mandatory: true
+      requires_replace: true
+      example: "10.23.244.81"
+
+    - model_name: model
+      tf_name: model
+      description: Switch hardware model
+      type: String
+      computed: true
+      optional: true
+      example: N9K-C93180YC-FX
+
+    - model_name: softwareVersion
+      tf_name: software_version
+      description: Switch software version
+      type: String
+      computed: true
+      optional: true
+      example: "10.3(3)"
+
+    - model_name: switchRole
+      tf_name: switch_role
+      description: Role of switch in fabric.
+      type: String
+      optional: true
+      default_value: leaf
+      requires_replace: true
+      example: leaf
+      enum_values:
+        - border
+        - borderGateway
+        - borderGatewaySpine
+        - borderGatewaySuperSpine
+        - borderSpine
+        - borderSuperSpine
+        - leaf
+        - spine
+        - superSpine
+        - tier2Leaf
+        - tor
+        - access
+        - aggregation
+        - coreRouter
+        - edgeRouter
+        - meta
+        - neighbor
+
+    - <<: *preserveConfig
+      tf_hide: true
+
+    - model_name: status
+      tf_name: status
+      description: Current switch status
+      type: String
+      computed: true
+      example: Manageable
+
+    - model_name: statusReason
+      tf_name: status_reason
+      description: Reason for current switch status (e.g., failure details)
+      type: String
+      computed: true
+
+    # Bootstrap/POAP specific fields
+    - model_name: gatewayIpMask
+      tf_name: gateway_ip_mask
+      description: Gateway IP with mask for POAP (e.g., 10.1.1.1/24)
+      type: String
+      optional: true
+      example: "10.1.1.1/24"
+
+    - model_name: discoveryAuthProtocol
+      tf_name: discovery_auth_protocol
+      description: Authentication protocol for POAP discovery
+      type: String
+      optional: true
+      example: MD5
+
+    - model_name: poapPassword
+      tf_name: poap_password
+      description: Password for POAP bootstrap
+      type: String
+      optional: true
+      sensitive: true
+      example: admin123
+
+    - model_name: vdcId
+      tf_name: vdc_id
+      description: VDC ID for N7K switches
+      type: Int64
+      computed: true
+      optional: true
+      example: null
+
+    - model_name: vdcMac
+      tf_name: vdc_mac
+      description: VDC MAC for N7K switches
+      type: String
+      computed: true
+      optional: true
+      example: null
+
+  # Authentication - common for all switches
+  - model_name: username
+    tf_name: username
+    description: Switch login username
+    type: String
+    optional: true
+    sensitive: true
+    example: admin
+
+  - model_name: password
+    tf_name: password
+    description: Switch login password
+    type: String
+    optional: true
+    sensitive: true
+    example: mysecret
+
+  - model_name: platformType
+    tf_name: platform_type
+    description: Platform type (nx-os, ios-xe)
+    type: String
+    computed: true
+
+  - model_name: snmpV3AuthProtocol
+    tf_name: snmp_v3_auth_protocol
+    description: SNMP v3 authentication protocol
+    type: String
+    optional: true
+    default_value: MD5
+    example: MD5
+
+  # Credential store
+  - model_name: remoteCredentialStore
+    tf_name: remote_credential_store
+    description: Credential store type (local, cyberark)
+    type: String
+    optional: true
+    default_value: local
+    example: local
+
+  - model_name: remoteCredentialStoreKey
+    tf_name: remote_credential_store_key
+    description: Key for remote credential store
+    type: String
+    optional: true
+    example: null
+
+  # Discovery settings
+  - model_name: maxHop
+    tf_name: max_hop
+    description: Maximum hops for CDP/LLDP discovery
+    type: Int64
+    optional: true
+    default_value: 0
+    example: 2
+
+  # Deployment control flags
+  - model_name: recalculate
+    tf_name: recalculate
+    description: Recalculate (config-save) fabric configuration after switch operations
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    example: true
+    payload_hide: true
+
+  - model_name: deploy
+    tf_name: deploy
+    description: Deploy configuration to switches after operations
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    example: true
+    payload_hide: true

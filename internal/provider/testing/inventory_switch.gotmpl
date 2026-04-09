@@ -1,0 +1,48 @@
+{{define "ND_INVENTORY_SWITCH_RSC"}}
+resource "nd_inventory_switch" "{{.RscName}}" {
+{{- if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+{{- end}}
+{{with .InventorySwitch}}
+    fabric_name = "{{.FabricName}}"
+    {{- if .Mode}}
+    mode = "{{.Mode}}"
+    {{- end}}
+    {{- if .Username}}
+    username = "{{.Username}}"
+    {{- end}}
+    {{- if .Password}}
+    password = "{{.Password}}"
+    {{- end}}
+    {{- if .SnmpV3AuthProtocol}}
+    snmp_v3_auth_protocol = "{{.SnmpV3AuthProtocol}}"
+    {{- end}}
+    {{- if .MaxHop}}
+    max_hop = {{deref_int64 .MaxHop}}
+    {{- end}}
+    {{- if .PreserveConfig}}
+    preserve_config = {{deref_bool .PreserveConfig}}
+    {{- end}}
+    recalculate = {{.Recalculate}}
+    deploy = {{.Deploy}}
+    {{- if .Switches}}
+    switches = {
+        {{- range $key, $value := .Switches}}
+        "{{$key}}" = {
+            ip_address = "{{$value.IpAddress}}"
+            {{- if $value.SwitchRole}}
+            switch_role = "{{$value.SwitchRole}}"
+            {{- end}}
+            {{- if $value.GatewayIpMask}}
+            gateway_ip_mask = "{{$value.GatewayIpMask}}"
+            {{- end}}
+            {{- if $value.DiscoveryAuthProtocol}}
+            discovery_auth_protocol = "{{$value.DiscoveryAuthProtocol}}"
+            {{- end}}
+        }
+        {{- end}}
+    }
+    {{- end}}
+{{end}}
+}
+{{end}}

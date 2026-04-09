@@ -1,0 +1,118 @@
+{{define "ND_FABRIC_VXLAN_RSC"}}
+resource "nd_fabric_vxlan" "{{.RscName}}" {
+{{with .FabricVxlan}}
+    fabric_name = "{{.FabricName}}"
+    {{- if .LicenseTier}}
+    license_tier = "{{.LicenseTier}}"
+    {{- end}}
+    {{- if .Management.FabricType}}
+    fabric_type = "{{.Management.FabricType}}"
+    {{- end}}
+    {{- if .Management.BgpAsn}}
+    bgp_asn = "{{.Management.BgpAsn}}"
+    {{- end}}
+    {{- if .Category}}
+    category = "{{.Category}}"
+    {{- end}}
+    {{- if .SecurityDomain}}
+    security_domain = "{{.SecurityDomain}}"
+    {{- end}}
+    {{- if .Management.SuperSpineBgpAs}}
+    super_spine_bgp_as = "{{.Management.SuperSpineBgpAs}}"
+    {{- end}}
+    {{- if .Management.LeafBgpAs}}
+    leaf_bgp_as = "{{.Management.LeafBgpAs}}"
+    {{- end}}
+    {{- if .Management.BorderBgpAs}}
+    border_bgp_as = "{{.Management.BorderBgpAs}}"
+    {{- end}}
+    {{- if .Management.BgpAsMode}}
+    bgp_as_mode = "{{.Management.BgpAsMode}}"
+    {{- end}}
+    {{- if .Management.TargetSubnetMask}}
+    target_subnet_mask = {{deref_int64 .Management.TargetSubnetMask}}
+    {{- end}}
+    {{- if .Management.AnycastGatewayMac}}
+    anycast_gateway_mac = "{{.Management.AnycastGatewayMac}}"
+    {{- end}}
+    {{- if .Management.ReplicationMode}}
+    replication_mode = "{{.Management.ReplicationMode}}"
+    {{- end}}
+    {{- if .Management.MulticastGroupSubnet}}
+    multicast_group_subnet = "{{.Management.MulticastGroupSubnet}}"
+    {{- end}}
+    {{- if .Management.RendezvousPointCount}}
+    rendezvous_point_count = {{deref_int64 .Management.RendezvousPointCount}}
+    {{- end}}
+    {{- if .Management.BgpLoopbackIpRange}}
+    bgp_loopback_ip_range = "{{.Management.BgpLoopbackIpRange}}"
+    {{- end}}
+    {{- if .Management.NveLoopbackIpRange}}
+    nve_loopback_ip_range = "{{.Management.NveLoopbackIpRange}}"
+    {{- end}}
+    {{- if .Management.IntraFabricSubnetRange}}
+    intra_fabric_subnet_range = "{{.Management.IntraFabricSubnetRange}}"
+    {{- end}}
+    {{- if .Management.SiteId}}
+    site_id = "{{.Management.SiteId}}"
+    {{- end}}
+    {{- if .Management.FabricMtu}}
+    fabric_mtu = {{deref_int64 .Management.FabricMtu}}
+    {{- end}}
+    {{- if .Management.L2HostInterfaceMtu}}
+    l2_host_interface_mtu = {{deref_int64 .Management.L2HostInterfaceMtu}}
+    {{- end}}
+    {{- if .Management.VpcPeerLinkVlan}}
+    vpc_peer_link_vlan = "{{.Management.VpcPeerLinkVlan}}"
+    {{- end}}
+    {{- if .Management.VpcPeerKeepAliveOption}}
+    vpc_peer_keep_alive_option = "{{.Management.VpcPeerKeepAliveOption}}"
+    {{- end}}
+    {{- if .Management.VpcAutoRecoveryTimer}}
+    vpc_auto_recovery_timer = {{deref_int64 .Management.VpcAutoRecoveryTimer}}
+    {{- end}}
+    {{- if .Management.VpcDelayRestoreTimer}}
+    vpc_delay_restore_timer = {{deref_int64 .Management.VpcDelayRestoreTimer}}
+    {{- end}}
+    {{- if .Management.VpcPeerLinkPortChannelId}}
+    vpc_peer_link_port_channel_id = "{{.Management.VpcPeerLinkPortChannelId}}"
+    {{- end}}
+    {{- if .Management.VpcDomainIdRange}}
+    vpc_domain_id_range = "{{.Management.VpcDomainIdRange}}"
+    {{- end}}
+    {{- if .Management.BgpLoopbackId}}
+    bgp_loopback_id = {{deref_int64 .Management.BgpLoopbackId}}
+    {{- end}}
+    {{- if .Management.NveLoopbackId}}
+    nve_loopback_id = {{deref_int64 .Management.NveLoopbackId}}
+    {{- end}}
+    {{- if .Management.VrfTemplate}}
+    vrf_template = "{{.Management.VrfTemplate}}"
+    {{- end}}
+    {{- if .Management.NetworkTemplate}}
+    network_template = "{{.Management.NetworkTemplate}}"
+    {{- end}}
+    {{- if .Management.VrfExtensionTemplate}}
+    vrf_extension_template = "{{.Management.VrfExtensionTemplate}}"
+    {{- end}}
+    {{- if .Management.NetworkExtensionTemplate}}
+    network_extension_template = "{{.Management.NetworkExtensionTemplate}}"
+    {{- end}}
+    {{- if .Management.L2VniRange}}
+    l2_vni_range = "{{.Management.L2VniRange}}"
+    {{- end}}
+    {{- if .Management.L3VniRange}}
+    l3_vni_range = "{{.Management.L3VniRange}}"
+    {{- end}}
+    {{- if .Management.NetworkVlanRange}}
+    network_vlan_range = "{{.Management.NetworkVlanRange}}"
+    {{- end}}
+    {{- if .Management.VrfVlanRange}}
+    vrf_vlan_range = "{{.Management.VrfVlanRange}}"
+    {{- end}}
+    {{- if .Management.OverlayMode}}
+    overlay_mode = "{{.Management.OverlayMode}}"
+    {{- end}}
+{{end}}
+}
+{{end}}

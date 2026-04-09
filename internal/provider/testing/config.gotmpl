@@ -1,0 +1,18 @@
+{{define "HEADER"}}
+terraform {
+  required_providers {
+    nd = {
+      source = "cisco.com/nd/nd"
+    }
+  }
+}
+{{end}}
+
+{{define "ND"}}
+provider "nd" {
+  username = "{{.User}}"
+  password = "{{.Password}}"
+  url      = "{{.Host}}"
+  insecure = {{.Insecure}}
+}
+{{end}}

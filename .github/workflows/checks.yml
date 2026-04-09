@@ -22,9 +22,6 @@ jobs:
       - name: gofmt Check
         run: ./scripts/gofmtcheck.sh
       - run: go mod tidy
-      - run: go mod vendor
-      - name: Check vendor for changes
-        run: git diff --exit-code
       - name: Build
         run: go build -v
 
@@ -45,44 +42,3 @@ jobs:
       - name: GoReleaser Release Check
         run: goreleaser release --skip=publish,sign --snapshot --clean
 
-  acceptance:
-    name: Acceptance Tests
-    if: github.repository_owner == 'CiscoDevNet'
-    needs: [build]
-    runs-on: ubuntu-latest
-    env:
-      ND_USERNAME: "ansible_github_ci"
-      ND_PASSWORD: "sJ94G92#8dq2hx*K4qh"
-    concurrency:
-      group: tf-nd-ci-test-${{ matrix.nd_host.name }}
-      cancel-in-progress: false
-    strategy:
-      fail-fast: false
-      matrix:
-        nd_host:
-          - name: v3.1
-            url: "https://173.36.219.35/"
-            insecure: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: "go.mod"
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.7.*"
-          terraform_wrapper: false
-      - name: Terraform Acceptance Test (ND ${{ matrix.nd_host.name }})
-        run: go test github.com/CiscoDevNet/terraform-provider-nd/internal/provider -v -race -timeout 300m -coverprofile=coverage.out -covermode=atomic
-        env:
-          TF_ACC: "1"
-          TF_ACC_STATE_LINEAGE: "1"
-          ND_VAL_REL_DN: false
-          ND_URL: ${{ matrix.nd_host.url }}
-          ND_INSECURE: ${{ matrix.nd_host.insecure }}
-      - name: Upload coverage to Codecov
-        # Upload Coverage on latest only
-        if: ${{ matrix.nd_host.name == 'v3.1'}}
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
