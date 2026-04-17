@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Cisco Systems, Inc. and its affiliates
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -59,16 +59,9 @@ func (c *FabricAPI) GetUrl() string {
 	// Fall back to legacy endpoints for special cases
 	if c.Serialnumber != "" {
 		return fmt.Sprintf(urlFabricNameFromSerial, c.Serialnumber)
-	} else if c.FabricName != "" {
-		if c.GetSwitchesInFabric {
-			return fmt.Sprintf(UrlSwitchesByFabric, c.FabricName)
-		} else {
-			return fmt.Sprintf(urlPerFabric, c.FabricName)
-		}
-	} else {
-		// Use modern API endpoint for listing all fabrics
-		return UrlFabrics
 	}
+	// Use modern API endpoint for listing all fabrics
+	return UrlFabrics
 }
 
 func (c *FabricAPI) PostUrl() string {

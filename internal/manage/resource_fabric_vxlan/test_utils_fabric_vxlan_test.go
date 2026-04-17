@@ -675,10 +675,10 @@ func FabricVxlanModelHelperStateCheck(RscName string, c resource_fabric_vxlan.ND
 	} else {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("vpc_tor_delay_restore_timer").String(), "30"))
 	}
-	if c.LeafToRIdRange != nil {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("leaf_to_r_id_range").String(), strconv.FormatBool(*c.LeafToRIdRange)))
+	if c.LeafTorIdRange != nil {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("leaf_tor_id_range").String(), strconv.FormatBool(*c.LeafTorIdRange)))
 	} else {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("leaf_to_r_id_range").String(), "false"))
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("leaf_tor_id_range").String(), "false"))
 	}
 	if c.Management.LeafTorVpcPortChannelIdRange != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("leaf_tor_vpc_port_channel_id_range").String(), c.Management.LeafTorVpcPortChannelIdRange))

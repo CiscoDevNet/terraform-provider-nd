@@ -1,3 +1,11 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -171,7 +179,7 @@ func (p *NexusDashboardProvider) Configure(ctx context.Context, req provider.Con
 	// Create the shared API client
 	client, err := nd.NewClient(url, basePath, username, password,
 		domain, insecure, nd.MaxRetries(500),
-		nd.RequestTimeout(time.Duration(timeout)))
+		nd.RequestTimeout(timeout))
 	if err != nil {
 		tflog.Error(ctx, "Error creating Nexus Dashboard client", map[string]interface{}{"error": err.Error()})
 		resp.Diagnostics.AddError(

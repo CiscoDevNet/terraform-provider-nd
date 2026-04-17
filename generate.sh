@@ -63,7 +63,7 @@ $GOPATH/bin/generator code -in generator/defs -template generator/templates -out
 
 # Add license headers to all generated files
 $GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  internal/provider/resources/**/*_gen.go
-$GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  internal/provider/ndfc/*_gen.go
+$GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  internal/manage/**/*_gen.go
 $GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  internal/provider/resources/**/*_test.go
 $GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  internal/provider/provider/**/*_gen.go
 $GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  internal/provider/datasources/**/*_gen.go
@@ -71,7 +71,7 @@ $GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  
 $GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  internal/provider/types/
 $GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  internal/provider/*_test.go
 
-$GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  internal/provider/ndfc/*_gen.go
+$GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  internal/manage/**/*_gen.go
 $GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  internal/provider/resources/**/*_test.go
 $GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  internal/provider/datasources/**/*_test.go
 

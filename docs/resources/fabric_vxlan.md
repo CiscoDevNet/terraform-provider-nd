@@ -18,12 +18,12 @@ description: |-
 ### Required
 
 - `bgp_asn` (String) Autonomous system number 1-4294967295 | 1-65535[.0-65535]
-- `fabric_name` (String) The name of the fabric_vxlan_evpn resource
+- `fabric_name` (String) The name of the fabric_vxlan resource
 
 ### Optional
 
-- `aaa` (Boolean) Include AAA configs from Manageability tab during device bootup
-- `advanced_ssh_option` (Boolean) Enable AAA IP Authorization.  Enable only, when IP Authorization is enabled in the AAA Server
+- `aaa` (Boolean) Include AAA configs from advanced tab during device bootup
+- `advanced_ssh_option` (Boolean) Enable only, when IP authorization is enabled in the AAA Server
 - `advertise_physical_ip` (Boolean) For Primary VTEP IP Advertisement As Next-Hop Of Prefix Routes
 - `advertise_physical_ip_on_border` (Boolean) Enable advertise-pip on vPC borders and border gateways only. Applicable only when vPC advertise-pip is not enabled
 - `aiml_qos` (Boolean) Configures QoS and Queuing Policies specific to N9K Cloud Scale switch fabric for AI/ML network loads
@@ -31,92 +31,92 @@ description: |-
 - `alert_suspend` (String) Alert Suspend state configured on the fabric
 - `allow_vlan_on_leaf_tor_pairing` (String) Set trunk allowed vlan to 'none' or 'all' for leaf-tor pairing port-channels
 - `allowed_actions` (Set of String) Actions allowed on the listed fabrics
-- `analysis_settings_is_enabled` (Boolean) Enable or disable Assurance analysis on the fabric. When enabled, the system will perform analysis of network data for assurance purposes.
+- `analysis_settings_is_enabled` (Boolean) Enable or disable Assurance analysis on a fabric
 - `anycast_border_gateway_advertise_physical_ip` (Boolean) To advertise Anycast Border Gateway PIP as VTEP. Effective on MSD fabric 'Recalculate Config'
 - `anycast_gateway_mac` (String) Shared anycast gateway MAC address for all VTEPs (xxxx.xxxx.xxxx)
-- `anycast_loopback_id` (Number) Underlay Anycast Loopback Id.  Used for vPC Peering in VXLANv6 Fabrics
+- `anycast_loopback_id` (Number) Underlay Anycast Loopback Id. Used for vPC Peering in VXLANv6 Fabrics
 - `anycast_rendezvous_point_ip_range` (String) Anycast or Phantom RP IP Address Range
 - `auto_bgp_neighbor_description` (Boolean) Generate BGP EVPN Neighbor Description
 - `auto_generate_multicast_group_address` (Boolean) Auto generate multicast group address
-- `auto_symmetric_default_vrf` (Boolean) Whether to auto generate Default VRF interface and BGP peering configuration on managed neighbor devices. If set, auto created VRF Lite IFC links will have 'Auto Deploy Default VRF for Peer' enabled.
-- `auto_symmetric_vrf_lite` (Boolean) Whether to auto generate VRF LITE sub-interface and BGP peering configuration on managed neighbor devices. If set, auto created VRF Lite IFC links will have 'Auto Deploy for Peer' enabled.
-- `auto_unique_vrf_lite_ip_prefix` (Boolean) When enabled, IP prefix allocated to the VRF LITE IFC is not reused on VRF extension over VRF LITE IFC. Instead, unique IP Subnet is allocated for each VRF extension over VRF LITE IFC.
-- `auto_vrf_lite_default_vrf` (Boolean) For ipv4 underlay, whether to auto generate BGP peering in Default VRF for VRF Lite IFC auto deployment option. If set, will auto create VRF Lite Inter-Fabric links with 'Auto Deploy Default VRF' knob enabled
-- `banner` (String) Message of the Day (motd) banner. Delimiter char (very first char is delimiter char) followed by message ending with delimiter
-- `bfd` (Boolean) Enable BFD.  Valid for IPv4 Underlay only
-- `bfd_authentication` (Boolean) Enable BFD Authentication.  Valid for P2P Interfaces only
+- `auto_symmetric_default_vrf` (Boolean) Whether to auto generate Default VRF interface and BGP peering configuration on managed neighbor devices. If set, auto created VRF Lite IFC links will have 'Auto Deploy Default VRF for Peer' enabled
+- `auto_symmetric_vrf_lite` (Boolean) Flag that controls auto generation of VRF Lite sub-interface and peering configuration on Aggregation and Core/Edge switches. If set, auto created VRF Lite links will have 'Auto Generate Flag' enabled
+- `auto_unique_vrf_lite_ip_prefix` (Boolean) When enabled, IP prefix allocated to the VRF LITE IFC is not reused on VRF extension over VRF LITE IFC. Instead, unique IP Subnet is allocated for each VRF extension over VRF LITE IFC
+- `auto_vrf_lite_default_vrf` (Boolean) Whether to auto generate Default VRF interface and BGP peering configuration on VRF LITE IFC auto deployment. If set, auto created VRF Lite IFC links will have 'Auto Deploy Default VRF' enabled
+- `banner` (String) Message of the Day banner. Delimiter char (very first char is delimiter char) followed by message ending with delimiter
+- `bfd` (Boolean) Enable BFD
+- `bfd_authentication` (Boolean) Enable BFD Authentication. Valid for P2P Interfaces only
 - `bfd_authentication_key` (String) Encrypted SHA1 secret value
 - `bfd_authentication_key_id` (Number) BFD Authentication Key ID
 - `bfd_ibgp` (Boolean) Enable BFD For iBGP
 - `bfd_isis` (Boolean) Enable BFD For ISIS
 - `bfd_ospf` (Boolean) Enable BFD For OSPF
 - `bfd_pim` (Boolean) Enable BFD For PIM
-- `bgp_as_mode` (String) BGP AS mode configuration (e.g., multiAS)
+- `bgp_as_mode` (String) Multi-AS Unique ASN per Leaf/Border/Border Gateway (Borders and border gateways are allowed to share ASN). Same-Tier-AS Leafs share one ASN, Borders/border gateways share one ASN
 - `bgp_authentication` (Boolean) Enables or disables the BGP Authentication
 - `bgp_authentication_key` (String) Encrypted BGP Authentication Key based on type
 - `bgp_authentication_key_type` (String)
 - `bgp_loopback_id` (Number) Underlay Routing Loopback Id
 - `bgp_loopback_ip_range` (String) Typically Loopback0 IP Address Range
 - `bgp_loopback_ipv6_range` (String) Typically Loopback0 IPv6 Address Range
-- `bootstrap_multi_subnet` (String) lines with # prefix are ignored here
+- `bootstrap_multi_subnet` (String) Enter One Subnet Scope per line. Start_IP, End_IP, Gateway, Prefix e.g. 10.6.0.2, 10.6.0.9, 10.6.0.1, 24
 - `border_bgp_as` (String) BGP AS number for border switches 1-4294967295 | 1-65535[.0-65535]
 - `brownfield_network_name_format` (String) Generated network name should be less than 64 characters
 - `brownfield_skip_overlay_network_attachments` (Boolean) Skip Overlay Network Interface Attachments for Brownfield and Host Port Resync cases
 - `category` (String) Category name
-- `cdp` (Boolean) Enable CDP on the interface
-- `controller_status` (String) The controller status of the fabric_vxlan_evpn resource
-- `copp_policy` (String) Fabric Wide CoPP Policy. Customized CoPP policy should be provided when 'manual' is selected.
-- `cost` (Number) Energy cost in USD/kWh. Used for energy management calculations and reporting.
-- `day0_bootstrap` (Boolean) Automatic IP Assignment For POAP
+- `cdp` (Boolean) Flag to enable CDP on the interface
+- `controller_status` (String) The controller status of the fabric_vxlan resource
+- `copp_policy` (String) Fabric Wide CoPP Policy. Customized CoPP policy should be provided when 'manual' is selected
+- `cost` (Number) Energy cost in USD/kWh
+- `day0_bootstrap` (Boolean) Support day 0 touchless switch bringup
 - `default_private_vlan_secondary_network_template` (String) Default PVLAN Secondary Network Template
 - `default_queuing_policy` (Boolean) Enable Default Queuing Policies
 - `default_queuing_policy_cloudscale` (String) Queuing Policy for all 92xx, -EX, -FX, -FX2, -FX3, -GX series switches in the fabric
 - `default_queuing_policy_other` (String) Queuing Policy for all other switches in the fabric
 - `default_queuing_policy_r_series` (String) Queueing policy for all Nexus R-series switches
 - `default_vrf_redistribution_bgp_route_map` (String) Route Map used to redistribute BGP routes to IGP in default vrf in auto created VRF Lite IFC links
-- `dhcp_end_address` (String) End Address For Switch POAP
-- `dhcp_protocol_version` (String) IP protocol version for Local DHCP Server
-- `dhcp_start_address` (String) Start Address For Switch POAP
+- `dhcp_end_address` (String) End address for switch POAP
+- `dhcp_protocol_version` (String) IP protocol version for local DHCP server
+- `dhcp_start_address` (String) Start address for switch POAP
 - `dns_collection` (Set of String) List of IPv4 and IPv6 DNS addresses
 - `dns_vrf_collection` (Set of String) DNS Server VRFs. One VRF for all DNS servers or a list of VRFs, one per DNS server
-- `email` (Attributes List) List of email settings for external streaming. Used to configure email alerts and notifications from the fabric. (see [below for nested schema](#nestedatt--email))
-- `export_format` (String) NAS export format. Specifies the format for exported flow collection data. Currently supports 'json' format.
-- `export_type` (String) NAS export type. Can be 'full' for complete export or 'base' for basic export of flow collection data.
-- `extra_config_aaa` (String) AAA Configurations
+- `email` (Attributes List) List of email settings (see [below for nested schema](#nestedatt--email))
+- `export_format` (String) NAS export format
+- `export_type` (String) NAS export type
+- `extra_config_aaa` (String) Additional CLIs for AAA configuration
 - `extra_config_intra_fabric_links` (String) Additional CLIs for all Intra-Fabric links
 - `extra_config_leaf` (String) Additional CLIs as captured from the show running configuration, added after interface configurations for all switches with a VTEP unless they have some spine role
-- `extra_config_nxos_bootstrap` (String) Additional CLIs required during device bootup/login e.g. AAA/Radius
+- `extra_config_nxos_bootstrap` (String) Additional CLIs required during device bootup/login e.g. AAA/Radius (NX-OS)
 - `extra_config_spine` (String) Additional CLIs as captured from the show running configuration, added after interface configurations for all switches with some spine role
 - `extra_config_tor` (String) Additional CLIs as captured from the show running configuration, added after interface configurations for all ToRs
 - `fabric_interface_type` (String) Numbered(Point-to-Point) or unNumbered
-- `fabric_mtu` (Number) Intra Fabric Interface MTU. Must be an even number
+- `fabric_mtu` (Number) Intra fabric interface MTU
 - `fabric_type` (String) Type of Interface Group
-- `fabric_vpc_domain_id` (Boolean) Enable the same vPC Domain Id for all vPC Pairs.  Not Recommended.
+- `fabric_vpc_domain_id` (Boolean) Enable the same vPC Domain Id for all vPC Pairs. Not Recommended
 - `fabric_vpc_qos` (Boolean) Qos on spines for guaranteed delivery of vPC Fabric Peering communication
 - `fabric_vpc_qos_policy_name` (String) Qos Policy name should be same on all spines
 - `flow_telemetry` (Boolean) Enable Flow Telemetry
 - `greenfield_debug_flag` (String) Allow switch configuration to be cleared without a reload when preserveConfig is set to false
 - `heartbeat_interval` (Number) Heartbeat Interval in seconds
 - `host_interface_admin_state` (Boolean) Unshut Host Interfaces by Default
-- `ibgp_peer_template` (String) Specifies the iBGP Peer-Template config used for Route Reflectors and spines with border or border gateway role. This field should begin with '  template peer' or '  template peer-session'. This must have 2 leading spaces. Note ! All configs should strictly match show run output, with respect to case and newlines. Any mismatches will yield unexpected diffs during deploy.
+- `ibgp_peer_template` (String) Specifies the iBGP Peer-Template config used for Route Reflectors and spines with border or border gateway role. This field should begin with ' template peer' or ' template peer-session'. This must have 2 leading spaces. Note ! All configs should strictly match show run output, with respect to case and newlines. Any mismatches will yield unexpected diffs during deploy
 - `inband_dhcp_servers` (String) External DHCP Server IP Addresses. Comma separated list of ipv4 Addresses (Max 3)
-- `inband_management` (Boolean) Manage switches with only Inband connectivity
+- `inband_management` (Boolean) Import switches with inband connectivity
 - `interface_flow_rules` (Attributes List) Interface flow rules (see [below for nested schema](#nestedatt--interface_flow_rules))
 - `interface_rules` (Attributes List) Traffic Analytics interface rules (see [below for nested schema](#nestedatt--interface_rules))
 - `interface_statistics_load_interval` (Number) Interface Statistics Load Interval. Time in seconds
 - `intra_fabric_subnet_range` (String) Address range to assign numbered and peer link SVI IPs
 - `ip_service_level_agreement_id_range` (String) Service Level Agreement (SLA) ID Range (minimum: 1, maximum: 655214748364735). Per switch SLA ID Range
-- `ipv6_link_local` (Boolean) If not enabled, Spine-Leaf interfaces will use global IPv6 addresses
+- `ipv6_link_local` (Boolean) Enables IPv6 link-local Option under VRF SVI. Not applicable to L3VNI without VLAN config. NX-OS Specific
 - `ipv6_multicast_group_subnet` (String) IPv6 Multicast address with prefix 112 to 128
 - `ipv6_subnet_range` (String) Underlay Subnet ipv6 range to assign Numbered and Peer Link SVI IPs
 - `ipv6_subnet_target_mask` (Number) Mask for Underlay Subnet IPv6 Range
-- `isis_area_number` (String) NET in form of XX.<4-hex-digit Custom Area Number>.XXXX.XXXX.XXXX.00, default Area Number is 0001. If area number in existing NETs matches the previous area number set in fabric settings and is different from the current area number, these NETs will be updated by Recalculate and Deploy.
-- `isis_authentication` (Boolean) Enable IS-IS Authentication
-- `isis_authentication_key` (String) IS-IS Authentication Key.  Cisco Type 7 Encrypted
-- `isis_authentication_keychain_key_id` (Number) IS-IS Authentication Key ID
-- `isis_authentication_keychain_name` (String) IS-IS Authentication Keychain Name
-- `isis_level` (String) IS-IS Level
-- `isis_overload` (Boolean) Set IS-IS Overload Bit.  When enabled, set the overload bit for an elapsed time after a reload
+- `isis_area_number` (String) NET in form of XX.<4-hex-digit Custom Area Number>.XXXX.XXXX.XXXX.00, default Area Number is 0001. If area number in existing NETs matches the previous area number set in fabric settings and is different from the current area number, these NETs will be updated by Recalculate and Deploy
+- `isis_authentication` (Boolean) Enable IS-IS authentication
+- `isis_authentication_key` (String) Cisco type 7 encrypted
+- `isis_authentication_keychain_key_id` (Number) IS-IS authentication key identifier
+- `isis_authentication_keychain_name` (String) IS-IS authentication keychain name
+- `isis_level` (String) IS-IS level
+- `isis_overload` (Boolean) Set IS-IS Overload Bit. When enabled, set the overload bit for an elapsed time after a reload
 - `isis_overload_elapse_time` (Number) IS-IS Overload Bit Elapsed Time. Clear the overload bit after an elapsed time in seconds
 - `isis_point_to_point` (Boolean) This will enable network point-to-point on fabric interfaces which are numbered
 - `key_management_entity_server_ip` (String) Key Management Entity server ipv4 address
@@ -129,46 +129,46 @@ description: |-
 - `l3_vni_range` (String) Overlay VRF Identifier Range (minimum: 1, maximum: 16777214)
 - `l3vni_multicast_group` (String) Default Underlay Multicast group IPv4 address assigned for every overlay VRF
 - `leaf_bgp_as` (String) BGP AS number for leaf switches 1-4294967295 | 1-65535[.0-65535]
-- `leaf_to_r_id_range` (Boolean) Use specific vPC/Port-channel ID range for leaf-tor pairings
+- `leaf_tor_id_range` (Boolean) Use specific vPC/Port-channel ID range for leaf-tor pairings
 - `leaf_tor_vpc_port_channel_id_range` (String) Specify vPC/Port-channel ID range (minimum: 1, maximum: 4096), this range is used for auto-allocating vPC/Port-Channel IDs for leaf-tor pairings
-- `leafibgp_peer_template` (String) Specifies the config used for leaf, border or border gateway.  If this field is empty, the peer template defined in iBGP Peer-Template Config is used on all BGP enabled devices (RRs, leafs, border or border gateway roles).  This field should begin with '  template peer' or '  template peer-session'. This must have 2 leading spaces. Note ! All configs should strictly match 'show run' output, with respect to case and newlines. Any mismatches will yield unexpected diffs during deploy.
-- `license_tier` (String) The license tier of the fabric_vxlan_evpn resource
-- `link_state_routing_protocol` (String) Underlay Routing Protocol.  Used for Spine-Leaf Connectivity
+- `leafibgp_peer_template` (String) Specifies the config used for leaf, border or border gateway. If this field is empty, the peer template defined in iBGP Peer-Template Config is used on all BGP enabled devices (RRs, leafs, border or border gateway roles). This field should begin with ' template peer' or ' template peer-session'. This must have 2 leading spaces. Note ! All configs should strictly match 'show run' output, with respect to case and newlines. Any mismatches will yield unexpected diffs during deploy
+- `license_tier` (String) License Tier value of a fabric
+- `link_state_routing_protocol` (String) Underlay Routing Protocol. Used for spine-leaf connectivity
 - `link_state_routing_tag` (String) Underlay routing protocol process tag
-- `local_dhcp_server` (Boolean) Automatic IP Assignment For POAP From Local DHCP Server
+- `local_dhcp_server` (Boolean) Automatic IP assignment for POAP from local DHCP server
 - `location` (Attributes) Location to access the resource (see [below for nested schema](#nestedatt--location))
-- `macsec` (Boolean) Enable MACsec in the fabric. MACsec fabric parameters are used for configuring MACsec on a fabric link if MACsec is enabled on the link.
-- `macsec_algorithm` (String) MACsec Primary Cryptographic Algorithm.  AES_128_CMAC or AES_256_CMAC
-- `macsec_cipher_suite` (String) Configure Cipher Suite
-- `macsec_fallback_algorithm` (String) MACsec Fallback Cryptographic Algorithm.  AES_128_CMAC or AES_256_CMAC
-- `macsec_fallback_key_string` (String) MACsec Fallback Key String. Cisco Type 7 Encrypted Octet String
-- `macsec_key_string` (String) MACsec Primary Key String.  Cisco Type 7 Encrypted Octet String
-- `macsec_report_timer` (Number) MACsec Operational Status periodic report timer in minutes
-- `management_gateway` (String) Default Gateway For Management VRF On The Switch
-- `management_ipv4_prefix` (Number) Switch Mgmt IP Subnet Prefix if ipv4
-- `management_ipv6_prefix` (Number) Switch Management IP Subnet Prefix if ipv6
+- `macsec` (Boolean) Enable MACsec on this
+- `macsec_algorithm` (String) MACsec Primary Cryptographic Algorithm. AES_128_CMAC or AES_256_CMAC
+- `macsec_cipher_suite` (String) Macsec cipher suite
+- `macsec_fallback_algorithm` (String) MACsec Fallback Cryptographic Algorithm. AES_128_CMAC or AES_256_CMAC
+- `macsec_fallback_key_string` (String) MACsec fallback key string. Cisco Type 7 Encrypted Octet String
+- `macsec_key_string` (String) MACsec Primary Key String. Cisco Type 7 Encrypted Octet String
+- `macsec_report_timer` (Number) DCI MACsec Operational Status periodic report timer in minutes
+- `management_gateway` (String) Default gateway for management VRF on the switch
+- `management_ipv4_prefix` (Number) Switch mgmt IP subnet prefix if DHCPv4
+- `management_ipv6_prefix` (Number) Switch Mgmt IPv6 Subnet Prefix
 - `message_bus` (Attributes List) List of message bus settings (see [below for nested schema](#nestedatt--message_bus))
-- `microburst` (Boolean) Enable microburst detection. When enabled, the system will detect microbursts in network traffic.
+- `microburst` (Boolean) Enable microburst detection
 - `mpls_handoff` (Boolean) Enable MPLS Handoff
 - `mpls_isis_area_number` (String) NET in form of XX.<4-hex-digit Custom Area Number>.XXXX.XXXX.XXXX.00, default Area Number is 0001, used only if routing protocol on DCI MPLS link is is-is
-- `mpls_loopback_identifier` (Number) Used for VXLAN to MPLS SR/LDP Handoff
-- `mpls_loopback_ip_range` (String) Used for VXLAN to MPLS SR/LDP Handoff
+- `mpls_loopback_identifier` (Number) Underlay MPLS Loopback Identifier
+- `mpls_loopback_ip_range` (String) MPLS Loopback IP Address Range
 - `mst_instance_range` (String) Minimum Spanning Tree instance range (minimum: 0, maximum: 4094)
-- `multicast_group_subnet` (String) Multicast pool prefix between 8 to 30. A multicast group ipv4 from this pool is used for BUM traffic for each overlay network.
+- `multicast_group_subnet` (String) Multicast pool prefix between 8 to 30. A multicast group ipv4 from this pool is used for BUM traffic for each overlay network
 - `mvpn_vrf_route_import_id` (Boolean) Enable MVPN VRI ID Generation For Tenant Routed Multicast With IPv4 Underlay
 - `mvpn_vrf_route_import_id_range` (String) MVPN VRI ID (minimum: 1, maximum: 65535) for vPC, applicable when TRM enabled with IPv6 underlay, or mvpnVrfRouteImportId enabled with IPv4 underlay
 - `net_flow` (Boolean) Enable NetFlow
-- `netflow_enable` (Boolean) Enable netflow on the interface
+- `netflow_enable` (Boolean) Enable netflow on corresponding interface. Supported only if netflow is enabled on fabric
 - `netflow_exporter_collection` (Attributes List) One or Multiple Netflow Exporters (see [below for nested schema](#nestedatt--netflow_exporter_collection))
 - `netflow_monitor_collection` (Attributes List) One or Multiple Netflow Monitors (see [below for nested schema](#nestedatt--netflow_monitor_collection))
 - `netflow_record_collection` (Attributes List) (see [below for nested schema](#nestedatt--netflow_record_collection))
 - `netflow_sampler_collection` (Attributes List) One or multiple netflow samplers. Applicable to N7K only (see [below for nested schema](#nestedatt--netflow_sampler_collection))
 - `network_extension_template` (String) Default Overlay Network Template For Borders
-- `network_template` (String) Default Overlay Network Template For Leafs
+- `network_template` (String) Default Network Template
 - `network_vlan_range` (String) Per Switch Overlay Network VLAN Range (minimum: 2, maximum: 4094)
 - `next_generation_oam` (Boolean) Enable the Next Generation (NG) OAM feature for all switches in the fabric to aid in trouble-shooting VXLAN EVPN fabrics
 - `ngoam_south_bound_loop_detect` (Boolean) Enable the Next Generation (NG) OAM southbound loop detection
-- `ngoam_south_bound_loop_detect_probe_interval` (Number) Set Next Generation (NG) OAM southbound loop detection probe interval in seconds.
+- `ngoam_south_bound_loop_detect_probe_interval` (Number) Set Next Generation (NG) OAM southbound loop detection probe interval in seconds
 - `ngoam_south_bound_loop_detect_recovery_interval` (Number) Set the Next Generation (NG) OAM southbound loop detection recovery interval in seconds
 - `ntp_server_collection` (Set of String) List of NTP server IPv4/IPv6 addresses and/or hostnames
 - `ntp_server_vrf_collection` (Set of String) NTP Server VRFs. One VRF for all NTP servers or a list of VRFs, one per NTP server
@@ -182,104 +182,104 @@ description: |-
 - `nxapi_https_port` (Number) HTTPS port for NX-API
 - `object_tracking_number_range` (String) Tracked Object ID Range (minimum: 1, maximum: 512) Per switch tracked object ID Range
 - `operating_mode` (String) Flow collection mode as set on the fabric's telemetry cluster
-- `orchestration_status` (String) The orchestration status of the fabric_vxlan_evpn resource
-- `ospf_area_id` (String) OSPF Area Id in IP address format. Not applicable for eBGP fabric type
-- `ospf_authentication` (Boolean) Enable OSPF Authentication
-- `ospf_authentication_key` (String) OSPF Authentication Key.  3DES Encrypted
-- `ospf_authentication_key_id` (Number) (Min:0, Max:255)
+- `orchestration_status` (String) The orchestration status of the fabric_vxlan resource
+- `ospf_area_id` (String) OSPF Area Id in IP address format. Required if an OSPF process tag is specified
+- `ospf_authentication` (Boolean) Whether to enable OSPF authentication
+- `ospf_authentication_key` (String) OSPF authentication key (3DES encrypted). Required if OSPF authentication is enabled
+- `ospf_authentication_key_id` (Number) OSPF authentication key ID (0-255). Required if OSPF authentication is enabled
 - `overlay_mode` (String) Overlay Mode. VRF/Network configuration using config-profile or CLI
-- `per_vrf_loopback_auto_provision` (Boolean) Auto provision an IPv4 loopback on a VTEP on VRF attachment. Note: Enabling this option auto-provisions loopback on existing VRF attachments and also when Edit, QuickAttach, or Multiattach actions are performed. Provisioned loopbacks cannot be deleted until VRFs are unattached.
-- `per_vrf_loopback_auto_provision_ipv6` (Boolean) Auto provision an IPv6 loopback on a VTEP on VRF attachment.
+- `per_vrf_loopback_auto_provision` (Boolean) Auto provision an IPv4 loopback on a VTEP on VRF attachment. Note: Enabling this option auto-provisions loopback on existing VRF attachments and also when Edit, QuickAttach, or Multiattach actions are performed. Provisioned loopbacks cannot be deleted until VRFs are unattached
+- `per_vrf_loopback_auto_provision_ipv6` (Boolean) Auto provision an IPv6 loopback on a VTEP on VRF attachment
 - `per_vrf_loopback_ip_range` (String) Prefix pool to assign IPv4 addresses to loopbacks on VTEPs on a per VRF basis
 - `per_vrf_loopback_ipv6_range` (String) Prefix pool to assign IPv6 addresses to loopbacks on VTEPs on a per VRF basis
-- `performance_monitoring` (Boolean) Enable performance monitoring for this fabric
+- `performance_monitoring` (Boolean) Enable performance monitoring feature
 - `phantom_rendezvous_point_loopback_id1` (Number) Underlay phantom rendezvous point loopback primary Id for PIM Bi-dir deployments
 - `phantom_rendezvous_point_loopback_id2` (Number) Underlay phantom rendezvous point loopback secondary Id for PIM Bi-dir deployments
 - `phantom_rendezvous_point_loopback_id3` (Number) Underlay phantom rendezvous point loopback tertiary Id for PIM Bi-dir deployments
 - `phantom_rendezvous_point_loopback_id4` (Number) Underlay phantom rendezvous point loopback quaternary Id for PIM Bi-dir deployments
-- `pim_hello_authentication` (Boolean) Valid for IPv4 Underlay only
-- `pim_hello_authentication_key` (String) 3DES Encrypted
+- `pim_hello_authentication` (Boolean) Enable PIM hello authentication
+- `pim_hello_authentication_key` (String) 3DES encrypted
 - `policy_based_routing` (Boolean) Enable feature pbr, sla sender, epbr, or enable feature pbr, based on the L4-L7 Services use case
-- `power_redundancy_mode` (String) Default Power Supply Mode for NX-OS Switches
+- `power_redundancy_mode` (String) Default power supply mode for the fabric
 - `pre_interface_config_leaf` (String) Additional CLIs as captured from the show running configuration, added before interface configurations for all switches with a VTEP unless they have some spine role
 - `pre_interface_config_spine` (String) Additional CLIs as captured from the show running configuration, added before interface configurations for all switches with some spine role
 - `pre_interface_config_tor` (String) Additional CLIs as captured from the show running configuration, added before interface configurations for all ToRs
-- `priority_flow_control_watch_interval` (Number) Acceptable values from 101 to 1000 (milliseconds).  Leave blank for system default (100ms).
+- `priority_flow_control_watch_interval` (Number) Acceptable values from 101 to 1000 (milliseconds). Leave blank for system default (100ms)
 - `private_vlan` (Boolean) Enable PVLAN on switches except spines and super spines
-- `ptp` (Boolean) Enable Precision Time Protocol
-- `ptp_domain_id` (Number) Multiple Independent PTP Clocking Subdomains on a Single Network
-- `ptp_loopback_id` (Number) Precision Time Protocol Source Loopback Id
-- `ptp_vlan_id` (Number) Precision Time Protocol (PTP) Source VLAN ID.  SVI used for ptp source on ToRs
-- `quantum_key_distribution` (Boolean) Enable Data Center Interconnect Media Access Control Security with Quantum Key Distribution config
-- `quantum_key_distribution_profile_name` (String) Name of crypto profile (Max Size 63)
+- `ptp` (Boolean) Enable precision time protocol (PTP)
+- `ptp_domain_id` (Number) Multiple independent PTP clocking subdomains on a single network
+- `ptp_loopback_id` (Number) Precision time protocol source loopback identifier
+- `ptp_vlan_id` (Number) Precision Time Protocol (PTP) Source VLAN ID. SVI used for ptp source
+- `quantum_key_distribution` (Boolean) Enable DCI MACsec with QKD config
+- `quantum_key_distribution_profile_name` (String) Name of crypto profile
 - `real_time_backup` (Boolean) Backup hourly only if there is any config deployment since last backup
 - `real_time_interface_statistics_collection` (Boolean) Enable Real Time Interface Statistics Collection. Valid for NX-OS only
 - `rendezvous_point_count` (Number) Number of spines acting as Rendezvous-Points (RPs)
-- `rendezvous_point_loopback_id` (Number) Rendezvous point loopback Id
+- `rendezvous_point_loopback_id` (Number) Rendezvous Point (RP) loopback identifier
 - `rendezvous_point_mode` (String) Multicast rendezvous point Mode. For ipv6 underlay, please use asm only
 - `replication_mode` (String) Replication Mode for BUM Traffic
 - `route_map_sequence_number_range` (String) Route Map Sequence Number Range (minimum: 1, maximum: 65534)
 - `route_reflector_count` (Number) Number of spines acting as Route-Reflectors
-- `router_id_range` (String) BGP Router ID Range in IPv4 subnet format used for IPv6 Underlay.
+- `router_id_range` (String) BGP Router ID Range
 - `s_flow` (Boolean) Enable sFlow
 - `scheduled_backup` (Boolean) Enable to Backup at the specified time daily
-- `scheduled_backup_time` (String) Time (UTC) in 24hr format (00:00 to 23:59) to take daily Backup if enabled.
+- `scheduled_backup_time` (String) Time (UTC) in 24hr format (00:00 to 23:59) to take daily Backup if enabled
 - `security_domain` (String) Security Domain associated with the fabric
 - `security_group_status` (String) Security group status
-- `security_group_tag` (Boolean) Security group can be enabled only with cli overlay mode
+- `security_group_tag` (Boolean) If set to strict, only security groups enabled child fabrics will be allowed
 - `security_group_tag_id_range` (String) Security Group Tag (SGT) ID Range (minimum: 16, maximum: 65535)
 - `security_group_tag_prefix` (String) Prefix to be used when a new Security Group is created
 - `security_group_tag_preprovision` (Boolean) Generate security groups configuration for non-enforced VRFs
 - `seed_switch_core_interfaces` (String) Seed Switch Fabric Interfaces. Core-facing Interface list on Seed Switch (e.g. e1/1-30,e1/32)
-- `sensitivity` (String) Microburst sensitivity level. Can be set to low, medium, or high to determine the threshold for detecting microbursts.
-- `server` (String) Name of the Network attached storage server configured for flow collection. This specifies the server where flow collection data will be exported.
+- `sensitivity` (String) Microburst sensitivity level
+- `server` (String) Name of the Network attached storage server configured for flow collection. This specifies the server where flow collection data will be exported
 - `service_network_vlan_range` (String) Service Network VLAN Range (minimum: 2, maximum: 4094). Per Switch Overlay Service Network VLAN Range
 - `shared_vpc_domain_id` (Number) vPC Domain Id to be used on all vPC pairs
 - `site_id` (String) For EVPN Multi-Site Support. Defaults to Fabric ASN
 - `skip_certificate_verification` (Boolean) Skip verification of incoming certificate
-- `snmp_trap` (Boolean) Configure ND as a receiver for SNMP traps
+- `snmp_trap` (Boolean) Configure nexus dashboard as a receiver for SNMP traps
 - `spine_switch_core_interfaces` (String) Spine Switch Fabric Interfaces. Core-facing Interface list on all Spines (e.g. e1/1-30,e1/32)
-- `static_underlay_ip_allocation` (Boolean) Checking this will disable Dynamic Underlay IP Address Allocations
-- `stp_bridge_priority` (Number) Bridge priority for the spanning tree in increments of 4096
-- `stp_root_option` (String) Which protocol to use for configuring root bridge? rpvst+: Rapid Per-VLAN Spanning Tree, mst: Multiple Spanning Tree, unmanaged (default): STP Root not managed by ND
-- `stp_vlan_range` (String) Spanning tree Vlan range (minimum: 0, maximum: 4094)
+- `static_underlay_ip_allocation` (Boolean) Checking this will disable dynamic fabric IP address allocations
+- `stp_bridge_priority` (Number) Bridge priority for the spanning tree in increments of 4096 (Applicable only for Aggregation switches)
+- `stp_root_option` (String) Protocol to be used for configuring Root Bridge: rpvst+: Rapid Per-VLAN Spanning Tree, mst: Multiple Spanning Tree, unmanaged: STP Root not managed by ND. Note: Spanning Tree Settings and Bridge Configs are applicable at Aggregation layer only
+- `stp_vlan_range` (String) Spanning Tree VLAN Range (minimum: 0, maximum: 4094). Applicable only for Aggregation switches
 - `strict_config_compliance_mode` (Boolean) Enable bi-directional compliance checks to flag additional configs in the running config that are not in the intent/expected config
 - `sub_interface_dot1q_range` (String) Per aggregation dot1q range (minimum: 2, maximum: 4093) for VRF-Lite connectivity
 - `super_spine_bgp_as` (String) BGP AS number for super spine switches 1-4294967295 | 1-65535[.0-65535]
-- `syslog_anomalies` (Set of String) vPC pair anomalies response
-- `syslog_facility` (String) The facility value to be used in syslog messages. This helps categorize and filter syslog messages on the receiving server.
+- `syslog_anomalies` (Set of String) Level of anomalies to be collected
+- `syslog_facility` (String) Syslog servers facility
 - `syslog_server_collection` (Set of String) List of Syslog server IPv4/IPv6 addresses and/or hostnames
 - `syslog_server_vrf_collection` (Set of String) Syslog Server VRFs. One VRF for all Syslog servers or a list of VRFs, one per Syslog server
-- `syslog_servers` (Set of String) List of Syslog servers to which alerts are sent. Each item should be the name or address of a Syslog server.
+- `syslog_servers` (Set of String) Syslog servers to which alerts are sent
 - `syslog_severity_collection` (Set of Number) List of Syslog severity values, one per Syslog server
 - `target_subnet_mask` (Number) Mask for underlay subnet IP range
 - `tcam_allocation` (Boolean) TCAM commands are automatically generated for VxLAN and vPC Fabric Peering when Enabled
 - `telemetry_collection` (Boolean) Enable telemetry collection
-- `telemetry_collection_type` (String) Telemetry collection method.
+- `telemetry_collection_type` (String) Telemetry collection method
 - `telemetry_source_interface` (String) Telemetry Source Interface (VLAN id or Loopback id) only valid if Telemetry Collection is set to inBand
-- `telemetry_source_vrf` (String) VRF over which telemetry is streamed, valid only if telemetry collection is set to inband
-- `telemetry_status` (String) The telemetry status of the fabric_vxlan_evpn resource
-- `telemetry_streaming_protocol` (String) Telemetry Streaming Protocol.
+- `telemetry_source_vrf` (String) VRF over which telemetry is streamed, valid only if telemetry collection is set to inBand
+- `telemetry_status` (String) The telemetry status of the fabric_vxlan resource
+- `telemetry_streaming_protocol` (String) Telemetry Streaming Protocol
 - `tenant_dhcp` (Boolean) Enable Tenant DHCP
 - `tenant_routed_multicast` (Boolean) For Overlay ipv4 Multicast Support In VXLAN Fabrics
 - `tenant_routed_multicast_ipv6` (Boolean) For Overlay IPv6 Multicast Support In VXLAN Fabrics
-- `traffic_analytics` (String) Configuration status of a feature in a fabric.
-- `traffic_analytics_filter_rules` (String) Indicates whether the fabric supports traffic analytics filter rules, which can be applied to restrict external traffic visibility on Nexus Dashboard. It is not applicable when the Nexus Dashboard cluster flow collection mode is set to Flow Telemetry.
-- `traffic_analytics_mode` (String) Indicates whether the fabric supports full or compatibility mode for traffic analytics. It is not applicable when the Nexus Dashboard cluster flow collection mode is set to Flow Telemetry.
+- `traffic_analytics` (String) Configuration status of a feature in a fabric
+- `traffic_analytics_filter_rules` (String) Indicates whether the fabric supports traffic analytics filter rules, which can be applied to restrict external traffic visibility on Nexus Dashboard. It is not applicable when the Nexus Dashboard cluster flow collection mode is set to Flow Telemetry
+- `traffic_analytics_mode` (String) Indicates whether the fabric supports full or compatibility mode for traffic analytics. It is not applicable when the Nexus Dashboard cluster flow collection mode is set to Flow Telemetry
 - `traffic_analytics_rules_enabled` (Boolean)
-- `trap_forwarder_status` (String) The trap forwarder status of the fabric_vxlan_evpn resource
+- `trap_forwarder_status` (String) The trap forwarder status of the fabric_vxlan resource
 - `trustpoint_label` (String) Tls authentication type trustpoint label
-- `udp_categorization` (String) Configuration status of Traffic Analytics UDP Categorization in a fabric.
-- `udp_categorization_support` (String) Configuration status of Traffic Analytics UDP Categorization in a fabric.
+- `udp_categorization` (String) Configuration status of Traffic Analytics UDP Categorization in a fabric
+- `udp_categorization_support` (String) Configuration status of Traffic Analytics UDP Categorization in a fabric
 - `un_numbered_bootstrap_lb_id` (Number) Bootstrap Seed Switch Loopback Interface ID
 - `un_numbered_dhcp_end_address` (String) Switch Loopback DHCP Scope End Address. Must be a subset of IGP/BGP Loopback Prefix Pool
-- `un_numbered_dhcp_start_address` (String) Switch Loopback DHCP Scope Start Address.  Must be a subset of IGP/BGP Loopback Prefix Pool
+- `un_numbered_dhcp_start_address` (String) Switch Loopback DHCP Scope Start Address. Must be a subset of IGP/BGP Loopback Prefix Pool
 - `underlay_ipv6` (Boolean) If not enabled, IPv4 underlay is used
 - `vpc_auto_recovery_timer` (Number) vPC auto recovery timer (in seconds)
 - `vpc_delay_restore_timer` (Number) vPC delay restore timer (in seconds)
-- `vpc_domain_id_range` (String) vPC Domain id range (minimum: 1, maximum: 1000) to use for new pairings
+- `vpc_domain_id_range` (String) vPC Domain ID range (minimum: 0, maximum: 1000) to use for new pairings
 - `vpc_ipv6_neighbor_discovery_sync` (Boolean) Enable IPv6 ND synchronization between vPC peers
-- `vpc_layer3_peer_router` (Boolean) Enable Layer-3 Peer-Router on all Leaf switches
+- `vpc_layer3_peer_router` (Boolean) Enable Layer-3 Peer-Router on all Aggregation switches
 - `vpc_peer_keep_alive_option` (String) Use vPC Peer Keep Alive with Loopback or Management
 - `vpc_peer_link_enable_native_vlan` (Boolean) Enable VpcPeer Link for Native Vlan
 - `vpc_peer_link_port_channel_id` (String) vPC Peer Link Port Channel ID (minimum: 1, maximum: 4096)
@@ -287,20 +287,20 @@ description: |-
 - `vpc_tor_delay_restore_timer` (Number) vPC delay restore timer for ToR switches (in seconds)
 - `vrf_extension_template` (String) Default Overlay VRF Template For Borders
 - `vrf_flow_rules` (Attributes List) VRF flow rules (see [below for nested schema](#nestedatt--vrf_flow_rules))
-- `vrf_lite_auto_config` (String) VRF Lite Inter-Fabric Connection Deployment Options. If 'back2Back&ToExternal' is selected, VRF Lite IFCs are auto created between border devices of two Easy Fabrics, and between border devices in Easy Fabric and edge routers in External Fabric. The IP address is taken from the 'VRF Lite Subnet IP Range' pool.
-- `vrf_lite_ipv6_subnet_range` (String) Address range to assign P2P Interfabric Connections
-- `vrf_lite_ipv6_subnet_target_mask` (Number) VRF Lite Subnet Mask
-- `vrf_lite_macsec` (Boolean) Enable MACsec on DCI links. DCI MACsec fabric parameters are used for configuring MACsec on a DCI link if 'Use Link MACsec Setting' is disabled on the link.
+- `vrf_lite_auto_config` (String) VRF Lite Aggregation-Core and Aggregation-Edge Router Inter-Fabric Connection Options
+- `vrf_lite_ipv6_subnet_range` (String) IPv6 address range to assign P2P Aggregation-Core connections, and peering between vPC Aggregation switches
+- `vrf_lite_ipv6_subnet_target_mask` (Number) IPv6 VRF Lite Subnet Mask Length
+- `vrf_lite_macsec` (Boolean) Enable MACsec on DCI links. DCI MACsec fabric parameters are used for configuring MACsec on a DCI link if 'Use Link MACsec Setting' is disabled on the link
 - `vrf_lite_macsec_algorithm` (String) DCI MACsec Primary Cryptographic Algorithm
 - `vrf_lite_macsec_cipher_suite` (String) DCI MACsec Cipher Suite
-- `vrf_lite_macsec_fallback_algorithm` (String) AES_128_CMAC or AES_256_CMAC. This parameter is used when DCI link has QKD disabled.
-- `vrf_lite_macsec_fallback_key_string` (String) DCI MACsec Fallback Key String.  Cisco Type 7 Encrypted Octet String. This parameter is used when DCI link has QKD disabled.
-- `vrf_lite_macsec_key_string` (String) DCI MACsec Primary Key String.  Cisco Type 7 Encrypted Octet String
-- `vrf_lite_subnet_range` (String) Address range to assign P2P Interfabric Connections
-- `vrf_lite_subnet_target_mask` (Number) VRF Lite Subnet Mask
+- `vrf_lite_macsec_fallback_algorithm` (String) DCI MACsec Fallback Cryptographic Algorithm to use when DCI link has QKD disabled
+- `vrf_lite_macsec_fallback_key_string` (String) Cisco Type 7 Encrypted Octet String. This parameter is used when DCI link has QKD disabled
+- `vrf_lite_macsec_key_string` (String) Cisco Type 7 Encrypted Octet String
+- `vrf_lite_subnet_range` (String) IPv4 address range to assign P2P Aggregation-Core connections, and peering between vPC Aggregation switches
+- `vrf_lite_subnet_target_mask` (Number) IPv4 VRF Lite Subnet Mask Length
 - `vrf_route_import_id_reallocation` (Boolean) One time VRI ID re-allocation based on 'MVPN VRI ID Range'
-- `vrf_template` (String) Default Overlay VRF Template For Leafs
-- `vrf_vlan_range` (String) Per Switch Overlay VRF VLAN Range (minimum: 2, maximum: 4094)
+- `vrf_template` (String) Default VRF Template
+- `vrf_vlan_range` (String) Used for Per VRF SVI Peering between Aggregation pairs (minimum: 2, maximum: 4094)
 
 ### Read-Only
 
@@ -313,14 +313,14 @@ Optional:
 
 - `advisories` (Set of String)
 - `anomalies` (Set of String)
-- `collection_frequency_in_days` (Number) Frequency of email alerts in days. Determines how often email alerts will be sent.
-- `collection_type` (String) Type of email collection settings. Can be 'basic' or 'advanced' to specify the level of detail in email alerts.
-- `format` (String) Email format. Can be 'html' or 'text' to specify the format of email alerts.
-- `name` (String) Name of the email configuration. Identifies this specific email notification configuration.
-- `only_include_active_alerts` (Boolean) When true, the email output will only include alerts that are currently active. Setting to false will include all alerts regardless of status.
-- `receiver_email` (String) Email address to receive alerts. Must be a valid email format.
+- `collection_frequency_in_days` (Number) Frequency of email alerts in days
+- `collection_type` (String) Data collection type for message bus
+- `format` (String) Email format. Can be 'html' or 'text' to specify the format of email alerts
+- `name` (String) Name of the email configuration. Identifies this specific email notification configuration
+- `only_include_active_alerts` (Boolean) When true, the output will only include alerts that are active
+- `receiver_email` (String) Email address to receive alerts
 - `risk_and_conformance_reports` (Set of String)
-- `start_date` (String) Start date for email alerts in ISO 8601 format (YYYY-MM-DDThh:mm:ssZ). Defines when the email alerts should begin.
+- `start_date` (String) Start date for email alerts
 
 
 <a id="nestedatt--interface_flow_rules"></a>
@@ -428,8 +428,8 @@ Optional:
 
 Optional:
 
-- `latitude` (Number)
-- `longitude` (Number)
+- `latitude` (Number) Latitude in decimal degrees
+- `longitude` (Number) Longitude in decimal degrees
 
 
 <a id="nestedatt--message_bus"></a>
@@ -455,7 +455,7 @@ Optional:
 - `exporter_ip` (String)
 - `exporter_name` (String)
 - `source_interface_name` (String)
-- `udp_port` (Number)
+- `udp_port` (Number) UDP port
 - `vrf` (String)
 
 
@@ -465,7 +465,7 @@ Optional:
 Optional:
 
 - `exporter1_name` (String)
-- `exporter2_name` (String)
+- `exporter2_name` (String) Exporter 2 Name
 - `monitor_name` (String)
 - `monitor_record_name` (String)
 
@@ -475,7 +475,7 @@ Optional:
 
 Optional:
 
-- `layer2_record` (Boolean) One or Multiple Netflow Records
+- `layer2_record` (Boolean) Is Layer2 Record
 - `record_name` (String)
 - `record_template` (String)
 
@@ -487,7 +487,7 @@ Optional:
 
 - `num_samples` (Number)
 - `sampler_name` (String)
-- `sampling_rate` (Number)
+- `sampling_rate` (Number) Number of Packets in Each Sampling. Max of 131071 for M3/F3 only VDC & version 9, 8191 for other card types
 
 
 <a id="nestedatt--vrf_flow_rules"></a>

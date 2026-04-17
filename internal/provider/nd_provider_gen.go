@@ -14,8 +14,8 @@ func NdProviderSchema(ctx context.Context) schema.Schema {
 		Attributes: map[string]schema.Attribute{
 			"domain": schema.StringAttribute{
 				Optional:            true,
-				Description:         "NDFC Login credentials - domain. Enviroment variable `ND_DOMAIN` can be used to override the provider configuration.",
-				MarkdownDescription: "NDFC Login credentials - domain. Enviroment variable `ND_DOMAIN` can be used to override the provider configuration.",
+				Description:         "NDFC Login credentials - domain. Environment variable `ND_DOMAIN` can be used to override the provider configuration.",
+				MarkdownDescription: "NDFC Login credentials - domain. Environment variable `ND_DOMAIN` can be used to override the provider configuration.",
 			},
 			"insecure": schema.BoolAttribute{
 				Optional:            true,
@@ -25,23 +25,23 @@ func NdProviderSchema(ctx context.Context) schema.Schema {
 			"password": schema.StringAttribute{
 				Required:            true,
 				Sensitive:           true,
-				Description:         "NDFC Login credentials - password. Enviroment variable `ND_PASSWORD` can be used to override the provider configuration.",
-				MarkdownDescription: "NDFC Login credentials - password. Enviroment variable `ND_PASSWORD` can be used to override the provider configuration.",
+				Description:         "NDFC Login credentials - password. Environment variable `ND_PASSWORD` can be used to override the provider configuration.",
+				MarkdownDescription: "NDFC Login credentials - password. Environment variable `ND_PASSWORD` can be used to override the provider configuration.",
 			},
 			"timeout": schema.Int64Attribute{
 				Optional:            true,
-				Description:         "NDFC HTTP request timeout - timeout. Enviroment variable `ND_TIMEOUT` can be used to override the provider configuration.",
-				MarkdownDescription: "NDFC HTTP request timeout - timeout. Enviroment variable `ND_TIMEOUT` can be used to override the provider configuration.",
+				Description:         "NDFC HTTP request timeout - timeout. Environment variable `ND_TIMEOUT` can be used to override the provider configuration.",
+				MarkdownDescription: "NDFC HTTP request timeout - timeout. Environment variable `ND_TIMEOUT` can be used to override the provider configuration.",
 			},
 			"url": schema.StringAttribute{
 				Required:            true,
-				Description:         "URL to connect to NDFC - Enviroment variable `ND_URL` can be used to override the provider configuration.",
-				MarkdownDescription: "URL to connect to NDFC - Enviroment variable `ND_URL` can be used to override the provider configuration.",
+				Description:         "URL to connect to NDFC - Environment variable `ND_URL` can be used to override the provider configuration.",
+				MarkdownDescription: "URL to connect to NDFC - Environment variable `ND_URL` can be used to override the provider configuration.",
 			},
 			"username": schema.StringAttribute{
 				Required:            true,
-				Description:         "NDFC Login credentials - user.  Enviroment variable `ND_USERNAME` can be used to override the provider configuration.",
-				MarkdownDescription: "NDFC Login credentials - user.  Enviroment variable `ND_USERNAME` can be used to override the provider configuration.",
+				Description:         "NDFC Login credentials - user. Environment variable `ND_USERNAME` can be used to override the provider configuration.",
+				MarkdownDescription: "NDFC Login credentials - user. Environment variable `ND_USERNAME` can be used to override the provider configuration.",
 			},
 		},
 	}

@@ -5,13 +5,13 @@ resource:
   attributes:
   - model_name: name
     tf_name: fabric_name
-    description: The name of the fabric_vxlan_evpn resource
+    description: The name of the fabric_vxlan resource
     type: String
     mandatory: true
     example: my_fabric
   - model_name: licenseTier
     tf_name: license_tier
-    description: The license tier of the fabric_vxlan_evpn resource
+    description: License Tier value of a fabric
     type: String
     computed: true
     optional: true
@@ -20,28 +20,28 @@ resource:
     tf_name: controller_status
     ndfc_nested:
     - featureStatus
-    description: The controller status of the fabric_vxlan_evpn resource
+    description: The controller status of the fabric_vxlan resource
     type: String
     example: enabled
   - model_name: telemetry
     tf_name: telemetry_status
     ndfc_nested:
     - featureStatus
-    description: The telemetry status of the fabric_vxlan_evpn resource
+    description: The telemetry status of the fabric_vxlan resource
     type: String
     example: enabled
   - model_name: orchestration
     tf_name: orchestration_status
     ndfc_nested:
     - featureStatus
-    description: The orchestration status of the fabric_vxlan_evpn resource
+    description: The orchestration status of the fabric_vxlan resource
     type: String
     example: enabled
   - model_name: trapForwarder
     tf_name: trap_forwarder_status
     ndfc_nested:
     - featureStatus
-    description: The trap forwarder status of the fabric_vxlan_evpn resource
+    description: The trap forwarder status of the fabric_vxlan resource
     type: String
     example: enabled
   - model_name: telemetryCollection
@@ -56,12 +56,12 @@ resource:
     tf_name: telemetry_collection_type
     type: String
     example: outOfBand
-    description: Telemetry collection method.
+    description: Telemetry collection method
   - model_name: telemetryStreamingProtocol
     tf_name: telemetry_streaming_protocol
     type: String
     example: ipv4
-    description: Telemetry Streaming Protocol.
+    description: Telemetry Streaming Protocol
   - model_name: telemetrySourceInterface
     tf_name: telemetry_source_interface
     type: String
@@ -73,7 +73,7 @@ resource:
     type: String
     example: vrf1
     description: VRF over which telemetry is streamed, valid only if telemetry collection
-      is set to inband
+      is set to inBand
   - model_name: securityDomain
     tf_name: security_domain
     type: String
@@ -134,7 +134,9 @@ resource:
     ndfc_nested:
     - management
     example: 'multiAS'
-    description: BGP AS mode configuration (e.g., multiAS)
+    description: Multi-AS Unique ASN per Leaf/Border/Border Gateway (Borders and border
+      gateways are allowed to share ASN). Same-Tier-AS Leafs share one ASN,
+      Borders/border gateways share one ASN
   - model_name: targetSubnetMask
     tf_name: target_subnet_mask
     type: Int64
@@ -161,7 +163,7 @@ resource:
     example: false
     ndfc_nested:
     - management
-    description: Enable performance monitoring for this fabric
+    description: Enable performance monitoring feature
   - model_name: replicationMode
     tf_name: replication_mode
     type: String
@@ -179,8 +181,8 @@ resource:
     optional: true
     ndfc_nested:
     - management
-    description: Multicast pool prefix between 8 to 30. A multicast group ipv4 from
-      this pool is used for BUM traffic for each overlay network.
+    description: Multicast pool prefix between 8 to 30. A multicast group ipv4
+      from this pool is used for BUM traffic for each overlay network
   - model_name: tenantRoutedMulticast
     tf_name: tenant_routed_multicast
     type: Bool
@@ -217,12 +219,14 @@ resource:
       computed: true
       optional: true
       example: 42.0
+      description: Latitude in decimal degrees
     - model_name: longitude
       tf_name: longitude
       computed: true
       optional: true
       type: Float64
       example: 42.0
+      description: Longitude in decimal degrees
     description: Location to access the resource
   - model_name: alertSuspend
     tf_name: alert_suspend
@@ -237,7 +241,7 @@ resource:
     example: 254
     ndfc_nested:
     - management
-    description: Rendezvous point loopback Id
+    description: Rendezvous Point (RP) loopback identifier
   - model_name: vpcPeerLinkVlan
     tf_name: vpc_peer_link_vlan
     type: String
@@ -312,7 +316,7 @@ resource:
     example: 1-1000
     ndfc_nested:
     - management
-    description: 'vPC Domain id range (minimum: 1, maximum: 1000) to use for new pairings'
+    description: 'vPC Domain ID range (minimum: 0, maximum: 1000) to use for new pairings'
   - model_name: bgpLoopbackId
     tf_name: bgp_loopback_id
     type: Int64
@@ -337,7 +341,7 @@ resource:
     example: Default_VRF_Universal
     ndfc_nested:
     - management
-    description: Default Overlay VRF Template For Leafs
+    description: Default VRF Template
   - model_name: networkTemplate
     tf_name: network_template
     type: String
@@ -345,7 +349,7 @@ resource:
     example: Default_Network_Universal
     ndfc_nested:
     - management
-    description: Default Overlay Network Template For Leafs
+    description: Default Network Template
   - model_name: vrfExtensionTemplate
     tf_name: vrf_extension_template
     type: String
@@ -375,7 +379,7 @@ resource:
   - model_name: siteId
     tf_name: site_id
     type: String
-    example: example_siteId
+    example: "65001"
     optional: true
     computed: true
     ndfc_nested:
@@ -388,7 +392,7 @@ resource:
     example: 9216
     ndfc_nested:
     - management
-    description: Intra Fabric Interface MTU. Must be an even number
+    description: Intra fabric interface MTU
   - model_name: l2HostInterfaceMtu
     tf_name: l2_host_interface_mtu
     type: Int64
@@ -448,7 +452,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Configure ND as a receiver for SNMP traps
+    description: Configure nexus dashboard as a receiver for SNMP traps
   - model_name: anycastBorderGatewayAdvertisePhysicalIp
     tf_name: anycast_border_gateway_advertise_physical_ip
     type: Bool
@@ -560,7 +564,7 @@ resource:
     example: 2000-2299
     ndfc_nested:
     - management
-    description: 'Per Switch Overlay VRF VLAN Range (minimum: 2, maximum: 4094)'
+    description: 'Used for Per VRF SVI Peering between Aggregation pairs (minimum: 2, maximum: 4094)'
   - model_name: subInterfaceDot1qRange
     tf_name: sub_interface_dot1q_range
     type: String
@@ -568,8 +572,7 @@ resource:
     example: 2-511
     ndfc_nested:
     - management
-    description: 'Per aggregation dot1q range (minimum: 2, maximum: 4093) for VRF-Lite
-      connectivity'
+    description: "Per aggregation dot1q range (minimum: 2, maximum: 4093) for VRF-Lite connectivity"
   - model_name: vrfLiteAutoConfig
     tf_name: vrf_lite_auto_config
     type: String
@@ -577,10 +580,8 @@ resource:
     example: manual
     ndfc_nested:
     - management
-    description: VRF Lite Inter-Fabric Connection Deployment Options. If 'back2Back&ToExternal'
-      is selected, VRF Lite IFCs are auto created between border devices of two Easy
-      Fabrics, and between border devices in Easy Fabric and edge routers in External
-      Fabric. The IP address is taken from the 'VRF Lite Subnet IP Range' pool.
+    description: VRF Lite Aggregation-Core and Aggregation-Edge Router Inter-Fabric
+      Connection Options
   - model_name: vrfLiteSubnetRange
     tf_name: vrf_lite_subnet_range
     type: String
@@ -588,7 +589,8 @@ resource:
     example: 10.33.0.0/16
     ndfc_nested:
     - management
-    description: Address range to assign P2P Interfabric Connections
+    description: IPv4 address range to assign P2P Aggregation-Core connections, and peering
+      between vPC Aggregation switches
   - model_name: vrfLiteSubnetTargetMask
     tf_name: vrf_lite_subnet_target_mask
     type: Int64
@@ -596,7 +598,7 @@ resource:
     example: 30
     ndfc_nested:
     - management
-    description: VRF Lite Subnet Mask
+    description: IPv4 VRF Lite Subnet Mask Length
 
   - model_name: vrfLiteIpv6SubnetRange
     tf_name: vrf_lite_ipv6_subnet_range
@@ -606,7 +608,8 @@ resource:
     computed: true
     ndfc_nested:
     - management
-    description: Address range to assign P2P Interfabric Connections
+    description: IPv6 address range to assign P2P Aggregation-Core connections, and peering
+      between vPC Aggregation switches
 
   - model_name: vrfLiteIpv6SubnetTargetMask
     tf_name: vrf_lite_ipv6_subnet_target_mask
@@ -615,7 +618,7 @@ resource:
     example: 126
     ndfc_nested:
     - management
-    description: VRF Lite Subnet Mask
+    description: IPv6 VRF Lite Subnet Mask Length
 
   - model_name: autoUniqueVrfLiteIpPrefix
     tf_name: auto_unique_vrf_lite_ip_prefix
@@ -625,9 +628,9 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: When enabled, IP prefix allocated to the VRF LITE IFC is not reused
-      on VRF extension over VRF LITE IFC. Instead, unique IP Subnet is allocated for
-      each VRF extension over VRF LITE IFC.
+    description: When enabled, IP prefix allocated to the VRF LITE IFC is not
+      reused on VRF extension over VRF LITE IFC. Instead, unique IP Subnet is
+      allocated for each VRF extension over VRF LITE IFC
   - model_name: perVrfLoopbackAutoProvision
     tf_name: per_vrf_loopback_auto_provision
     type: Bool
@@ -636,10 +639,11 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: 'Auto provision an IPv4 loopback on a VTEP on VRF attachment. Note:
-      Enabling this option auto-provisions loopback on existing VRF attachments and
-      also when Edit, QuickAttach, or Multiattach actions are performed. Provisioned
-      loopbacks cannot be deleted until VRFs are unattached.'
+    description: 'Auto provision an IPv4 loopback on a VTEP on VRF attachment.
+      Note: Enabling this option auto-provisions loopback on existing VRF
+      attachments and also when Edit, QuickAttach, or Multiattach actions are
+      performed. Provisioned loopbacks cannot be deleted until VRFs are
+      unattached'
   - model_name: perVrfLoopbackIpRange
     tf_name: per_vrf_loopback_ip_range
     type: String
@@ -656,7 +660,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Auto provision an IPv6 loopback on a VTEP on VRF attachment.
+    description: Auto provision an IPv6 loopback on a VTEP on VRF attachment
   - model_name: perVrfLoopbackIpv6Range
     tf_name: per_vrf_loopback_ipv6_range
     type: String
@@ -668,11 +672,11 @@ resource:
   - model_name: banner
     tf_name: banner
     type: String
-    example: example_banner
+    example: my_banner
     ndfc_nested:
     - management
-    description: Message of the Day (motd) banner. Delimiter char (very first char
-      is delimiter char) followed by message ending with delimiter
+    description: Message of the Day banner. Delimiter char (very first char is delimiter
+      char) followed by message ending with delimiter
   - model_name: day0Bootstrap
     tf_name: day0_bootstrap
     type: Bool
@@ -681,7 +685,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Automatic IP Assignment For POAP
+    description: Support day 0 touchless switch bringup
   - model_name: localDhcpServer
     tf_name: local_dhcp_server
     type: Bool
@@ -690,49 +694,49 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Automatic IP Assignment For POAP From Local DHCP Server
+    description: Automatic IP assignment for POAP from local DHCP server
   - model_name: dhcpProtocolVersion
     tf_name: dhcp_protocol_version
     type: String
     example: dhcpv4
     ndfc_nested:
     - management
-    description: IP protocol version for Local DHCP Server
+    description: IP protocol version for local DHCP server
   - model_name: dhcpStartAddress
     tf_name: dhcp_start_address
     type: String
     example: 192.168.1.1
     ndfc_nested:
     - management
-    description: Start Address For Switch POAP
+    description: Start address for switch POAP
   - model_name: dhcpEndAddress
     tf_name: dhcp_end_address
     type: String
     example: 192.168.1.1
     ndfc_nested:
     - management
-    description: End Address For Switch POAP
+    description: End address for switch POAP
   - model_name: managementGateway
     tf_name: management_gateway
     type: String
     example: 192.168.1.1
     ndfc_nested:
     - management
-    description: Default Gateway For Management VRF On The Switch
+    description: Default gateway for management VRF on the switch
   - model_name: managementIpv4Prefix
     tf_name: management_ipv4_prefix
     type: Int64
     example: 24
     ndfc_nested:
     - management
-    description: Switch Mgmt IP Subnet Prefix if ipv4
+    description: Switch mgmt IP subnet prefix if DHCPv4
   - model_name: managementIpv6Prefix
     tf_name: management_ipv6_prefix
     type: Int64
     example: 64
     ndfc_nested:
     - management
-    description: Switch Management IP Subnet Prefix if ipv6
+    description: Switch Mgmt IPv6 Subnet Prefix
   - model_name: bootstrapMultiSubnet
     tf_name: bootstrap_multi_subnet
     type: String
@@ -741,14 +745,15 @@ resource:
     example: ''
     ndfc_nested:
     - management
-    description: 'lines with # prefix are ignored here'
+    description: Enter One Subnet Scope per line. Start_IP, End_IP, Gateway, Prefix e.g.
+      10.6.0.2, 10.6.0.9, 10.6.0.1, 24
   - model_name: extraConfigNxosBootstrap
     tf_name: extra_config_nxos_bootstrap
     type: String
-    example: example_extraConfigNxosBootstrap
+    example: aaa authentication login default group radius
     ndfc_nested:
     - management
-    description: Additional CLIs required during device bootup/login e.g. AAA/Radius
+    description: Additional CLIs required during device bootup/login e.g. AAA/Radius (NX-OS)
   - model_name: realTimeBackup
     tf_name: real_time_backup
     type: Bool
@@ -770,11 +775,11 @@ resource:
   - model_name: scheduledBackupTime
     tf_name: scheduled_backup_time
     type: String
-    example: example_scheduledBackupTime
+    example: "22:00"
     ndfc_nested:
     - management
-    description: Time (UTC) in 24hr format (00:00 to 23:59) to take daily Backup if
-      enabled.
+    description: "Time (UTC) in 24hr format (00:00 to 23:59) to take daily
+      Backup if enabled"
   - model_name: underlayIpv6
     tf_name: underlay_ipv6
     type: Bool
@@ -812,11 +817,11 @@ resource:
   - model_name: mvpnVrfRouteImportIdRange
     tf_name: mvpn_vrf_route_import_id_range
     type: String
-    example: example_mvpnVrfRouteImportIdRange
+    example: 1-65535
     ndfc_nested:
     - management
-    description: 'MVPN VRI ID (minimum: 1, maximum: 65535) for vPC, applicable when
-      TRM enabled with IPv6 underlay, or mvpnVrfRouteImportId enabled with IPv4 underlay'
+    description: "MVPN VRI ID (minimum: 1, maximum: 65535) for vPC, applicable when
+      TRM enabled with IPv6 underlay, or mvpnVrfRouteImportId enabled with IPv4 underlay"
   - model_name: vrfRouteImportIdReallocation
     tf_name: vrf_route_import_id_reallocation
     type: Bool
@@ -825,7 +830,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: One time VRI ID re-allocation based on 'MVPN VRI ID Range'
+    description: "One time VRI ID re-allocation based on 'MVPN VRI ID Range'"
   - model_name: l3vniMulticastGroup
     tf_name: l3vni_multicast_group
     type: String
@@ -913,7 +918,8 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable the same vPC Domain Id for all vPC Pairs.  Not Recommended.
+    description: Enable the same vPC Domain Id for all vPC Pairs. Not
+      Recommended
   - model_name: sharedVpcDomainId
     tf_name: shared_vpc_domain_id
     type: Int64
@@ -929,7 +935,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable Layer-3 Peer-Router on all Leaf switches
+    description: Enable Layer-3 Peer-Router on all Aggregation switches
   - model_name: fabricVpcQos
     tf_name: fabric_vpc_qos
     type: Bool
@@ -953,7 +959,8 @@ resource:
     example: 10
     ndfc_nested:
     - management
-    description: Underlay Anycast Loopback Id.  Used for vPC Peering in VXLANv6 Fabrics
+    description: Underlay Anycast Loopback Id. Used for vPC Peering in VXLANv6
+      Fabrics
   - model_name: bgpAuthentication
     tf_name: bgp_authentication
     type: Bool
@@ -974,7 +981,7 @@ resource:
   - model_name: bgpAuthenticationKey
     tf_name: bgp_authentication_key
     type: String
-    example: example_bgpAuthenticationKey
+    example: BGP_KEY
     ndfc_nested:
     - management
     description: Encrypted BGP Authentication Key based on type
@@ -986,14 +993,14 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Valid for IPv4 Underlay only
+    description: Enable PIM hello authentication
   - model_name: pimHelloAuthenticationKey
     tf_name: pim_hello_authentication_key
     type: String
-    example: example_pimHelloAuthenticationKey
+    example: PIM_KEY
     ndfc_nested:
     - management
-    description: 3DES Encrypted
+    description: 3DES encrypted
   - model_name: bfd
     tf_name: bfd
     type: Bool
@@ -1002,7 +1009,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable BFD.  Valid for IPv4 Underlay only
+    description: Enable BFD
   - model_name: bfdIbgp
     tf_name: bfd_ibgp
     type: Bool
@@ -1020,7 +1027,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable BFD Authentication.  Valid for P2P Interfaces only
+    description: Enable BFD Authentication. Valid for P2P Interfaces only
   - model_name: bfdAuthenticationKeyId
     tf_name: bfd_authentication_key_id
     type: Int64
@@ -1031,7 +1038,7 @@ resource:
   - model_name: bfdAuthenticationKey
     tf_name: bfd_authentication_key
     type: String
-    example: example_bfdAuthenticationKey
+    example: BFD_KEY
     ndfc_nested:
     - management
     description: Encrypted SHA1 secret value
@@ -1044,50 +1051,51 @@ resource:
     optional: true
     ndfc_nested:
     - management
-    description: Enable MACsec in the fabric. MACsec fabric parameters are used for
-      configuring MACsec on a fabric link if MACsec is enabled on the link.
+    description: Enable MACsec on this
   - model_name: macsecCipherSuite
     tf_name: macsec_cipher_suite
     type: String
     example: GCM-AES-XPN-256
     ndfc_nested:
     - management
-    description: Configure Cipher Suite
+    description: Macsec cipher suite
   - model_name: macsecKeyString
     tf_name: macsec_key_string
     type: String
-    example: example_macsecKeyString
+    example: 0123456789ABCDEF
     ndfc_nested:
     - management
-    description: MACsec Primary Key String.  Cisco Type 7 Encrypted Octet String
+    description: MACsec Primary Key String. Cisco Type 7 Encrypted Octet String
   - model_name: macsecAlgorithm
     tf_name: macsec_algorithm
     type: String
     example: AES_128_CMAC
     ndfc_nested:
     - management
-    description: MACsec Primary Cryptographic Algorithm.  AES_128_CMAC or AES_256_CMAC
+    description: MACsec Primary Cryptographic Algorithm. AES_128_CMAC or
+      AES_256_CMAC
   - model_name: macsecFallbackKeyString
     tf_name: macsec_fallback_key_string
     type: String
-    example: example_macsecFallbackKeyString
+    example: 0123456789ABCDEF
     ndfc_nested:
     - management
-    description: MACsec Fallback Key String. Cisco Type 7 Encrypted Octet String
+    description: MACsec fallback key string. Cisco Type 7 Encrypted Octet String
   - model_name: macsecFallbackAlgorithm
     tf_name: macsec_fallback_algorithm
     type: String
     example: AES_128_CMAC
     ndfc_nested:
     - management
-    description: MACsec Fallback Cryptographic Algorithm.  AES_128_CMAC or AES_256_CMAC
+    description: MACsec Fallback Cryptographic Algorithm. AES_128_CMAC or
+      AES_256_CMAC
   - model_name: macsecReportTimer
     tf_name: macsec_report_timer
     type: Int64
     example: 5
     ndfc_nested:
     - management
-    description: MACsec Operational Status periodic report timer in minutes
+    description: DCI MACsec Operational Status periodic report timer in minutes
   - model_name: overlayMode
     tf_name: overlay_mode
     type: String
@@ -1119,7 +1127,7 @@ resource:
     example: redundant
     ndfc_nested:
     - management
-    description: Default Power Supply Mode for NX-OS Switches
+    description: Default power supply mode for the fabric
   - model_name: coppPolicy
     tf_name: copp_policy
     type: String
@@ -1127,8 +1135,8 @@ resource:
     example: strict
     ndfc_nested:
     - management
-    description: Fabric Wide CoPP Policy. Customized CoPP policy should be provided
-      when 'manual' is selected.
+    description: "Fabric Wide CoPP Policy. Customized CoPP policy should be
+      provided when 'manual' is selected"
   - model_name: nveHoldDownTimer
     tf_name: nve_hold_down_timer
     type: Int64
@@ -1145,7 +1153,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable CDP on the interface
+    description: Flag to enable CDP on the interface
   - model_name: nextGenerationOAM
     tf_name: next_generation_oam
     type: Bool
@@ -1171,8 +1179,8 @@ resource:
     example: 300
     ndfc_nested:
     - management
-    description: Set Next Generation (NG) OAM southbound loop detection probe interval
-      in seconds.
+    description: Set Next Generation (NG) OAM southbound loop detection probe
+      interval in seconds
   - model_name: ngoamSouthBoundLoopDetectRecoveryInterval
     tf_name: ngoam_south_bound_loop_detect_recovery_interval
     type: Int64
@@ -1199,8 +1207,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable AAA IP Authorization.  Enable only, when IP Authorization
-      is enabled in the AAA Server
+    description: Enable only, when IP authorization is enabled in the AAA Server
   - model_name: ptp
     tf_name: ptp
     type: Bool
@@ -1209,21 +1216,21 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable Precision Time Protocol
+    description: Enable precision time protocol (PTP)
   - model_name: ptpLoopbackId
     tf_name: ptp_loopback_id
     type: Int64
     example: 0
     ndfc_nested:
     - management
-    description: Precision Time Protocol Source Loopback Id
+    description: Precision time protocol source loopback identifier
   - model_name: ptpDomainId
     tf_name: ptp_domain_id
     type: Int64
     example: 0
     ndfc_nested:
     - management
-    description: Multiple Independent PTP Clocking Subdomains on a Single Network
+    description: Multiple independent PTP clocking subdomains on a single network
   - model_name: defaultQueuingPolicy
     tf_name: default_queuing_policy
     type: Bool
@@ -1284,8 +1291,8 @@ resource:
     example: 101
     ndfc_nested:
     - management
-    description: Acceptable values from 101 to 1000 (milliseconds).  Leave blank for
-      system default (100ms).
+    description: Acceptable values from 101 to 1000 (milliseconds). Leave blank
+      for system default (100ms)
   - model_name: staticUnderlayIpAllocation
     tf_name: static_underlay_ip_allocation
     type: Bool
@@ -1294,7 +1301,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Checking this will disable Dynamic Underlay IP Address Allocations
+    description: Checking this will disable dynamic fabric IP address allocations
   - model_name: bgpLoopbackIpv6Range
     tf_name: bgp_loopback_ipv6_range
     type: String
@@ -1320,10 +1327,10 @@ resource:
   - model_name: extraConfigAaa
     tf_name: extra_config_aaa
     type: String
-    example: example_extraConfigAaa
+    example: radius-server host 10.1.1.1
     ndfc_nested:
     - management
-    description: AAA Configurations
+    description: Additional CLIs for AAA configuration
   - model_name: aaa
     tf_name: aaa
     type: Bool
@@ -1332,7 +1339,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Include AAA configs from Manageability tab during device bootup
+    description: Include AAA configs from advanced tab during device bootup
   - model_name: ipv6LinkLocal
     tf_name: ipv6_link_local
     type: Bool
@@ -1342,7 +1349,8 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: If not enabled, Spine-Leaf interfaces will use global IPv6 addresses
+    description: Enables IPv6 link-local Option under VRF SVI. Not applicable to L3VNI
+      without VLAN config. NX-OS Specific
   - model_name: fabricInterfaceType
     tf_name: fabric_interface_type
     type: String
@@ -1369,7 +1377,7 @@ resource:
     example: ospf
     ndfc_nested:
     - management
-    description: Underlay Routing Protocol.  Used for Spine-Leaf Connectivity
+    description: Underlay Routing Protocol. Used for spine-leaf connectivity
   - model_name: routeReflectorCount
     tf_name: route_reflector_count
     type: Int64
@@ -1388,7 +1396,7 @@ resource:
     - management
     description: vPC delay restore timer for ToR switches (in seconds)
   - model_name: leafTorIdRange
-    tf_name: leaf_to_r_id_range
+    tf_name: leaf_tor_id_range
     type: Bool
     default_value: false
     example: false
@@ -1402,8 +1410,8 @@ resource:
     example: 1-499
     ndfc_nested:
     - management
-    description: 'Specify vPC/Port-channel ID range (minimum: 1, maximum: 4096), this
-      range is used for auto-allocating vPC/Port-Channel IDs for leaf-tor pairings'
+    description: "Specify vPC/Port-channel ID range (minimum: 1, maximum: 4096), this
+      range is used for auto-allocating vPC/Port-Channel IDs for leaf-tor pairings"
   - model_name: linkStateRoutingTag
     tf_name: link_state_routing_tag
     type: String
@@ -1421,7 +1429,7 @@ resource:
     example: 0.0.0.0
     ndfc_nested:
     - management
-    description: OSPF Area Id in IP address format. Not applicable for eBGP fabric type
+    description: OSPF Area Id in IP address format. Required if an OSPF process tag is specified
   - model_name: ospfAuthentication
     tf_name: ospf_authentication
     type: Bool
@@ -1431,21 +1439,23 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable OSPF Authentication
+    description: Whether to enable OSPF authentication
   - model_name: ospfAuthenticationKeyId
     tf_name: ospf_authentication_key_id
     type: Int64
     example: 127
     ndfc_nested:
     - management
-    description: (Min:0, Max:255)
+    description: OSPF authentication key ID (0-255). Required if OSPF
+      authentication is enabled
   - model_name: ospfAuthenticationKey
     tf_name: ospf_authentication_key
     type: String
-    example: example_ospfAuthenticationKey
+    example: OSPF_KEY
     ndfc_nested:
     - management
-    description: OSPF Authentication Key.  3DES Encrypted
+    description: OSPF authentication key (3DES encrypted). Required if OSPF
+      authentication is enabled
   - model_name: isisLevel
     tf_name: isis_level
     type: String
@@ -1454,7 +1464,7 @@ resource:
     example: level-2
     ndfc_nested:
     - management
-    description: IS-IS Level
+    description: IS-IS level
   - model_name: isisAreaNumber
     tf_name: isis_area_number
     type: String
@@ -1463,10 +1473,11 @@ resource:
     example: '0001'
     ndfc_nested:
     - management
-    description: NET in form of XX.<4-hex-digit Custom Area Number>.XXXX.XXXX.XXXX.00,
-      default Area Number is 0001. If area number in existing NETs matches the previous
-      area number set in fabric settings and is different from the current area number,
-      these NETs will be updated by Recalculate and Deploy.
+    description: NET in form of XX.<4-hex-digit Custom Area
+      Number>.XXXX.XXXX.XXXX.00, default Area Number is 0001. If area number in
+      existing NETs matches the previous area number set in fabric settings and
+      is different from the current area number, these NETs will be updated by
+      Recalculate and Deploy
   - model_name: isisPointToPoint
     tf_name: isis_point_to_point
     type: Bool
@@ -1485,28 +1496,28 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable IS-IS Authentication
+    description: Enable IS-IS authentication
   - model_name: isisAuthenticationKeychainName
     tf_name: isis_authentication_keychain_name
     type: String
-    example: example_isisAuthenticationKeychainName
+    example: CiscoIsisAuth
     ndfc_nested:
     - management
-    description: IS-IS Authentication Keychain Name
+    description: IS-IS authentication keychain name
   - model_name: isisAuthenticationKeychainKeyId
     tf_name: isis_authentication_keychain_key_id
     type: Int64
     example: 127
     ndfc_nested:
     - management
-    description: IS-IS Authentication Key ID
+    description: IS-IS authentication key identifier
   - model_name: isisAuthenticationKey
     tf_name: isis_authentication_key
     type: String
-    example: example_isisAuthenticationKey
+    example: ISIS_KEY
     ndfc_nested:
     - management
-    description: IS-IS Authentication Key.  Cisco Type 7 Encrypted
+    description: Cisco type 7 encrypted
   - model_name: isisOverload
     tf_name: isis_overload
     type: Bool
@@ -1514,8 +1525,8 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Set IS-IS Overload Bit.  When enabled, set the overload bit for an
-      elapsed time after a reload
+    description: Set IS-IS Overload Bit. When enabled, set the overload bit for
+      an elapsed time after a reload
   - model_name: isisOverloadElapseTime
     tf_name: isis_overload_elapse_time
     type: Int64
@@ -1567,27 +1578,28 @@ resource:
   - model_name: ibgpPeerTemplate
     tf_name: ibgp_peer_template
     type: String
-    example: example_ibgpPeerTemplate
+    example: " template peer RR"
     ndfc_nested:
     - management
-    description: Specifies the iBGP Peer-Template config used for Route Reflectors
-      and spines with border or border gateway role. This field should begin with
-      '  template peer' or '  template peer-session'. This must have 2 leading spaces.
-      Note ! All configs should strictly match show run output, with respect to case
-      and newlines. Any mismatches will yield unexpected diffs during deploy.
+    description: "Specifies the iBGP Peer-Template config used for Route
+      Reflectors and spines with border or border gateway role. This field
+      should begin with ' template peer' or ' template peer-session'. This must
+      have 2 leading spaces. Note ! All configs should strictly match show run
+      output, with respect to case and newlines. Any mismatches will yield
+      unexpected diffs during deploy"
   - model_name: leafibgpPeerTemplate
     tf_name: leafibgp_peer_template
     type: String
-    example: example_leafibgpPeerTemplate
+    example: " template peer LEAF"
     ndfc_nested:
     - management
-    description: Specifies the config used for leaf, border or border gateway.  If
-      this field is empty, the peer template defined in iBGP Peer-Template Config
-      is used on all BGP enabled devices (RRs, leafs, border or border gateway roles).  This
-      field should begin with '  template peer' or '  template peer-session'. This
-      must have 2 leading spaces. Note ! All configs should strictly match 'show run'
-      output, with respect to case and newlines. Any mismatches will yield unexpected
-      diffs during deploy.
+    description: "Specifies the config used for leaf, border or border gateway.
+      If this field is empty, the peer template defined in iBGP Peer-Template
+      Config is used on all BGP enabled devices (RRs, leafs, border or border
+      gateway roles). This field should begin with ' template peer' or '
+      template peer-session'. This must have 2 leading spaces. Note ! All
+      configs should strictly match 'show run' output, with respect to case and
+      newlines. Any mismatches will yield unexpected diffs during deploy"
   - model_name: securityGroupTag
     tf_name: security_group_tag
     type: Bool
@@ -1597,7 +1609,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Security group can be enabled only with cli overlay mode
+    description: If set to strict, only security groups enabled child fabrics will be allowed
   - model_name: securityGroupTagPrefix
     tf_name: security_group_tag_prefix
     type: String
@@ -1635,9 +1647,9 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable MACsec on DCI links. DCI MACsec fabric parameters are used
-      for configuring MACsec on a DCI link if 'Use Link MACsec Setting' is disabled
-      on the link.
+    description: "Enable MACsec on DCI links. DCI MACsec fabric parameters are
+      used for configuring MACsec on a DCI link if 'Use Link MACsec Setting' is
+      disabled on the link"
   - model_name: quantumKeyDistribution
     tf_name: quantum_key_distribution
     type: Bool
@@ -1645,8 +1657,7 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable Data Center Interconnect Media Access Control Security with
-      Quantum Key Distribution config
+    description: Enable DCI MACsec with QKD config
   - model_name: vrfLiteMacsecCipherSuite
     tf_name: vrf_lite_macsec_cipher_suite
     type: String
@@ -1657,10 +1668,10 @@ resource:
   - model_name: vrfLiteMacsecKeyString
     tf_name: vrf_lite_macsec_key_string
     type: String
-    example: example_vrfLiteMacsecKeyString
+    example: 0123456789ABCDEF
     ndfc_nested:
     - management
-    description: DCI MACsec Primary Key String.  Cisco Type 7 Encrypted Octet String
+    description: Cisco Type 7 Encrypted Octet String
   - model_name: vrfLiteMacsecAlgorithm
     tf_name: vrf_lite_macsec_algorithm
     type: String
@@ -1671,26 +1682,25 @@ resource:
   - model_name: vrfLiteMacsecFallbackKeyString
     tf_name: vrf_lite_macsec_fallback_key_string
     type: String
-    example: example_vrfLiteMacsecFallbackKeyString
+    example: 0123456789ABCDEF
     ndfc_nested:
     - management
-    description: DCI MACsec Fallback Key String.  Cisco Type 7 Encrypted Octet String.
-      This parameter is used when DCI link has QKD disabled.
+    description: Cisco Type 7 Encrypted Octet String. This parameter is used
+      when DCI link has QKD disabled
   - model_name: vrfLiteMacsecFallbackAlgorithm
     tf_name: vrf_lite_macsec_fallback_algorithm
     type: String
     example: AES_128_CMAC
     ndfc_nested:
     - management
-    description: AES_128_CMAC or AES_256_CMAC. This parameter is used when DCI link
-      has QKD disabled.
+    description: DCI MACsec Fallback Cryptographic Algorithm to use when DCI link has QKD disabled
   - model_name: quantumKeyDistributionProfileName
     tf_name: quantum_key_distribution_profile_name
     type: String
-    example: example_quantumKeyDistributionProfileName
+    example: QKDProfile
     ndfc_nested:
     - management
-    description: Name of crypto profile (Max Size 63)
+    description: Name of crypto profile
   - model_name: keyManagementEntityServerIp
     tf_name: key_management_entity_server_ip
     type: String
@@ -1708,7 +1718,7 @@ resource:
   - model_name: trustpointLabel
     tf_name: trustpoint_label
     type: String
-    example: example_trustpointLabel
+    example: tp_label
     ndfc_nested:
     - management
     description: Tls authentication type trustpoint label
@@ -1767,8 +1777,8 @@ resource:
     example: 2
     ndfc_nested:
     - management
-    description: Precision Time Protocol (PTP) Source VLAN ID.  SVI used for ptp source
-      on ToRs
+    description: Precision Time Protocol (PTP) Source VLAN ID. SVI used for ptp
+      source
   - model_name: mplsHandoff
     tf_name: mpls_handoff
     type: Bool
@@ -1785,7 +1795,7 @@ resource:
     example: 101
     ndfc_nested:
     - management
-    description: Used for VXLAN to MPLS SR/LDP Handoff
+    description: Underlay MPLS Loopback Identifier
   - model_name: mplsIsisAreaNumber
     tf_name: mpls_isis_area_number
     type: String
@@ -1805,16 +1815,18 @@ resource:
     example: unmanaged
     ndfc_nested:
     - management
-    description: 'Which protocol to use for configuring root bridge? rpvst+: Rapid
-      Per-VLAN Spanning Tree, mst: Multiple Spanning Tree, unmanaged (default): STP
-      Root not managed by ND'
+    description: "Protocol to be used for configuring Root Bridge: rpvst+: Rapid Per-VLAN
+      Spanning Tree, mst: Multiple Spanning Tree, unmanaged: STP Root not
+      managed by ND. Note: Spanning Tree Settings and Bridge Configs are
+      applicable at Aggregation layer only"
   - model_name: stpVlanRange
     tf_name: stp_vlan_range
     type: String
     example: 1,3-5,7,9-11
     ndfc_nested:
     - management
-    description: 'Spanning tree Vlan range (minimum: 0, maximum: 4094)'
+    description: "Spanning Tree VLAN Range (minimum: 0, maximum: 4094). Applicable only for
+      Aggregation switches"
   - model_name: mstInstanceRange
     tf_name: mst_instance_range
     type: String
@@ -1828,7 +1840,8 @@ resource:
     example: 0
     ndfc_nested:
     - management
-    description: Bridge priority for the spanning tree in increments of 4096
+    description: Bridge priority for the spanning tree in increments of 4096 (Applicable
+      only for Aggregation switches)
   - model_name: allowVlanOnLeafTorPairing
     tf_name: allow_vlan_on_leaf_tor_pairing
     type: String
@@ -1840,7 +1853,7 @@ resource:
   - model_name: preInterfaceConfigLeaf
     tf_name: pre_interface_config_leaf
     type: String
-    example: example_preInterfaceConfigLeaf
+    example: speed 40000
     ndfc_nested:
     - management
     description: Additional CLIs as captured from the show running configuration,
@@ -1849,7 +1862,7 @@ resource:
   - model_name: preInterfaceConfigSpine
     tf_name: pre_interface_config_spine
     type: String
-    example: example_preInterfaceConfigSpine
+    example: speed 40000
     ndfc_nested:
     - management
     description: Additional CLIs as captured from the show running configuration,
@@ -1857,7 +1870,7 @@ resource:
   - model_name: preInterfaceConfigTor
     tf_name: pre_interface_config_tor
     type: String
-    example: example_preInterfaceConfigTor
+    example: speed 40000
     ndfc_nested:
     - management
     description: Additional CLIs as captured from the show running configuration,
@@ -1865,7 +1878,7 @@ resource:
   - model_name: extraConfigLeaf
     tf_name: extra_config_leaf
     type: String
-    example: example_extraConfigLeaf
+    example: no shutdown
     ndfc_nested:
     - management
     description: Additional CLIs as captured from the show running configuration,
@@ -1874,7 +1887,7 @@ resource:
   - model_name: extraConfigSpine
     tf_name: extra_config_spine
     type: String
-    example: example_extraConfigSpine
+    example: no shutdown
     ndfc_nested:
     - management
     description: Additional CLIs as captured from the show running configuration,
@@ -1882,7 +1895,7 @@ resource:
   - model_name: extraConfigTor
     tf_name: extra_config_tor
     type: String
-    example: example_extraConfigTor
+    example: no shutdown
     ndfc_nested:
     - management
     description: Additional CLIs as captured from the show running configuration,
@@ -1890,7 +1903,7 @@ resource:
   - model_name: extraConfigIntraFabricLinks
     tf_name: extra_config_intra_fabric_links
     type: String
-    example: example_extraConfigIntraFabricLinks
+    example: no shutdown
     ndfc_nested:
     - management
     description: Additional CLIs for all Intra-Fabric links
@@ -1900,7 +1913,7 @@ resource:
     example: 10.101.0.0/25
     ndfc_nested:
     - management
-    description: Used for VXLAN to MPLS SR/LDP Handoff
+    description: MPLS Loopback IP Address Range
   - model_name: ipv6SubnetRange
     tf_name: ipv6_subnet_range
     type: String
@@ -1914,7 +1927,7 @@ resource:
     example: 10.2.0.0/23
     ndfc_nested:
     - management
-    description: BGP Router ID Range in IPv4 subnet format used for IPv6 Underlay.
+    description: BGP Router ID Range
   - model_name: autoSymmetricVrfLite
     tf_name: auto_symmetric_vrf_lite
     type: Bool
@@ -1924,9 +1937,9 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Whether to auto generate VRF LITE sub-interface and BGP peering configuration
-      on managed neighbor devices. If set, auto created VRF Lite IFC links will have
-      'Auto Deploy for Peer' enabled.
+    description: "Flag that controls auto generation of VRF Lite sub-interface and peering
+      configuration on Aggregation and Core/Edge switches. If set, auto created
+      VRF Lite links will have 'Auto Generate Flag' enabled"
   - model_name: autoVrfLiteDefaultVrf
     tf_name: auto_vrf_lite_default_vrf
     type: Bool
@@ -1936,9 +1949,9 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: For ipv4 underlay, whether to auto generate BGP peering in Default
-      VRF for VRF Lite IFC auto deployment option. If set, will auto create VRF Lite
-      Inter-Fabric links with 'Auto Deploy Default VRF' knob enabled
+    description: "Whether to auto generate Default VRF interface and BGP
+      peering configuration on VRF LITE IFC auto deployment. If set, auto
+      created VRF Lite IFC links will have 'Auto Deploy Default VRF' enabled"
   - model_name: autoSymmetricDefaultVrf
     tf_name: auto_symmetric_default_vrf
     type: Bool
@@ -1948,9 +1961,9 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Whether to auto generate Default VRF interface and BGP peering configuration
-      on managed neighbor devices. If set, auto created VRF Lite IFC links will have
-      'Auto Deploy Default VRF for Peer' enabled.
+    description: "Whether to auto generate Default VRF interface and BGP peering
+      configuration on managed neighbor devices. If set, auto created VRF Lite
+      IFC links will have 'Auto Deploy Default VRF for Peer' enabled"
   - model_name: defaultVrfRedistributionBgpRouteMap
     tf_name: default_vrf_redistribution_bgp_route_map
     type: String
@@ -1967,8 +1980,8 @@ resource:
     example: 10000-19999
     ndfc_nested:
     - management
-    description: 'Service Level Agreement (SLA) ID Range (minimum: 1, maximum: 655214748364735).
-      Per switch SLA ID Range'
+    description: "Service Level Agreement (SLA) ID Range (minimum: 1, maximum: 655214748364735).
+      Per switch SLA ID Range"
   - model_name: objectTrackingNumberRange
     tf_name: object_tracking_number_range
     type: String
@@ -1977,8 +1990,8 @@ resource:
     example: 100-299
     ndfc_nested:
     - management
-    description: 'Tracked Object ID Range (minimum: 1, maximum: 512) Per switch tracked
-      object ID Range'
+    description: "Tracked Object ID Range (minimum: 1, maximum: 512) Per switch tracked
+      object ID Range"
   - model_name: serviceNetworkVlanRange
     tf_name: service_network_vlan_range
     type: String
@@ -1987,8 +2000,8 @@ resource:
     example: 3000-3199
     ndfc_nested:
     - management
-    description: 'Service Network VLAN Range (minimum: 2, maximum: 4094). Per Switch
-      Overlay Service Network VLAN Range'
+    description: "Service Network VLAN Range (minimum: 2, maximum: 4094). Per Switch
+      Overlay Service Network VLAN Range"
   - model_name: routeMapSequenceNumberRange
     tf_name: route_map_sequence_number_range
     type: String
@@ -2007,11 +2020,11 @@ resource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Manage switches with only Inband connectivity
+    description: Import switches with inband connectivity
   - model_name: seedSwitchCoreInterfaces
     tf_name: seed_switch_core_interfaces
     type: String
-    example: example_seedSwitchCoreInterfaces
+    example: Ethernet1/1
     ndfc_nested:
     - management
     description: Seed Switch Fabric Interfaces. Core-facing Interface list on Seed
@@ -2019,7 +2032,7 @@ resource:
   - model_name: spineSwitchCoreInterfaces
     tf_name: spine_switch_core_interfaces
     type: String
-    example: example_spineSwitchCoreInterfaces
+    example: Ethernet1/1
     ndfc_nested:
     - management
     description: Spine Switch Fabric Interfaces. Core-facing Interface list on all
@@ -2027,7 +2040,7 @@ resource:
   - model_name: inbandDhcpServers
     tf_name: inband_dhcp_servers
     type: String
-    example: example_inbandDhcpServers
+    example: 10.0.0.1
     ndfc_nested:
     - management
     description: External DHCP Server IP Addresses. Comma separated list of ipv4 Addresses
@@ -2045,8 +2058,8 @@ resource:
     example: 192.168.1.1
     ndfc_nested:
     - management
-    description: Switch Loopback DHCP Scope Start Address.  Must be a subset of IGP/BGP
-      Loopback Prefix Pool
+    description: Switch Loopback DHCP Scope Start Address. Must be a subset of
+      IGP/BGP Loopback Prefix Pool
   - model_name: unNumberedDhcpEndAddress
     tf_name: un_numbered_dhcp_end_address
     type: String
@@ -2125,7 +2138,8 @@ resource:
     ndfc_nested:
     - management
     - netflowSettings
-    description: Enable netflow on the interface
+    description: Enable netflow on corresponding interface. Supported only if
+      netflow is enabled on fabric
   - model_name: netflowExporterCollection
     tf_name: netflow_exporter_collection
     type: List
@@ -2136,7 +2150,7 @@ resource:
     - model_name: exporterName
       tf_name: exporter_name
       type: String
-      example: example_exporterName
+      example: exporter1
     - model_name: exporterIp
       tf_name: exporter_ip
       type: String
@@ -2144,16 +2158,17 @@ resource:
     - model_name: vrf
       tf_name: vrf
       type: String
-      example: example_vrf
+      example: default
     - model_name: sourceInterfaceName
       tf_name: source_interface_name
       type: String
-      example: example_sourceInterfaceName
+      example: loopback0
     - model_name: udpPort
       tf_name: udp_port
       type: Int64
       example: 1
       default_value: 1
+      description: UDP port
     description: One or Multiple Netflow Exporters
   - model_name: netflowRecordCollection
     tf_name: netflow_record_collection
@@ -2165,7 +2180,7 @@ resource:
     - model_name: recordName
       tf_name: record_name
       type: String
-      example: example_recordName
+      example: record1
     - model_name: recordTemplate
       tf_name: record_template
       type: String
@@ -2176,7 +2191,7 @@ resource:
       type: Bool
       default_value: false
       example: false
-      description: One or Multiple Netflow Records
+      description: Is Layer2 Record
   - model_name: netflowMonitorCollection
     tf_name: netflow_monitor_collection
     type: List
@@ -2187,19 +2202,20 @@ resource:
     - model_name: monitorName
       tf_name: monitor_name
       type: String
-      example: example_monitorName
+      example: monitor1
     - model_name: recordName
       tf_name: monitor_record_name
       type: String
-      example: example_recordName
+      example: record1
     - model_name: exporter1Name
       tf_name: exporter1_name
       type: String
-      example: example_exporter1Name
+      example: exporter1
     - model_name: exporter2Name
       tf_name: exporter2_name
       type: String
-      example: example_exporter2Name
+      example: exporter2
+      description: Exporter 2 Name
     description: One or Multiple Netflow Monitors
   - model_name: netflowSamplerCollection
     tf_name: netflow_sampler_collection
@@ -2211,7 +2227,7 @@ resource:
     - model_name: samplerName
       tf_name: sampler_name
       type: String
-      example: example_samplerName
+      example: sampler1
     - model_name: numSamples
       tf_name: num_samples
       type: Int64
@@ -2222,6 +2238,8 @@ resource:
       type: Int64
       default_value: 1
       example: 1
+      description: Number of Packets in Each Sampling. Max of 131071 for M3/F3 only VDC &
+        version 9, 8191 for other card types
     description: One or multiple netflow samplers. Applicable to N7K only
   - model_name: dummyField
     tf_name: dummy_field
@@ -2238,7 +2256,7 @@ resource:
     ndfc_nested:
     - telemetrySettings
     - flowCollection
-    description: Configuration status of a feature in a fabric.
+    description: Configuration status of a feature in a fabric
   - model_name: netFlow
     tf_name: net_flow
     type: Bool
@@ -2280,19 +2298,19 @@ resource:
     - model_name: name
       tf_name: vrf_flow_rule_name
       type: String
-      example: example_name
+      example: rule1
     - model_name: uuid
       tf_name: vrf_flow_rule_uuid
       type: String
-      example: example_uuid
+      example: 67b140d39bbd5b6f18af0af8
     - model_name: tenant
       tf_name: vrf_flow_rule_tenant
       type: String
-      example: example_tenant
+      example: tenant1
     - model_name: vrf
       tf_name: vrf_flow_rule_vrf
       type: String
-      example: example_vrf
+      example: default
     - model_name: subnets
       tf_name: vrf_flow_rule_subnets
       type: List:String
@@ -2318,19 +2336,19 @@ resource:
       - model_name: dstPort
         tf_name: vrf_flow_rule_dst_port
         type: String
-        example: example_dstPort
+        example: www
       - model_name: srcPort
         tf_name: vrf_flow_rule_src_port
         type: String
-        example: example_srcPort
+        example: www
       - model_name: protocol
         tf_name: vrf_flow_rule_protocol
         type: String
-        example: example_protocol
+        example: tcp
       - model_name: attributeId
         tf_name: vrf_flow_rule_attribute_id
         type: String
-        example: example_attributeId
+        example: "1"
     description: VRF flow rules
   - model_name: interfaceFlowRules
     tf_name: interface_flow_rules
@@ -2343,11 +2361,11 @@ resource:
     - model_name: name
       tf_name: interface_flow_rule_name
       type: String
-      example: example_name
+      example: rule1
     - model_name: uuid
       tf_name: interface_flow_rule_uuid
       type: String
-      example: example_uuid
+      example: 67b140d39bbd5b6f18af0af8
     - model_name: type
       tf_name: interface_flow_rule_type
       type: String
@@ -2360,11 +2378,11 @@ resource:
       - model_name: switchId
         tf_name: interface_flow_rule_switch_id
         type: String
-        example: example_switchId
+        example: 10.0.0.1
       - model_name: switchName
         tf_name: interface_flow_rule_switch_name
         type: String
-        example: example_switchName
+        example: N9K-1
       - model_name: interfaces
         tf_name: interface_flow_rule_interfaces
         type: List:String
@@ -2394,19 +2412,19 @@ resource:
       - model_name: dstPort
         tf_name: interface_flow_rule_dst_port
         type: String
-        example: example_dstPort
+        example: www
       - model_name: srcPort
         tf_name: interface_flow_rule_src_port
         type: String
-        example: example_srcPort
+        example: www
       - model_name: protocol
         tf_name: interface_flow_rule_protocol
         type: String
-        example: example_protocol
+        example: tcp
       - model_name: attributeId
         tf_name: interface_flow_rule_attribute_id
         type: String
-        example: example_attributeId
+        example: "1"
     description: Interface flow rules
   - model_name: l3OutFlowRules
     tf_name: l3_out_flow_rules
@@ -2419,11 +2437,11 @@ resource:
     - model_name: name
       tf_name: l3_out_flow_rule_name
       type: String
-      example: example_name
+      example: rule1
     - model_name: uuid
       tf_name: l3_out_flow_rule_uuid
       type: String
-      example: example_uuid
+      example: 67b140d39bbd5b6f18af0af8
     - model_name: type
       tf_name: l3_out_flow_rule_type
       type: String
@@ -2436,23 +2454,23 @@ resource:
       - model_name: tenant
         tf_name: l3_out_flow_rule_tenant
         type: String
-        example: example_tenant
+        example: tenant1
       - model_name: l3Out
         tf_name: l3_out_flow_rule_l3_out
         type: String
-        example: example_l3Out
+        example: L3Out1
       - model_name: encap
         tf_name: l3_out_flow_rule_encap
         type: String
-        example: example_encap
+        example: vlan-100
       - model_name: switchName
         tf_name: l3_out_flow_rule_switch_name
         type: String
-        example: example_switchName
+        example: N9K-1
       - model_name: switchId
         tf_name: l3_out_flow_rule_switch_id
         type: String
-        example: example_switchId
+        example: 10.0.0.1
       - model_name: interfaces
         tf_name: l3_out_flow_rule_interfaces
         type: List:String
@@ -2564,9 +2582,9 @@ resource:
     - telemetrySettings
     - flowCollection
     - flowCollectionCapabilities
-    description: Indicates whether the fabric supports full or compatibility mode
-      for traffic analytics. It is not applicable when the Nexus Dashboard cluster
-      flow collection mode is set to Flow Telemetry.
+    description: Indicates whether the fabric supports full or compatibility
+      mode for traffic analytics. It is not applicable when the Nexus Dashboard
+      cluster flow collection mode is set to Flow Telemetry
   - model_name: udpCategorization
     tf_name: udp_categorization
     type: String
@@ -2575,8 +2593,8 @@ resource:
     - telemetrySettings
     - flowCollection
     - flowCollectionCapabilities
-    description: Configuration status of Traffic Analytics UDP Categorization in a
-      fabric.
+    description: Configuration status of Traffic Analytics UDP Categorization in
+      a fabric
   - model_name: trafficAnalyticsFilterRules
     tf_name: traffic_analytics_filter_rules
     type: String
@@ -2585,10 +2603,10 @@ resource:
     - telemetrySettings
     - flowCollection
     - flowCollectionCapabilities
-    description: Indicates whether the fabric supports traffic analytics filter rules,
-      which can be applied to restrict external traffic visibility on Nexus Dashboard.
-      It is not applicable when the Nexus Dashboard cluster flow collection mode is
-      set to Flow Telemetry.
+    description: Indicates whether the fabric supports traffic analytics filter
+      rules, which can be applied to restrict external traffic visibility on
+      Nexus Dashboard. It is not applicable when the Nexus Dashboard cluster
+      flow collection mode is set to Flow Telemetry
   - model_name: operatingMode
     tf_name: operating_mode
     type: String
@@ -2604,8 +2622,8 @@ resource:
     ndfc_nested:
     - telemetrySettings
     - flowCollection
-    description: Configuration status of Traffic Analytics UDP Categorization in a
-      fabric.
+    description: Configuration status of Traffic Analytics UDP Categorization in
+      a fabric
   - model_name: microburst
     tf_name: microburst
     type: Bool
@@ -2613,8 +2631,7 @@ resource:
     optional: true
     computed: true
     ndfc_type: bool
-    description: Enable microburst detection. When enabled, the system will detect
-      microbursts in network traffic.
+    description: Enable microburst detection
     ndfc_nested:
     - telemetrySettings
     - microburst
@@ -2624,8 +2641,7 @@ resource:
     example: low
     computed: true
     optional: true
-    description: Microburst sensitivity level. Can be set to low, medium, or high
-      to determine the threshold for detecting microbursts.
+    description: Microburst sensitivity level
     ndfc_nested:
     - telemetrySettings
     - microburst
@@ -2633,8 +2649,7 @@ resource:
     tf_name: analysis_settings_is_enabled
     type: Bool
     example: false
-    description: Enable or disable Assurance analysis on the fabric. When enabled,
-      the system will perform analysis of network data for assurance purposes.
+    description: Enable or disable Assurance analysis on a fabric
     ndfc_type: bool
     ndfc_nested:
     - telemetrySettings
@@ -2642,9 +2657,10 @@ resource:
   - model_name: server
     tf_name: server
     type: String
-    example: example_server
-    description: Name of the Network attached storage server configured for flow collection.
-      This specifies the server where flow collection data will be exported.
+    example: stream-server-1
+    description: Name of the Network attached storage server configured for flow
+      collection. This specifies the server where flow collection data will be
+      exported
     ndfc_nested:
     - telemetrySettings
     - nas
@@ -2652,8 +2668,7 @@ resource:
     tf_name: export_type
     type: String
     example: full
-    description: NAS export type. Can be 'full' for complete export or 'base' for
-      basic export of flow collection data.
+    description: NAS export type
     ndfc_nested:
     - telemetrySettings
     - nas
@@ -2662,8 +2677,7 @@ resource:
     tf_name: export_format
     type: String
     example: json
-    description: NAS export format. Specifies the format for exported flow collection
-      data. Currently supports 'json' format.
+    description: NAS export format
     ndfc_nested:
     - telemetrySettings
     - nas
@@ -2674,56 +2688,51 @@ resource:
     example: 1.2
     computed: true
     optional: true
-    description: Energy cost in USD/kWh. Used for energy management calculations and
-      reporting.
+    description: Energy cost in USD/kWh
     ndfc_nested:
     - telemetrySettings
     - energyManagement
   - model_name: email
     tf_name: email
     type: List
-    description: List of email settings for external streaming. Used to configure
-      email alerts and notifications from the fabric.
+    description: List of email settings
     ndfc_nested:
     - externalStreamingSettings
     attributes:
     - model_name: name
       tf_name: name
       type: String
-      example: example_name
-      description: Name of the email configuration. Identifies this specific email
-        notification configuration.
+      example: rule1
+      description: Name of the email configuration. Identifies this specific
+        email notification configuration
     - model_name: receiverEmail
       tf_name: receiver_email
       type: String
       example: example@example.com
-      description: Email address to receive alerts. Must be a valid email format.
+      description: Email address to receive alerts
     - model_name: format
       tf_name: format
       type: String
       example: html
-      description: Email format. Can be 'html' or 'text' to specify the format of
-        email alerts.
+      description: "Email format. Can be 'html' or 'text' to specify the format
+        of email alerts"
     - model_name: startDate
       tf_name: start_date
       type: String
       example: '2023-01-01T00:00:00Z'
-      description: Start date for email alerts in ISO 8601 format (YYYY-MM-DDThh:mm:ssZ).
-        Defines when the email alerts should begin.
+      description: Start date for email alerts
     - model_name: collectionFrequencyInDays
       tf_name: collection_frequency_in_days
       type: Int64
       example: 42
-      description: Frequency of email alerts in days. Determines how often email alerts
-        will be sent.
+      description: Frequency of email alerts in days
     - model_name: collectionType
       tf_name: collection_type
       type: String
       ndfc_nested:
       - collectionSettings
       example: basic
-      description: Type of email collection settings. Can be 'basic' or 'advanced'
-        to specify the level of detail in email alerts.
+      description: Data collection type for message bus
     - model_name: anomalies
       tf_name: anomalies
       type: List:String
@@ -2747,8 +2756,7 @@ resource:
       type: Bool
       ndfc_type: bool
       example: false
-      description: When true, the email output will only include alerts that are currently
-        active. Setting to false will include all alerts regardless of status.
+      description: When true, the output will only include alerts that are active
   - model_name: servers
     tf_name: syslog_servers
     type: List:String
@@ -2757,17 +2765,15 @@ resource:
     - externalStreamingSettings
     - syslog
     example: '["example_servers_item"]'
-    description: List of Syslog servers to which alerts are sent. Each item should
-      be the name or address of a Syslog server.
+    description: Syslog servers to which alerts are sent
   - model_name: facility
     tf_name: syslog_facility
     type: String
     ndfc_nested:
     - externalStreamingSettings
     - syslog
-    example: example_facility
-    description: The facility value to be used in syslog messages. This helps categorize
-      and filter syslog messages on the receiving server.
+    example: local7
+    description: Syslog servers facility
   - model_name: anomalies
     tf_name: syslog_anomalies
     type: List:String
@@ -2777,7 +2783,7 @@ resource:
     - syslog
     - collectionSettings
     example: '["critical"]'
-    description: vPC pair anomalies response
+    description: Level of anomalies to be collected
   - model_name: messageBus
     tf_name: message_bus
     type: List
@@ -2787,7 +2793,7 @@ resource:
     - model_name: server
       tf_name: server
       type: String
-      example: example_server
+      example: stream-server-1
     - model_name: collectionType
       tf_name: collection_type
       type: String

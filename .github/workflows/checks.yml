@@ -22,6 +22,8 @@ jobs:
       - name: gofmt Check
         run: ./scripts/gofmtcheck.sh
       - run: go mod tidy
+      - name: Check go.mod and go.sum for changes
+        run: git diff --exit-code go.mod go.sum
       - name: Build
         run: go build -v
 
