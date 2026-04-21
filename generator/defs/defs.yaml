@@ -1,6 +1,7 @@
 ---
 files:
   - nd.yaml
-  - fabric.yaml
-  - inventory.yaml
+  # - fabric.yaml
+  # - inventory.yaml
+  - multi_cluster_connectivity_nd.yaml
   #- sample.yaml
