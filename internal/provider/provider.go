@@ -125,6 +125,23 @@ func (p *NexusDashboardProvider) Configure(ctx context.Context, req provider.Con
 		config.Timeout = types.Int64Value(timeout)
 	}
 
+	if config.MaxRetries.IsUnknown() || config.MaxRetries.IsNull() {
+		maxRetriesStr := os.Getenv("ND_MAX_RETRIES")
+		var maxRetries int64 = 100 // Default max retries
+		if maxRetriesStr != "" {
+			var err error
+			maxRetries, err = strconv.ParseInt(maxRetriesStr, 10, 64)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Invalid ND_MAX_RETRIES Environment Variable",
+					fmt.Sprintf("Unable to parse ND_MAX_RETRIES environment variable: %v", err),
+				)
+				return
+			}
+		}
+		config.MaxRetries = types.Int64Value(maxRetries)
+	}
+
 	// Validate required configuration values
 	if config.Url.ValueString() == "" {
 		resp.Diagnostics.AddAttributeError(
@@ -178,7 +195,7 @@ func (p *NexusDashboardProvider) Configure(ctx context.Context, req provider.Con
 
 	// Create the shared API client
 	client, err := nd.NewClient(url, basePath, username, password,
-		domain, insecure, nd.MaxRetries(500),
+		domain, insecure, nd.MaxRetries(int(config.MaxRetries.ValueInt64())),
 		nd.RequestTimeout(timeout))
 	if err != nil {
 		tflog.Error(ctx, "Error creating Nexus Dashboard client", map[string]interface{}{"error": err.Error()})

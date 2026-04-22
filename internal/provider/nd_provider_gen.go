@@ -22,6 +22,11 @@ func NdProviderSchema(ctx context.Context) schema.Schema {
 				Description:         "Controls whether ND server's certificate chain and host name is verified. This can also be set as the `ND_INSECURE` (true or false) environment variable.",
 				MarkdownDescription: "Controls whether ND server's certificate chain and host name is verified. This can also be set as the `ND_INSECURE` (true or false) environment variable.",
 			},
+			"max_retries": schema.Int64Attribute{
+				Optional:            true,
+				Description:         "Maximum number of retries for HTTP requests. Environment variable `ND_MAX_RETRIES` can be used to override the provider configuration.",
+				MarkdownDescription: "Maximum number of retries for HTTP requests. Environment variable `ND_MAX_RETRIES` can be used to override the provider configuration.",
+			},
 			"password": schema.StringAttribute{
 				Required:            true,
 				Sensitive:           true,
@@ -30,8 +35,8 @@ func NdProviderSchema(ctx context.Context) schema.Schema {
 			},
 			"timeout": schema.Int64Attribute{
 				Optional:            true,
-				Description:         "NDFC HTTP request timeout - timeout. Environment variable `ND_TIMEOUT` can be used to override the provider configuration.",
-				MarkdownDescription: "NDFC HTTP request timeout - timeout. Environment variable `ND_TIMEOUT` can be used to override the provider configuration.",
+				Description:         "NDFC HTTP request timeout in seconds - timeout. Environment variable `ND_TIMEOUT` can be used to override the provider configuration.",
+				MarkdownDescription: "NDFC HTTP request timeout in seconds - timeout. Environment variable `ND_TIMEOUT` can be used to override the provider configuration.",
 			},
 			"url": schema.StringAttribute{
 				Required:            true,
@@ -48,10 +53,11 @@ func NdProviderSchema(ctx context.Context) schema.Schema {
 }
 
 type NdModel struct {
-	Domain   types.String `tfsdk:"domain"`
-	Insecure types.Bool   `tfsdk:"insecure"`
-	Password types.String `tfsdk:"password"`
-	Timeout  types.Int64  `tfsdk:"timeout"`
-	Url      types.String `tfsdk:"url"`
-	Username types.String `tfsdk:"username"`
+	Domain     types.String `tfsdk:"domain"`
+	Insecure   types.Bool   `tfsdk:"insecure"`
+	MaxRetries types.Int64  `tfsdk:"max_retries"`
+	Password   types.String `tfsdk:"password"`
+	Timeout    types.Int64  `tfsdk:"timeout"`
+	Url        types.String `tfsdk:"url"`
+	Username   types.String `tfsdk:"username"`
 }
