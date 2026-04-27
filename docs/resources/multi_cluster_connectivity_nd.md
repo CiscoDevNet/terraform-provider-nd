@@ -19,17 +19,15 @@ description: |-
 
 - `hostname` (String) The IP address or Hostname of the cluster.
 - `password` (String, Sensitive) The password of the cluster.
-- `username` (String) The username of the cluster.
+- `username` (String, Sensitive) The username of the cluster.
 
 ### Optional
 
 - `cluster_name` (String) The name of the ND cluster.
 - `cluster_type` (String) The type of the cluster. The value will be auto filled as "ND" for this resource.
-- `login_domain` (String) The login domain of the cluster.
-- `multi_cluster_login_domain` (String) The multi cluster login domain of the cluster. The multi cluster login domain will be auto created when it is not present in the primary cluster.
+- `login_domain` (String, Sensitive) The login domain of the cluster.
+- `multi_cluster_login_domain` (String, Sensitive) The multi cluster login domain of the cluster. The multi cluster login domain will be auto created when it is not present in the primary cluster.
 
 ### Read-Only
 
 - `id` (String) The unique identifier of the terraform resource.
-
-~> The values for `username`, `password`, `login_domain` and `multi_cluster_login_domain` attributes will not be imported when the nd_multi_cluster_connectivity_nd resource imports an already registered cluster from Nexus Dashboard.

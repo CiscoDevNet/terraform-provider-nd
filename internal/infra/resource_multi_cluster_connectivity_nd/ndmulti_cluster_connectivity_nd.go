@@ -57,19 +57,7 @@ func (r *multiClusterConnectivityNdResource) rscCreateMultiClusterConnectivityNd
 		return
 	}
 
-	// Preserve sensitive fields that are not returned by the API
-	preservedUsername := input.Username
-	preservedPassword := input.Password
-	preservedLoginDomain := input.LoginDomain
-	preservedMultiClusterLoginDomain := input.MultiClusterLoginDomain
-
 	r.rscGetMultiClusterConnectivityNd(ctx, dg, input)
-
-	// Restore sensitive fields after read
-	input.Username = preservedUsername
-	input.Password = preservedPassword
-	input.LoginDomain = preservedLoginDomain
-	input.MultiClusterLoginDomain = preservedMultiClusterLoginDomain
 
 	// Set Id from ClusterName (logic kept outside generated codec)
 	setModelId(input)
@@ -77,6 +65,12 @@ func (r *multiClusterConnectivityNdResource) rscCreateMultiClusterConnectivityNd
 
 // GetMultiClusterConnectivityNd retrieves multi cluster connectivity nd information by name
 func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivityNd(ctx context.Context, dg *diag.Diagnostics, in *MultiClusterConnectivityNdModel) {
+
+	// Preserve sensitive fields that are not returned by the API
+	preservedUsername := in.Username
+	preservedPassword := in.Password
+	preservedLoginDomain := in.LoginDomain
+	preservedMultiClusterLoginDomain := in.MultiClusterLoginDomain
 
 	clusterAPI := api.NewClusterAPI(nil, r.infraClient.ApiClient)
 	clusterAPI.ClusterName = in.ClusterName.ValueString()
@@ -106,6 +100,10 @@ func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivityNd(ct
 		for _, cluster := range clustersResp["clusters"] {
 			if cluster.Spec.Hostname == hostname && cluster.Spec.ClusterType == clusterType {
 				in.SetModelData(&cluster)
+				in.Username = preservedUsername
+				in.Password = preservedPassword
+				in.LoginDomain = preservedLoginDomain
+				in.MultiClusterLoginDomain = preservedMultiClusterLoginDomain
 				setModelId(in)
 				return
 			}
@@ -129,6 +127,13 @@ func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivityNd(ct
 	}
 
 	in.SetModelData(&clusterResp)
+
+	// Restore sensitive fields after SetModelData (API does not return them)
+	in.Username = preservedUsername
+	in.Password = preservedPassword
+	in.LoginDomain = preservedLoginDomain
+	in.MultiClusterLoginDomain = preservedMultiClusterLoginDomain
+
 	setModelId(in)
 }
 
@@ -179,20 +184,8 @@ func (r *multiClusterConnectivityNdResource) rscUpdateMultiClusterConnectivityNd
 		log.Printf("[ERROR] Error Updating Multi Cluster Connectivity ND: error=%s", err.Error())
 		return
 	}
-	// Preserve sensitive fields that are not returned by the API
-	preservedUsername := clusterModel.Username
-	preservedPassword := clusterModel.Password
-	preservedLoginDomain := clusterModel.LoginDomain
-	preservedMultiClusterLoginDomain := clusterModel.MultiClusterLoginDomain
-
 	// Read the updated multi cluster connectivity nd
 	r.rscGetMultiClusterConnectivityNd(ctx, dg, clusterModel)
-
-	// Restore sensitive fields after read
-	clusterModel.Username = preservedUsername
-	clusterModel.Password = preservedPassword
-	clusterModel.LoginDomain = preservedLoginDomain
-	clusterModel.MultiClusterLoginDomain = preservedMultiClusterLoginDomain
 
 	// Set Id from ClusterName (logic kept outside generated codec)
 	setModelId(clusterModel)
