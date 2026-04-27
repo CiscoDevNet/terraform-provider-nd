@@ -72,6 +72,7 @@ func (c *ClusterAPI) DeleteUrl() string {
 	return fmt.Sprintf(UrlClusterRemoveByName, c.ClusterName)
 }
 
+// Multi Cluster Delete API does not support query params so GetDeleteQP is not implemented for now, but keeping the logic in place in case it's needed in the future
 func (c *ClusterAPI) GetDeleteQP() []string {
 	return nil
 }

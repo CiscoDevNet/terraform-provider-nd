@@ -47,6 +47,7 @@ func MultiClusterConnectivityNdResourceSchema(ctx context.Context) schema.Schema
 			"login_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
+				Sensitive:           true,
 				Description:         "The login domain of the cluster.",
 				MarkdownDescription: "The login domain of the cluster.",
 				PlanModifiers: []planmodifier.String{
@@ -56,6 +57,7 @@ func MultiClusterConnectivityNdResourceSchema(ctx context.Context) schema.Schema
 			"multi_cluster_login_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
+				Sensitive:           true,
 				Description:         "The multi cluster login domain of the cluster. The multi cluster login domain will be auto created when it is not present in the primary cluster.",
 				MarkdownDescription: "The multi cluster login domain of the cluster. The multi cluster login domain will be auto created when it is not present in the primary cluster.",
 				PlanModifiers: []planmodifier.String{
@@ -70,6 +72,7 @@ func MultiClusterConnectivityNdResourceSchema(ctx context.Context) schema.Schema
 			},
 			"username": schema.StringAttribute{
 				Required:            true,
+				Sensitive:           true,
 				Description:         "The username of the cluster.",
 				MarkdownDescription: "The username of the cluster.",
 			},

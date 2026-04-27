@@ -32,8 +32,7 @@ type NDInfraAPI interface {
 
 type NDInfraAPICommon struct {
 	NDInfraAPI
-	LockedForDeploy bool
-	Client          *nd.Client
+	Client *nd.Client
 }
 
 func (c NDInfraAPICommon) Get() ([]byte, error) {
@@ -83,72 +82,63 @@ func (c NDInfraAPICommon) Post(payload []byte) (gjson.Result, error) {
 }
 
 func (c NDInfraAPICommon) Put(payload []byte) (gjson.Result, error) {
+
+	url := c.NDInfraAPI.PutUrl()
+	if strings.Contains(url, "deploy") {
+		panic("Deploy URL detected in Post call. Use DeployPost method for deployments")
+	}
+	log.Printf("Put URL: %s\n", c.NDInfraAPI.PutUrl())
+
 	lock := c.NDInfraAPI.GetLock()
 	if lock != nil {
 		lock.Lock()
 		defer lock.Unlock()
 	}
-	res, err := c.Client.Put(c.NDInfraAPI.PutUrl(), string(payload))
+	log.Printf("Put URL acquired lock: %s\n", c.NDInfraAPI.PutUrl())
+
+	var res nd.Res
+	var err error
+	if !json.Valid(payload) {
+		res, err = c.Client.Put(c.NDInfraAPI.PutUrl(), string(payload), nd.RemoveContentType)
+	} else {
+		res, err = c.Client.Put(c.NDInfraAPI.PutUrl(), string(payload))
+	}
+
 	if err != nil {
 		return res, err
 	}
+
 	return res, nil
 }
 
-func (c NDInfraAPICommon) Delete() (gjson.Result, error) {
+func (c NDInfraAPICommon) Delete(payload ...[]byte) (gjson.Result, error) {
 	lock := c.NDInfraAPI.GetLock()
 	if lock != nil {
 		lock.Lock()
 		defer lock.Unlock()
 	}
+
+	body := ""
+	if len(payload) > 0 && payload[0] != nil {
+		body = string(payload[0])
+	}
+
+	// Multi Cluster Delete API does not support query params so GetDeleteQP is not implemented for now, but keeping the logic in place in case it's needed in the future
 	qp := c.NDInfraAPI.GetDeleteQP()
 	var res nd.Res
 	var err error
-	if qp != nil {
+	if qp != nil && body == "" {
 		res, err = c.Client.Delete(c.NDInfraAPI.DeleteUrl(), "", func(req *nd.Req) {
 			q := req.HttpReq.URL.Query()
 			for _, s := range qp {
 				keys := strings.Split(s, "=")
 				q.Add(keys[0], keys[1])
-
 			}
 			req.HttpReq.URL.RawQuery = q.Encode()
 		})
 	} else {
-		res, err = c.Client.Delete(c.NDInfraAPI.DeleteUrl(), "")
+		res, err = c.Client.Delete(c.NDInfraAPI.DeleteUrl(), body)
 	}
-	if err != nil {
-		return res, err
-	}
-	return res, nil
-}
-
-func (c NDInfraAPICommon) DeleteWithPayload(payload []byte) (gjson.Result, error) {
-	lock := c.NDInfraAPI.GetLock()
-	if lock != nil {
-		lock.Lock()
-		defer lock.Unlock()
-	}
-	res, err := c.Client.Delete(c.NDInfraAPI.DeleteUrl(), string(payload))
-	if err != nil {
-		return res, err
-	}
-	return res, nil
-}
-
-func (c *NDInfraAPICommon) SetDeployLocked() {
-	c.LockedForDeploy = true
-}
-
-func (c NDInfraAPICommon) DeployPost(payload []byte) (gjson.Result, error) {
-	log.Printf("Deploy Post URL: %s\n", c.NDInfraAPI.PostUrl())
-	lock := c.NDInfraAPI.GetLock()
-	if lock != nil {
-		lock.Lock()
-		defer lock.Unlock()
-	}
-	log.Printf("Deploy Post URL acquired lock: %s\n", c.NDInfraAPI.PostUrl())
-	res, err := c.Client.Post(c.NDInfraAPI.PostUrl(), string(payload))
 	if err != nil {
 		return res, err
 	}
