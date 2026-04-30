@@ -1,5 +1,5 @@
 
-resource "ndfc_multi_cluster_connectivity_nd" "test_resource_multi_cluster_connectivity_nd_1" {
+resource "ndfc_multi_cluster_connectivity" "test_resource_multi_cluster_connectivity_1" {
   cluster_type               = "ND"
   cluster_name               = "nd4x"
   hostname                   = "10.15.1.111"

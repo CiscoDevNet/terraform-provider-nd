@@ -1,0 +1,90 @@
+resource:
+  name: multi_cluster_connectivity
+  generate_tf_resource: true
+  skip_equality: true
+  attributes:
+  - model_name: name
+    tf_name: id
+    description: The unique identifier of the terraform resource.
+    type: String
+    computed: true
+    payload_hide: true
+
+  - model_name: clusterType
+    tf_name: cluster_type
+    description: The type of the cluster. The value will be auto filled as "ND" for this resource.
+    type: String
+    computed: true
+    default_value: ND
+    ndfc_nested:
+    - spec
+    example: ND
+
+  - model_name: name
+    tf_name: cluster_name
+    description: The name of the ND cluster.
+    type: String
+    optional: true
+    computed: true
+    use_state: true
+    ndfc_nested:
+    - spec
+    example: nd4x
+
+  - model_name: onboardUrl
+    tf_name: hostname
+    description: The IP address or Hostname of the cluster.
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    ndfc_nested:
+    - spec
+    example: 10.15.1.111
+
+  - model_name: user
+    tf_name: username
+    description: The username of the cluster.
+    type: String
+    mandatory: true
+    sensitive: true
+    ndfc_nested:
+    - spec
+    - credentials
+    example: username
+
+  - model_name: password
+    tf_name: password
+    description: The password of the cluster.
+    type: String
+    mandatory: true
+    sensitive: true
+    ndfc_nested:
+    - spec
+    - credentials
+    example: password
+
+  - model_name: loginDomain
+    tf_name: login_domain
+    description: The login domain of the cluster.
+    type: String
+    computed: true
+    optional: true
+    use_state: true
+    sensitive: true
+    ndfc_nested:
+    - spec
+    - credentials
+    example: local
+
+  - model_name: multiClusterLoginDomainName
+    tf_name: multi_cluster_login_domain
+    description: The multi cluster login domain of the cluster. The multi cluster login domain will be auto created when it is not present in the primary cluster.
+    type: String
+    use_state: true
+    optional: true
+    computed: true
+    sensitive: true
+    ndfc_nested:
+    - spec
+    - nd
+    example: multi_cluster_login_domain

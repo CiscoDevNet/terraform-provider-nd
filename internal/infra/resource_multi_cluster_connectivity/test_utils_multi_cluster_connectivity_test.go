@@ -1,15 +1,15 @@
 // Code generated;  DO NOT EDIT.
 
-package resource_multi_cluster_connectivity_nd
+package resource_multi_cluster_connectivity
 
 import (
-	"terraform-provider-nd/internal/infra/resource_multi_cluster_connectivity_nd"
+	"terraform-provider-nd/internal/infra/resource_multi_cluster_connectivity"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func MultiClusterConnectivityNdModelHelperStateCheck(RscName string, c resource_multi_cluster_connectivity_nd.NDFCMultiClusterConnectivityNdModel, attrPath path.Path) []resource.TestCheckFunc {
+func MultiClusterConnectivityModelHelperStateCheck(RscName string, c resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel, attrPath path.Path) []resource.TestCheckFunc {
 	ret := []resource.TestCheckFunc{}
 
 	if c.Id != "" {
