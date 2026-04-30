@@ -1,4 +1,4 @@
-package resource_multi_cluster_connectivity_nd
+package resource_multi_cluster_connectivity
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 
 // setModelId sets the Id field on the model based on ClusterName.
 // This is kept outside resource_codec_gen.go to avoid conflicts with the internal generator.
-func setModelId(model *MultiClusterConnectivityNdModel) {
+func setModelId(model *MultiClusterConnectivityModel) {
 	if !model.ClusterName.IsNull() && !model.ClusterName.IsUnknown() {
 		model.Id = types.StringValue(model.ClusterName.ValueString())
 	} else {
@@ -22,8 +22,8 @@ func setModelId(model *MultiClusterConnectivityNdModel) {
 	}
 }
 
-// RscCreateMultiClusterConnectivityNd creates a multi cluster connectivity nd resource
-func (r *multiClusterConnectivityNdResource) rscCreateMultiClusterConnectivityNd(ctx context.Context, dg *diag.Diagnostics, input *MultiClusterConnectivityNdModel) {
+// RscCreateMultiClusterConnectivity creates a multi cluster connectivity nd resource
+func (r *multiClusterConnectivityNdResource) rscCreateMultiClusterConnectivity(ctx context.Context, dg *diag.Diagnostics, input *MultiClusterConnectivityModel) {
 	if input == nil {
 		dg.AddError(
 			"Invalid Input",
@@ -57,14 +57,14 @@ func (r *multiClusterConnectivityNdResource) rscCreateMultiClusterConnectivityNd
 		return
 	}
 
-	r.rscGetMultiClusterConnectivityNd(ctx, dg, input)
+	r.rscGetMultiClusterConnectivity(ctx, dg, input)
 
 	// Set Id from ClusterName (logic kept outside generated codec)
 	setModelId(input)
 }
 
-// GetMultiClusterConnectivityNd retrieves multi cluster connectivity nd information by name
-func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivityNd(ctx context.Context, dg *diag.Diagnostics, in *MultiClusterConnectivityNdModel) {
+// GetMultiClusterConnectivity retrieves multi cluster connectivity nd information by name
+func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivity(ctx context.Context, dg *diag.Diagnostics, in *MultiClusterConnectivityModel) {
 
 	// Preserve sensitive fields that are not returned by the API
 	preservedUsername := in.Username
@@ -85,7 +85,7 @@ func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivityNd(ct
 	}
 
 	if clusterAPI.ClusterName == "" {
-		var clustersResp map[string][]NDFCMultiClusterConnectivityNdModel
+		var clustersResp map[string][]NDFCMultiClusterConnectivityModel
 		err = json.Unmarshal(respData, &clustersResp)
 		if err != nil {
 			dg.AddError(
@@ -116,7 +116,7 @@ func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivityNd(ct
 		return
 	}
 
-	var clusterResp NDFCMultiClusterConnectivityNdModel
+	var clusterResp NDFCMultiClusterConnectivityModel
 	err = json.Unmarshal(respData, &clusterResp)
 	if err != nil {
 		dg.AddError(
@@ -148,8 +148,8 @@ type updatePayload struct {
 	Spec updateSpecValue `json:"spec,omitempty"`
 }
 
-// UpdateMultiClusterConnectivityNd updates a multi cluster connectivity nd with the provided payload
-func (r *multiClusterConnectivityNdResource) rscUpdateMultiClusterConnectivityNd(ctx context.Context, dg *diag.Diagnostics, clusterModel *MultiClusterConnectivityNdModel) {
+// UpdateMultiClusterConnectivity updates a multi cluster connectivity nd with the provided payload
+func (r *multiClusterConnectivityNdResource) rscUpdateMultiClusterConnectivity(ctx context.Context, dg *diag.Diagnostics, clusterModel *MultiClusterConnectivityModel) {
 	inData := clusterModel.GetModelData()
 
 	clusterAPI := api.NewClusterAPI(nil, r.infraClient.ApiClient)
@@ -185,15 +185,15 @@ func (r *multiClusterConnectivityNdResource) rscUpdateMultiClusterConnectivityNd
 		return
 	}
 	// Read the updated multi cluster connectivity nd
-	r.rscGetMultiClusterConnectivityNd(ctx, dg, clusterModel)
+	r.rscGetMultiClusterConnectivity(ctx, dg, clusterModel)
 
 	// Set Id from ClusterName (logic kept outside generated codec)
 	setModelId(clusterModel)
 
 }
 
-// DeleteMultiClusterConnectivityNd deletes a multi cluster connectivity nd by name
-func (r *multiClusterConnectivityNdResource) rscDeleteMultiClusterConnectivityNd(ctx context.Context, dg *diag.Diagnostics, state *MultiClusterConnectivityNdModel) {
+// DeleteMultiClusterConnectivity deletes a multi cluster connectivity nd by name
+func (r *multiClusterConnectivityNdResource) rscDeleteMultiClusterConnectivity(ctx context.Context, dg *diag.Diagnostics, state *MultiClusterConnectivityModel) {
 	clusterAPI := api.NewClusterAPI(nil, r.infraClient.ApiClient)
 	clusterAPI.ClusterName = state.ClusterName.ValueString()
 

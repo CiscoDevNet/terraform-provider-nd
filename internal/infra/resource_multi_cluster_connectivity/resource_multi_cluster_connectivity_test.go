@@ -1,6 +1,6 @@
 // Code generated;  DO NOT EDIT.
 
-package resource_multi_cluster_connectivity_nd
+package resource_multi_cluster_connectivity
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestResourceMultiClusterConnectivityNd(t *testing.T) {
+func TestResourceMultiClusterConnectivity(t *testing.T) {
 	type args struct {
 		rscType  string
 		rscName  string
@@ -21,11 +21,11 @@ func TestResourceMultiClusterConnectivityNd(t *testing.T) {
 		args args
 	}{
 		{
-			name: "Test_resource_multi_cluster_connectivity_nd",
+			name: "Test_resource_multi_cluster_connectivity",
 			args: args{
 				rscType:  "resource",
-				rscName:  "multi_cluster_connectivity_nd",
-				dataFile: "/examples/ndfc_payloads/data_multi_cluster_connectivity_nd.json",
+				rscName:  "multi_cluster_connectivity",
+				dataFile: "/examples/ndfc_payloads/data_multi_cluster_connectivity.json",
 			},
 		},
 	}
@@ -39,8 +39,8 @@ func TestResourceMultiClusterConnectivityNd(t *testing.T) {
 				t.Errorf("File read failure %v", err)
 				return
 			}
-			modelData := NDFCMultiClusterConnectivityNdModel{}
-			v := MultiClusterConnectivityNdModel{}
+			modelData := NDFCMultiClusterConnectivityModel{}
+			v := MultiClusterConnectivityModel{}
 
 			err = json.Unmarshal(dataFromFile, &modelData)
 			if err != nil {

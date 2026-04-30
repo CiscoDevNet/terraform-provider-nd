@@ -1,13 +1,13 @@
 // Code generated;  DO NOT EDIT.
 
-package resource_multi_cluster_connectivity_nd
+package resource_multi_cluster_connectivity
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-type NDFCMultiClusterConnectivityNdModel struct {
+type NDFCMultiClusterConnectivityModel struct {
 	Id   string        `json:"-"`
 	Spec NDFCSpecValue `json:"spec,omitempty"`
 }
@@ -30,7 +30,7 @@ type NDFCSpecNdValue struct {
 	MultiClusterLoginDomain string `json:"multiClusterLoginDomainName,omitempty"`
 }
 
-func (v *MultiClusterConnectivityNdModel) SetModelData(jsonData *NDFCMultiClusterConnectivityNdModel) diag.Diagnostics {
+func (v *MultiClusterConnectivityModel) SetModelData(jsonData *NDFCMultiClusterConnectivityModel) diag.Diagnostics {
 	var err diag.Diagnostics
 	err = nil
 
@@ -92,16 +92,10 @@ func (v *MultiClusterConnectivityNdModel) SetModelData(jsonData *NDFCMultiCluste
 	return err
 }
 
-func (v MultiClusterConnectivityNdModel) GetModelData() *NDFCMultiClusterConnectivityNdModel {
-	var data = new(NDFCMultiClusterConnectivityNdModel)
+func (v MultiClusterConnectivityModel) GetModelData() *NDFCMultiClusterConnectivityModel {
+	var data = new(NDFCMultiClusterConnectivityModel)
 
 	//MARSHAL_BODY
-
-	if !v.ClusterType.IsNull() && !v.ClusterType.IsUnknown() {
-		data.Spec.ClusterType = v.ClusterType.ValueString()
-	} else {
-		data.Spec.ClusterType = ""
-	}
 
 	if !v.ClusterName.IsNull() && !v.ClusterName.IsUnknown() {
 		data.Spec.ClusterName = v.ClusterName.ValueString()
