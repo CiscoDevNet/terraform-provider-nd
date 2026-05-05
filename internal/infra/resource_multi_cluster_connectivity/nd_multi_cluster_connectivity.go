@@ -84,6 +84,8 @@ func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivity(ctx 
 		return
 	}
 
+	// ClusterName is optional when onboard a ND cluster.
+	// If ClusterName is empty, API return list of clusters instead of single cluster
 	if clusterAPI.ClusterName == "" {
 		var clustersResp map[string][]NDFCMultiClusterConnectivityModel
 		err = json.Unmarshal(respData, &clustersResp)
@@ -111,30 +113,30 @@ func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivity(ctx 
 
 		dg.AddError(
 			"Error Reading Multi Cluster Connectivity ND",
-			fmt.Sprintf("Could not find cluster with onboardUrl %q and clusterType %q in the response", hostname, clusterType),
+			fmt.Sprintf("Could not find cluster with onboardUrl %q and clusterType ND in the response", hostname),
 		)
 		return
+	} else {
+		var clusterResp NDFCMultiClusterConnectivityModel
+		err = json.Unmarshal(respData, &clusterResp)
+		if err != nil {
+			dg.AddError(
+				"Error Reading Multi Cluster Connectivity ND",
+				fmt.Sprintf("Could not unmarshal multi cluster connectivity nd response, unexpected error: %v", err),
+			)
+			return
+		}
+
+		in.SetModelData(&clusterResp)
+
+		// Restore sensitive fields after SetModelData (API does not return them)
+		in.Username = preservedUsername
+		in.Password = preservedPassword
+		in.LoginDomain = preservedLoginDomain
+		in.MultiClusterLoginDomain = preservedMultiClusterLoginDomain
+
+		setModelId(in)
 	}
-
-	var clusterResp NDFCMultiClusterConnectivityModel
-	err = json.Unmarshal(respData, &clusterResp)
-	if err != nil {
-		dg.AddError(
-			"Error Reading Multi Cluster Connectivity ND",
-			fmt.Sprintf("Could not unmarshal multi cluster connectivity nd response, unexpected error: %v", err),
-		)
-		return
-	}
-
-	in.SetModelData(&clusterResp)
-
-	// Restore sensitive fields after SetModelData (API does not return them)
-	in.Username = preservedUsername
-	in.Password = preservedPassword
-	in.LoginDomain = preservedLoginDomain
-	in.MultiClusterLoginDomain = preservedMultiClusterLoginDomain
-
-	setModelId(in)
 }
 
 // updateSpecValue extends NDFCSpecValue with fields only needed during update.
