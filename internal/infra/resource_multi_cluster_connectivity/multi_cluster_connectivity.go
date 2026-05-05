@@ -111,22 +111,10 @@ func (r *multiClusterConnectivityNdResource) Read(ctx context.Context, req resou
 
 	log.Printf("[DEBUG] Reading Multi Cluster Connectivity ND: cluster_name=%s", state.ClusterName.ValueString())
 
-	// Preserve sensitive fields that are not returned by the API
-	preservedUsername := state.Username
-	preservedPassword := state.Password
-	preservedLoginDomain := state.LoginDomain
-	preservedMultiClusterLoginDomain := state.MultiClusterLoginDomain
-
 	r.rscGetMultiClusterConnectivity(ctx, &resp.Diagnostics, &state)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	// Restore sensitive fields after read
-	state.Username = preservedUsername
-	state.Password = preservedPassword
-	state.LoginDomain = preservedLoginDomain
-	state.MultiClusterLoginDomain = preservedMultiClusterLoginDomain
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

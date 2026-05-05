@@ -33,8 +33,8 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"hostname": schema.StringAttribute{
 				Required:            true,
-				Description:         "The IP address or Hostname of the cluster.",
-				MarkdownDescription: "The IP address or Hostname of the cluster.",
+				Description:         "The IP address or Hostname of the ND cluster.",
+				MarkdownDescription: "The IP address or Hostname of the ND cluster.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -48,8 +48,8 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 				Optional:            true,
 				Computed:            true,
 				Sensitive:           true,
-				Description:         "The login domain of the cluster.",
-				MarkdownDescription: "The login domain of the cluster.",
+				Description:         "The login domain of the ND cluster. The login domain is used during the connection of clusters to specify the authentication domain for the remote clusters.",
+				MarkdownDescription: "The login domain of the ND cluster. The login domain is used during the connection of clusters to specify the authentication domain for the remote clusters.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -58,8 +58,8 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 				Optional:            true,
 				Computed:            true,
 				Sensitive:           true,
-				Description:         "The multi cluster login domain of the cluster. The multi cluster login domain will be auto created when it is not present in the primary cluster.",
-				MarkdownDescription: "The multi cluster login domain of the cluster. The multi cluster login domain will be auto created when it is not present in the primary cluster.",
+				Description:         "The multi-cluster login domain is created on the primary cluster and can be configured either during initial onboarding or manually at a later time. Each primary cluster supports only one login domain of type Multi-cluster. This domain enables the primary cluster to function as the shared authentication authority for the multi-cluster group, allowing users defined on the primary cluster to remotely log in to any connected cluster.",
+				MarkdownDescription: "The multi-cluster login domain is created on the primary cluster and can be configured either during initial onboarding or manually at a later time. Each primary cluster supports only one login domain of type Multi-cluster. This domain enables the primary cluster to function as the shared authentication authority for the multi-cluster group, allowing users defined on the primary cluster to remotely log in to any connected cluster.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -67,14 +67,14 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 			"password": schema.StringAttribute{
 				Required:            true,
 				Sensitive:           true,
-				Description:         "The password of the cluster.",
-				MarkdownDescription: "The password of the cluster.",
+				Description:         "The password of the ND cluster.",
+				MarkdownDescription: "The password of the ND cluster.",
 			},
 			"username": schema.StringAttribute{
 				Required:            true,
 				Sensitive:           true,
-				Description:         "The username of the cluster.",
-				MarkdownDescription: "The username of the cluster.",
+				Description:         "The username of the ND cluster.",
+				MarkdownDescription: "The username of the ND cluster.",
 			},
 		},
 	}
