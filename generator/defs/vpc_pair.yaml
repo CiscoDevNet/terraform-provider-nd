@@ -1,0 +1,67 @@
+---
+resource:
+  name: vpc_pair
+  rest_endpoint: /manage/fabrics/{fabricName}/switches/{switchId}/vpcPair
+  doc_category: Fabric
+  generate_tf_resource: true
+  description: "Resource to configure vPC pair on a switch. Note only VXLAN EVPN fabric is supported"
+  attributes:
+  # Required - Unique Identifier for the vPC pair resource
+    - model_name: id
+      tf_name: id
+      description: The Terraform Unique Identifier for the vPC pair resource
+      type: String
+      id: true
+      computed: true
+      payload_hide: true
+  # Required - Fabric identifier
+    - model_name: fabricName
+      tf_name: fabric_name
+      description: Name of the fabric to add switches to
+      type: String
+      mandatory: true
+      example: my_fabric
+      payload_hide: true
+ # Required - peer switch identifier
+    - &peerSwitchId
+      model_name: peerSwitchId
+      tf_name: switch_id_1
+      description: Serial number of the peer switch in the vPC pair. 
+      type: String
+      mandatory: true
+      example: 9FRGGCZT8LR
+ # Required - switch identifier
+    - &switchId
+      model_name: switchId
+      tf_name: switch_id_2
+      description: Serial number of the switch where the vPC pair is being configured.
+      type: String
+      mandatory: true
+      example: 96E0DGXYPV2
+ # Required - use virtual peer link or not
+    - &use_virtual_peer_link
+      model_name: useVirtualPeerLink
+      tf_name: use_virtual_peerlink
+      description: Set to true to use virtual peer link
+      ndfc_type: bool
+      type: Bool
+      mandatory: true
+      example: false
+ # Optional - vPC action
+    - model_name: vpcAction
+      tf_name: vpc_action
+      type: String
+      tf_hide: true
+      description: Template name for the vPC pair request
+      default_value: vpc_pair
+      example: vpc_pair
+# Required - deploy or not 
+    - &deploy
+      model_name: deploy
+      tf_name: deploy
+      type: Bool
+      description: "Deploy vPC pair"
+      mandatory: true
+      ndfc_type: bool
+      payload_hide: true
+      example: true
