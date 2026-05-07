@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/infra/api"
 
 	"log"
@@ -35,7 +36,7 @@ func (r *multiClusterConnectivityNdResource) rscCreateMultiClusterConnectivity(c
 	inData := input.GetModelData()
 
 	// Create multi cluster connectivity nd API client
-	clusterAPI := api.NewClusterAPI(nil, r.infraClient.ApiClient)
+	clusterAPI := api.NewClusterAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
 
 	// Convert model data to JSON
 	clusterPayload, err := json.Marshal(inData)
@@ -48,7 +49,7 @@ func (r *multiClusterConnectivityNdResource) rscCreateMultiClusterConnectivity(c
 	}
 
 	// Call the API to create the multi cluster connectivity nd
-	res, err := clusterAPI.Post(clusterPayload)
+	res, err := clusterAPI.Post(clusterPayload, nil)
 	if err != nil {
 		dg.AddError(
 			"Error Creating Multi Cluster Connectivity ND",
@@ -72,7 +73,7 @@ func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivity(ctx 
 	preservedLoginDomain := in.LoginDomain
 	preservedMultiClusterLoginDomain := in.MultiClusterLoginDomain
 
-	clusterAPI := api.NewClusterAPI(nil, r.infraClient.ApiClient)
+	clusterAPI := api.NewClusterAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
 	clusterAPI.ClusterName = in.ClusterName.ValueString()
 	respData, err := clusterAPI.Get()
 
@@ -154,7 +155,7 @@ type updatePayload struct {
 func (r *multiClusterConnectivityNdResource) rscUpdateMultiClusterConnectivity(ctx context.Context, dg *diag.Diagnostics, clusterModel *MultiClusterConnectivityModel) {
 	inData := clusterModel.GetModelData()
 
-	clusterAPI := api.NewClusterAPI(nil, r.infraClient.ApiClient)
+	clusterAPI := api.NewClusterAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
 	clusterAPI.ClusterName = clusterModel.ClusterName.ValueString()
 
 	// This is only used for the update operation and not for create, as create will register the cluster for the first time.
@@ -176,7 +177,7 @@ func (r *multiClusterConnectivityNdResource) rscUpdateMultiClusterConnectivity(c
 		log.Printf("[ERROR] Error Updating Multi Cluster Connectivity ND: error=%s", err.Error())
 		return
 	}
-	res, err := clusterAPI.Put(inDataBytes)
+	res, err := clusterAPI.Put(inDataBytes, nil)
 
 	if err != nil {
 		dg.AddError(
@@ -196,7 +197,7 @@ func (r *multiClusterConnectivityNdResource) rscUpdateMultiClusterConnectivity(c
 
 // DeleteMultiClusterConnectivity deletes a multi cluster connectivity nd by name
 func (r *multiClusterConnectivityNdResource) rscDeleteMultiClusterConnectivity(ctx context.Context, dg *diag.Diagnostics, state *MultiClusterConnectivityModel) {
-	clusterAPI := api.NewClusterAPI(nil, r.infraClient.ApiClient)
+	clusterAPI := api.NewClusterAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
 	clusterAPI.ClusterName = state.ClusterName.ValueString()
 
 	// Build the remove payload with credentials and force flag

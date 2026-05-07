@@ -10,7 +10,8 @@ package api
 
 import (
 	"fmt"
-	"sync"
+
+	"terraform-provider-nd/internal/common/ndapi"
 
 	"github.com/netascode/go-nd"
 )
@@ -21,10 +22,11 @@ const (
 	UrlFabricConfigDeploy = "/manage/fabrics/%s/actions/configDeploy"
 )
 
+const RscNameConfig = "config"
+
 // ConfigAPI is the API client for fabric config operations (save/deploy)
 type ConfigAPI struct {
-	NDManageAPICommon
-	mutex      *sync.Mutex
+	ndapi.NexusDashboardAPICommon
 	FabricName string
 	Operation  ConfigOperation
 }
@@ -38,16 +40,12 @@ const (
 )
 
 // NewConfigAPI creates a new ConfigAPI instance
-func NewConfigAPI(lock *sync.Mutex, client *nd.Client) *ConfigAPI {
+func NewConfigAPI(client *nd.Client, fabric string) *ConfigAPI {
 	papi := new(ConfigAPI)
-	papi.mutex = lock
 	papi.Client = client
-	papi.NDManageAPI = papi
+	papi.Fabric = fabric
+	papi.NexusDashboardAPI = papi
 	return papi
-}
-
-func (c *ConfigAPI) GetLock() *sync.Mutex {
-	return c.mutex
 }
 
 func (c *ConfigAPI) GetUrl() string {
@@ -78,7 +76,7 @@ func (c *ConfigAPI) GetDeleteQP() []string {
 }
 
 func (c *ConfigAPI) RscName() string {
-	return "config"
+	return RscNameConfig
 }
 
 // SetOperation sets the current operation

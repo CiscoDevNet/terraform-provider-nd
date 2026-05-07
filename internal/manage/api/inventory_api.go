@@ -10,7 +10,8 @@ package api
 
 import (
 	"fmt"
-	"sync"
+
+	"terraform-provider-nd/internal/common/ndapi"
 
 	"github.com/netascode/go-nd"
 )
@@ -39,10 +40,11 @@ const (
 	UrlBootstrapSwitches = "/manage/fabrics/%s/inventory/poap"
 )
 
+const RscNameInventorySwitch = "inventory_switch"
+
 // InventoryAPI is the API client for inventory/switch resources
 type InventoryAPI struct {
-	NDManageAPICommon
-	mutex        *sync.Mutex
+	ndapi.NexusDashboardAPICommon
 	FabricName   string
 	SerialNumber string
 	Operation    InventoryOperation
@@ -66,16 +68,12 @@ const (
 	OpValidateCredentials
 )
 
-func NewInventoryAPI(lock *sync.Mutex, client *nd.Client) *InventoryAPI {
+func NewInventoryAPI(client *nd.Client, fabric string) *InventoryAPI {
 	papi := new(InventoryAPI)
-	papi.mutex = lock
 	papi.Client = client
-	papi.NDManageAPI = papi
+	papi.Fabric = fabric
+	papi.NexusDashboardAPI = papi
 	return papi
-}
-
-func (c *InventoryAPI) GetLock() *sync.Mutex {
-	return c.mutex
 }
 
 func (c *InventoryAPI) GetUrl() string {
@@ -142,7 +140,7 @@ func (c *InventoryAPI) GetDeleteQP() []string {
 }
 
 func (c *InventoryAPI) RscName() string {
-	return "inventory_switch"
+	return RscNameInventorySwitch
 }
 
 // SetOperation sets the current operation for URL generation

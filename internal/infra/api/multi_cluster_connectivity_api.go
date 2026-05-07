@@ -10,7 +10,8 @@ package api
 
 import (
 	"fmt"
-	"sync"
+
+	"terraform-provider-nd/internal/common/ndapi"
 
 	"github.com/netascode/go-nd"
 )
@@ -35,22 +36,19 @@ type ClusterRemovePayload struct {
 	Force       bool                     `json:"force"`
 }
 
+const RscNameMultiClusterConnectivity = "multi_cluster_connectivity"
+
 type ClusterAPI struct {
-	NDInfraAPICommon
-	mutex       *sync.Mutex
+	ndapi.NexusDashboardAPICommon
 	ClusterName string
 }
 
-func NewClusterAPI(lock *sync.Mutex, client *nd.Client) *ClusterAPI {
+func NewClusterAPI(client *nd.Client, fabric string) *ClusterAPI {
 	papi := new(ClusterAPI)
-	papi.mutex = lock
 	papi.Client = client
-	papi.NDInfraAPI = papi
+	papi.Fabric = fabric
+	papi.NexusDashboardAPI = papi
 	return papi
-}
-
-func (c *ClusterAPI) GetLock() *sync.Mutex {
-	return c.mutex
 }
 
 func (c *ClusterAPI) GetUrl() string {
@@ -78,11 +76,8 @@ func (c *ClusterAPI) GetDeleteQP() []string {
 }
 
 func (c *ClusterAPI) PostDelete(payload []byte) (nd.Res, error) {
-	lock := c.GetLock()
-	if lock != nil {
-		lock.Lock()
-		defer lock.Unlock()
-	}
+	guard := ndapi.Acquire(c.FabricScope(), c.RscName(), ndapi.LockCRUD)
+	defer guard.Release()
 
 	res, err := c.Client.Post(fmt.Sprintf(UrlClusterRemoveByName, c.ClusterName), string(payload))
 	if err != nil {
@@ -92,5 +87,5 @@ func (c *ClusterAPI) PostDelete(payload []byte) (nd.Res, error) {
 }
 
 func (c *ClusterAPI) RscName() string {
-	return "multi_cluster_connectivity"
+	return RscNameMultiClusterConnectivity
 }

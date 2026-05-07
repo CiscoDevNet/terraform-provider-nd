@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage/api"
 
 	"time"
@@ -36,7 +37,7 @@ func (r *fabricVxlanResource) rscCreateFabric(ctx context.Context, dg *diag.Diag
 	log.Printf("Creating fabric %s with category %s", inData.FabricName, inData.Category)
 
 	// Create fabric API client
-	fabricAPI := api.NewFabricAPI(nil, r.manageClient.ApiClient)
+	fabricAPI := api.NewFabricAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 
 	// Convert model data to JSON
 	fabricPayload, err := json.Marshal(inData)
@@ -49,11 +50,11 @@ func (r *fabricVxlanResource) rscCreateFabric(ctx context.Context, dg *diag.Diag
 	}
 
 	// Call the API to create the fabric
-	res, err := fabricAPI.Post(fabricPayload)
+	res, err := fabricAPI.Post(fabricPayload, nil)
 	if err != nil {
 		dg.AddError(
 			"Error Creating Fabric",
-			fmt.Sprintf("Could not create fabric, unexpected error: %v %v", err, res),
+			fmt.Sprintf("Could not create fabric, unexpected error: %v: %s", err, res.String()),
 		)
 		return
 	}
@@ -67,13 +68,13 @@ func (r *fabricVxlanResource) rscCreateFabric(ctx context.Context, dg *diag.Diag
 // GetFabric retrieves fabric information by name
 func (r *fabricVxlanResource) rscGetFabric(ctx context.Context, dg *diag.Diagnostics, in *FabricVxlanModel) {
 
-	fabricAPI := api.NewFabricAPI(nil, r.manageClient.ApiClient)
+	fabricAPI := api.NewFabricAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 	fabricAPI.FabricName = in.FabricName.ValueString()
 	respData, err := fabricAPI.Get()
 	if err != nil {
 		dg.AddError(
 			"Error Creating Fabric",
-			fmt.Sprintf("Could not read fabric, unexpected error: %v %v", err, respData),
+			fmt.Sprintf("Could not read fabric, unexpected error: %v: %s", err, string(respData)),
 		)
 		return
 	}
@@ -98,7 +99,7 @@ func (r *fabricVxlanResource) rscUpdateFabric(ctx context.Context, dg *diag.Diag
 	inData := fabricModel.GetModelData()
 	log.Printf("Creating fabric %s with category %s", inData.FabricName, inData.Category)
 
-	fabricAPI := api.NewFabricAPI(nil, r.manageClient.ApiClient)
+	fabricAPI := api.NewFabricAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 	fabricAPI.FabricName = inData.FabricName
 
 	inDataBytes, err := json.Marshal(inData)
@@ -110,11 +111,11 @@ func (r *fabricVxlanResource) rscUpdateFabric(ctx context.Context, dg *diag.Diag
 		tflog.Error(ctx, "Error Updating Fabric", map[string]interface{}{"error": err.Error()})
 		return
 	}
-	res, err := fabricAPI.Put(inDataBytes)
+	res, err := fabricAPI.Put(inDataBytes, nil)
 	if err != nil {
 		dg.AddError(
 			"Error Updating Fabric",
-			fmt.Sprintf("Could not update fabric, unexpected error: %v %v", err, res),
+			fmt.Sprintf("Could not update fabric, unexpected error: %v: %s", err, res.String()),
 		)
 		tflog.Error(ctx, "Error Updating Fabric", map[string]interface{}{"error": err.Error()})
 		return
@@ -127,13 +128,13 @@ func (r *fabricVxlanResource) rscUpdateFabric(ctx context.Context, dg *diag.Diag
 
 // DeleteFabricEVPN deletes a fabric by name
 func (r *fabricVxlanResource) rscDeleteFabric(ctx context.Context, dg *diag.Diagnostics, fabricName string) {
-	fabricAPI := api.NewFabricAPI(nil, r.manageClient.ApiClient)
+	fabricAPI := api.NewFabricAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 	fabricAPI.FabricName = fabricName
 	res, err := fabricAPI.Delete()
 	if err != nil {
 		dg.AddError(
 			"Error Deleting Fabric",
-			fmt.Sprintf("Could not delete fabric, unexpected error: %v %v", err, res),
+			fmt.Sprintf("Could not delete fabric, unexpected error: %v: %s", err, res.String()),
 		)
 		tflog.Error(ctx, "Error Deleting Fabric", map[string]interface{}{"error": err.Error()})
 		return

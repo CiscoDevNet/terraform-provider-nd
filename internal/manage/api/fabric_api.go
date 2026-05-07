@@ -10,7 +10,8 @@ package api
 
 import (
 	"fmt"
-	"sync"
+
+	"terraform-provider-nd/internal/common/ndapi"
 
 	"github.com/netascode/go-nd"
 )
@@ -29,25 +30,22 @@ const (
 	urlFabricNameFromSerial = "/lan-fabric/rest/control/switches/%s/fabric-name"
 )
 
+const RscNameFabric = "fabric"
+
 type FabricAPI struct {
-	NDManageAPICommon
-	mutex               *sync.Mutex
+	ndapi.NexusDashboardAPICommon
 	FabricName          string
 	GetSwitchesInFabric bool
 	Serialnumber        string
 	FabricType          string
 }
 
-func NewFabricAPI(lock *sync.Mutex, client *nd.Client) *FabricAPI {
+func NewFabricAPI(client *nd.Client, fabric string) *FabricAPI {
 	papi := new(FabricAPI)
-	papi.mutex = lock
 	papi.Client = client
-	papi.NDManageAPI = papi
+	papi.Fabric = fabric
+	papi.NexusDashboardAPI = papi
 	return papi
-}
-
-func (c *FabricAPI) GetLock() *sync.Mutex {
-	return c.mutex
 }
 
 func (c *FabricAPI) GetUrl() string {
@@ -92,5 +90,5 @@ func (c *FabricAPI) GetDeleteQP() []string {
 }
 
 func (c *FabricAPI) RscName() string {
-	return "fabric"
+	return RscNameFabric
 }

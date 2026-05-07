@@ -16,6 +16,7 @@ import (
 	"terraform-provider-nd/internal/manage/api"
 	"time"
 
+	"terraform-provider-nd/internal/common/ndapi"
 	. "terraform-provider-nd/internal/common/types"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -176,7 +177,8 @@ func (r *inventorySwitchResource) shallowDiscover(ctx context.Context, invAPI *a
 	}
 
 	invAPI.SetOperation(api.OpShallowDiscovery)
-	respData, err := invAPI.Post(payload)
+	// Disable payload logging, to avoid printing sensitive fields
+	respData, err := invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true})
 	if err != nil {
 		return nil, fmt.Errorf("shallow discovery failed: %v", err)
 	}
@@ -258,13 +260,13 @@ func (r *inventorySwitchResource) switchesReady(ctx context.Context, fabricName 
 }
 
 func (r *inventorySwitchResource) getAllSwitchesByFabric(ctx context.Context, fabricName string, fillLookupMaps bool) (*FabricSwitchesResponse, error) {
-	invAPI := api.NewInventoryAPI(nil, r.manageClient.ApiClient)
+	invAPI := api.NewInventoryAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 	invAPI.FabricName = fabricName
 	invAPI.SetOperation(api.OpGetAllSwitches)
 
 	respData, err := invAPI.Get()
 	if err != nil {
-		return nil, fmt.Errorf("could not read switches for fabric %s: %w", fabricName, err)
+		return nil, fmt.Errorf("could not read switches for fabric %s: %w: %s", fabricName, err, string(respData))
 	}
 
 	var resp FabricSwitchesResponse
@@ -384,7 +386,7 @@ func (r *inventorySwitchResource) triggerRediscovery(ctx context.Context, invAPI
 	payload, err := json.Marshal(rediscoverReq)
 	if err == nil {
 		invAPI.SetOperation(api.OpRediscover)
-		_, _ = invAPI.Post(payload)
+		_, _ = invAPI.Post(payload, nil)
 	}
 }
 
@@ -472,7 +474,7 @@ func (r *inventorySwitchResource) updateSwitchRoles(ctx context.Context, dg *dia
 
 	invAPI.FabricName = config.FabricName
 	invAPI.SetOperation(api.OpUpdateSwitchRole)
-	resp, err := invAPI.Post(payload)
+	resp, err := invAPI.Post(payload, nil)
 	if err != nil {
 		dg.AddError("Error Updating Role", fmt.Sprintf("Could not update role for %v:%v: %s", config.FabricName, err, resp.String()))
 		return
@@ -500,9 +502,9 @@ func (r *inventorySwitchResource) removeSwitches(ctx context.Context, dg *diag.D
 	}
 
 	invAPI.SetOperation(api.OpRemoveSwitches)
-	_, err = invAPI.Post(payload)
+	res, err := invAPI.Post(payload, nil)
 	if err != nil {
-		dg.AddError("Error Removing Switches", fmt.Sprintf("Could not remove switches: %v", err))
+		dg.AddError("Error Removing Switches", fmt.Sprintf("Could not remove switches: %v: %s", err, res.String()))
 		return
 	}
 
@@ -559,7 +561,7 @@ func (r *inventorySwitchResource) createBootstrapSwitches(ctx context.Context, d
 	}
 
 	invAPI.SetOperation(api.OpBootstrap)
-	res, err := invAPI.Post(payload)
+	res, err := invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true}) // disable payload logging (contains credentials)
 	if err != nil {
 		dg.AddError("Error Creating Inventory", fmt.Sprintf("Bootstrap failed: %v: %s", err, res.String()))
 		return

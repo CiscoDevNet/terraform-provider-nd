@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage/api"
 	"terraform-provider-nd/internal/manage/deployment"
 
@@ -340,7 +341,7 @@ func (inv *InventoryFSM) onAddSwitches(ctx context.Context, e *fsm.Event) {
 	}
 
 	inv.invAPI.SetOperation(api.OpAddSwitches)
-	_, err = inv.invAPI.Post(payload)
+	_, err = inv.invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true}) // disable payload logging (contains credentials)
 	if err != nil {
 		inv.triggerFail(ctx, e, "add switches failed: %v", err)
 		return
@@ -454,7 +455,7 @@ func (inv *InventoryFSM) onSaveCreds(ctx context.Context, e *fsm.Event) {
 	}
 
 	inv.invAPI.SetOperation(api.OpCreateCredentials)
-	_, err = inv.invAPI.Post(payload)
+	_, err = inv.invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true}) // disable payload logging (contains credentials)
 	if err != nil {
 		inv.triggerFail(ctx, e, "save credentials failed: %v", err)
 		return
@@ -500,7 +501,7 @@ func (inv *InventoryFSM) onUpdateRoles(ctx context.Context, e *fsm.Event) {
 
 		inv.invAPI.FabricName = inv.switchesData.FabricName
 		inv.invAPI.SetOperation(api.OpUpdateSwitchRole)
-		resp, err := inv.invAPI.Post(payload)
+		resp, err := inv.invAPI.Post(payload, nil)
 		if err != nil {
 			inv.triggerFail(ctx, e, "could not update roles: %v: %s", err, resp.String())
 			return
@@ -527,26 +528,26 @@ func (inv *InventoryFSM) onConfigSave(ctx context.Context, e *fsm.Event) {
 		e.FSM.Event(ctx, EventConfigDeploy)
 		return
 	}
-
-	respMsg, err := deployment.ConfigSave(ctx, inv.r.manageClient.ApiClient, inv.switchesData.FabricName, nil)
-	if err != nil {
+	errDiag := diag.Diagnostics{}
+	deployment.ConfigSaveAndDeploy(ctx, inv.r.manageClient.ApiClient, inv.switchesData.FabricName, true, false, &errDiag) //deployment.ConfigSave(ctx, inv.r.manageClient.ApiClient, inv.switchesData.FabricName, nil)
+	if errDiag.HasError() {
 		// Check for retryable errors (import not completed, migration mode)
-		if inv.isRetryableConfigSaveError(respMsg) {
+		if inv.isRetryableConfigSaveError(errDiag[0].Summary()) || inv.isRetryableConfigSaveError(errDiag[0].Detail()) {
 			inv.configSaveRetries++
 			if inv.configSaveRetries > MaxConfigSaveRetries {
-				inv.triggerFail(ctx, e, "config save failed after %d retries: %s", MaxConfigSaveRetries, respMsg)
+				inv.triggerFail(ctx, e, "config save failed after %d retries: %s", MaxConfigSaveRetries, errDiag[0].Detail())
 				return
 			}
 
 			tflog.Info(ctx, "Config save retryable error, re-checking switches", map[string]interface{}{
 				"retry":   inv.configSaveRetries,
-				"message": respMsg,
+				"message": errDiag[0].Detail(),
 			})
 			e.FSM.Event(ctx, EventRetryWait)
 			return
 		}
 
-		inv.triggerFail(ctx, e, "config save failed: %v: %s", err, respMsg)
+		inv.triggerFail(ctx, e, "config save failed: %s: %s", errDiag[0].Summary(), errDiag[0].Detail())
 		return
 	}
 
@@ -610,15 +611,15 @@ func (inv *InventoryFSM) onConfigDeploy(ctx context.Context, e *fsm.Event) {
 		return
 	}
 
-	respMsg, err := deployment.ConfigDeploy(ctx, inv.r.manageClient.ApiClient, inv.switchesData.FabricName)
-	if err != nil {
-		inv.triggerFail(ctx, e, "config deploy failed: %v: %s", err, respMsg)
+	errDiag := diag.Diagnostics{}
+	deployment.ConfigSaveAndDeploy(ctx, inv.r.manageClient.ApiClient, inv.switchesData.FabricName, false, true, &errDiag)
+	if errDiag.HasError() {
+		inv.triggerFail(ctx, e, "config deploy failed: %s: %s", errDiag[0].Summary(), errDiag[0].Detail())
 		return
 	}
 
 	tflog.Info(ctx, "Config deployed", map[string]interface{}{
 		"fabric_name": inv.switchesData.FabricName,
-		"message":     respMsg,
 	})
 
 	e.FSM.Event(ctx, EventFinish)
