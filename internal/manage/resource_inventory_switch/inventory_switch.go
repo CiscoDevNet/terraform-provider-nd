@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage/api"
 	"terraform-provider-nd/internal/manage/deployment"
 
@@ -49,7 +50,7 @@ func (r *inventorySwitchResource) rscCreateInventory(ctx context.Context, dg *di
 	// Get switch data from model
 	switchesData := input.GetModelData()
 
-	invAPI := api.NewInventoryAPI(nil, r.manageClient.ApiClient)
+	invAPI := api.NewInventoryAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 	invAPI.FabricName = switchesData.FabricName
 
 	log.Printf("Creating inventory for fabric %s with mode %s", switchesData.FabricName, switchesData.Mode)
@@ -137,7 +138,7 @@ func (r *inventorySwitchResource) rscUpdateInventory(ctx context.Context, dg *di
 	DumpInventorySwitchModel("rscUpdateInventory PLAN", plan)
 	DumpInventorySwitchModel("rscUpdateInventory STATE", state)
 	fabricName := plan.FabricName.ValueString()
-	invAPI := api.NewInventoryAPI(nil, r.manageClient.ApiClient)
+	invAPI := api.NewInventoryAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 	invAPI.FabricName = fabricName
 
 	planData := plan.GetModelData()
@@ -197,7 +198,7 @@ func (r *inventorySwitchResource) rscUpdateInventory(ctx context.Context, dg *di
 // rscDeleteInventory deletes inventory switches
 func (r *inventorySwitchResource) rscDeleteInventory(ctx context.Context, dg *diag.Diagnostics, state *InventorySwitchModel) {
 	fabricName := state.FabricName.ValueString()
-	invAPI := api.NewInventoryAPI(nil, r.manageClient.ApiClient)
+	invAPI := api.NewInventoryAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 	invAPI.FabricName = fabricName
 
 	stateData := state.GetModelData()
@@ -260,11 +261,10 @@ func (r *inventorySwitchResource) rscDeleteInventory(ctx context.Context, dg *di
 			"switches": swDelList,
 		})
 		invAPI.SetOperation(api.OpRemoveCredentials)
-		_, err = invAPI.Post(payload)
+		res, err := invAPI.Post(payload, nil)
 		if err != nil {
-			tflog.Warn(ctx, "Could not remove credentials, continuing with switch removal", map[string]interface{}{
-				"error": err.Error(),
-			})
+			dg.AddError("Error Deleting Inventory", fmt.Sprintf("Could not remove credentials: %v: %s", err, res.String()))
+			return
 		}
 
 		tflog.Info(ctx, "Removing switches", map[string]interface{}{

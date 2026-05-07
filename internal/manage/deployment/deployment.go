@@ -12,20 +12,23 @@ import (
 	"context"
 	"fmt"
 
+	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage/api"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/netascode/go-nd"
+	nd "github.com/netascode/go-nd"
 )
 
-// ConfigSave performs a config-save (recalculate) operation on a fabric
-func ConfigSave(ctx context.Context, client *nd.Client, fabricName string, dg *diag.Diagnostics) (string, error) {
-	configAPI := api.NewConfigAPI(nil, client)
+// configSave performs a config-save (recalculate) operation on a fabric.
+// Must be called within a deploy context (LockDeploy already held).
+// Uses DeployPost to avoid CRUD lock re-acquisition.
+func configSave(ctx context.Context, client *nd.Client, fabricName string, dg *diag.Diagnostics) (string, error) {
+	configAPI := api.NewConfigAPI(client, ndapi.DefaultFabric)
 	configAPI.FabricName = fabricName
 	configAPI.SetOperation(api.OpConfigSave)
 
-	resp, err := configAPI.Post(nil)
+	resp, err := configAPI.DeployPost(nil, nil)
 	if err != nil {
 		return resp.String(), fmt.Errorf("config save failed for fabric %s: %w", fabricName, err)
 	}
@@ -36,13 +39,15 @@ func ConfigSave(ctx context.Context, client *nd.Client, fabricName string, dg *d
 	return resp.String(), nil
 }
 
-// ConfigDeploy attempts a config-deploy and returns any error.
-func ConfigDeploy(ctx context.Context, client *nd.Client, fabricName string) (string, error) {
-	configAPI := api.NewConfigAPI(nil, client)
+// configDeploy attempts a config-deploy and returns any error.
+// Must be called within a deploy context (LockDeploy already held).
+// Uses DeployPost to avoid CRUD lock re-acquisition.
+func configDeploy(ctx context.Context, client *nd.Client, fabricName string) (string, error) {
+	configAPI := api.NewConfigAPI(client, ndapi.DefaultFabric)
 	configAPI.FabricName = fabricName
 	configAPI.SetOperation(api.OpConfigDeploy)
 
-	resp, err := configAPI.DeployPost(nil)
+	resp, err := configAPI.DeployPost(nil, nil)
 	if err != nil {
 		return resp.String(), fmt.Errorf("config deploy failed for fabric %s: %w", fabricName, err)
 	}
@@ -53,10 +58,14 @@ func ConfigDeploy(ctx context.Context, client *nd.Client, fabricName string) (st
 	return resp.String(), nil
 }
 
-// ConfigSaveAndDeploy performs both config-save and config-deploy operations
+// ConfigSaveAndDeploy performs both config-save and config-deploy operations.
+// Acquires LockDeploy (Global.RLock + Fabric.WLock) — blocks all CRUD on
+// the fabric and waits for in-flight CRUD to finish before proceeding.
 func ConfigSaveAndDeploy(ctx context.Context, client *nd.Client, fabricName string, recalculate bool, deploy bool, dg *diag.Diagnostics) {
+	guard := ndapi.Acquire(ndapi.DefaultFabric, "", ndapi.LockDeploy)
+	defer guard.Release()
 	if recalculate {
-		respMsg, err := ConfigSave(ctx, client, fabricName, dg)
+		respMsg, err := configSave(ctx, client, fabricName, dg)
 		if err != nil {
 			dg.AddError("Error Saving Config", fmt.Sprintf("%v: %s", err, respMsg))
 			return
@@ -64,7 +73,7 @@ func ConfigSaveAndDeploy(ctx context.Context, client *nd.Client, fabricName stri
 	}
 
 	if deploy {
-		respMsg, err := ConfigDeploy(ctx, client, fabricName)
+		respMsg, err := configDeploy(ctx, client, fabricName)
 		if err != nil {
 			dg.AddError("Error Deploying Config", fmt.Sprintf("%v: %s", err, respMsg))
 			return
