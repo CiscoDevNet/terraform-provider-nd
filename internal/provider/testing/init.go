@@ -35,6 +35,22 @@ type NDConfig struct {
 	IntegrationTest IntegratedConfig `yaml:"integration_test"`
 	Inventory       InventoryConfig  `yaml:"inventory"`
 	VpcPair         *VpcPairConfig   `yaml:"vpc_pair"`
+	LocalUser       LocalUserConfig  `yaml:"local_user"`
+}
+
+// LocalUserConfig represents the local-user-specific test configuration
+type LocalUserConfig struct {
+	LoginID                 string              `yaml:"login_id"`
+	UserPassword            string              `yaml:"user_password"`
+	Email                   string              `yaml:"email"`
+	FirstName               string              `yaml:"first_name"`
+	LastName                string              `yaml:"last_name"`
+	RemoteIDClaim           string              `yaml:"remote_id_claim"`
+	RemoteUserAuthorization bool                `yaml:"remote_user_authorization"`
+	ReuseLimitation         int                 `yaml:"reuse_limitation"`
+	TimeIntervalLimitation  int                 `yaml:"time_interval_limitation"`
+	TenantDomain            string              `yaml:"tenant_domain"`
+	SecurityDomains         map[string][]string `yaml:"security_domains"`
 }
 
 // InventoryConfig represents the inventory-specific test configuration

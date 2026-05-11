@@ -1,0 +1,46 @@
+{{define "ND_LOCAL_USER_RSC"}}
+resource "nd_local_user" "{{.RscName}}" {
+{{- if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+{{- end}}
+{{with .LocalUser}}
+    login_id = "{{.LoginId}}"
+    {{- if .UserPassword}}
+    user_password = "{{.UserPassword}}"
+    {{- end}}
+    {{- if .Email}}
+    email = "{{.Email}}"
+    {{- end}}
+    {{- if .FirstName}}
+    first_name = "{{.FirstName}}"
+    {{- end}}
+    {{- if .LastName}}
+    last_name = "{{.LastName}}"
+    {{- end}}
+    {{- if .RemoteIdClaim}}
+    remote_id_claim = "{{.RemoteIdClaim}}"
+    {{- end}}
+    {{- if .RemoteUserAuthorization}}
+    remote_user_authorization = {{deref_bool .RemoteUserAuthorization}}
+    {{- end}}
+    {{- if .PasswordPolicy.ReuseLimitation}}
+    reuse_limitation = {{deref_int64 .PasswordPolicy.ReuseLimitation}}
+    {{- end}}
+    {{- if .PasswordPolicy.TimeIntervalLimitation}}
+    time_interval_limitation = {{deref_int64 .PasswordPolicy.TimeIntervalLimitation}}
+    {{- end}}
+    {{- if .Rbac.TenantDomain}}
+    tenant_domain = "{{.Rbac.TenantDomain}}"
+    {{- end}}
+    {{- if .Rbac.SecurityDomains}}
+    security_domains = {
+        {{- range $key, $value := .Rbac.SecurityDomains}}
+        "{{$key}}" = {
+            roles = [{{range $i, $r := $value.Roles}}{{if $i}}, {{end}}"{{$r}}"{{end}}]
+        }
+        {{- end}}
+    }
+    {{- end}}
+{{end}}
+}
+{{end}}

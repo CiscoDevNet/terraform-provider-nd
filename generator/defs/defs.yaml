@@ -9,4 +9,5 @@ files:
   - fabric_vxlan_ebgp.yaml
   - vpc_pair.yaml
   - fabric_external.yaml
+  - local_user.yaml
   #- sample.yaml
