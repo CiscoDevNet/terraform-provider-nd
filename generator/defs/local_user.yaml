@@ -1,0 +1,121 @@
+resource:
+  name: local_user
+  doc_category: AAA
+  category: infra
+  generate_tf_resource: true
+  skip_equality: true
+  attributes:
+  - model_name: loginID
+    tf_name: login_id
+    description: The login ID of the local user.
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    example: local_user_123
+
+  - model_name: password
+    tf_name: user_password
+    description: The password of the local user.
+    type: String
+    mandatory: true
+    sensitive: true
+    write_only: true
+    example: local_user_123
+
+  - model_name: email
+    tf_name: email
+    description: The email address of the local user.
+    type: String
+    optional: true
+    computed: true
+    use_state: true
+    example: local_user_123@mail.com
+
+  - model_name: firstName
+    tf_name: first_name
+    description: The first name of the local user.
+    type: String
+    optional: true
+    computed: true
+    use_state: true
+    example: first_name
+
+  - model_name: lastName
+    tf_name: last_name
+    description: The last name of the local user.
+    type: String
+    optional: true
+    computed: true
+    use_state: true
+    example: last_name
+
+  - model_name: remoteIDClaim
+    tf_name: remote_id_claim
+    description: The CX UserID mapped to the local user.
+    type: String
+    optional: true
+    computed: true
+    use_state: true
+    example: tf_remote_id_claim
+
+  - model_name: xLaunch
+    tf_name: remote_user_authorization
+    description: The user cross launch option of the local user.
+    type: Bool
+    optional: true
+    computed: true
+    use_state: true
+    ndfc_type: bool
+    default_value: false
+    example: false
+
+  - model_name: reuseLimitation
+    tf_name: reuse_limitation
+    description: The password reuse limitation of the local user.
+    type: Int64
+    optional: true
+    computed: true
+    use_state: true
+    ndfc_nested:
+    - passwordPolicy
+    example: 10
+
+  - model_name: timeIntervalLimitation
+    tf_name: time_interval_limitation
+    description: The password time interval limitation of the local user.
+    type: Int64
+    optional: true
+    computed: true
+    use_state: true
+    ndfc_nested:
+    - passwordPolicy
+    example: 20
+
+  - model_name: tenantDomain
+    tf_name: tenant_domain
+    description: The name of the tenant domain of the local user.
+    type: String
+    optional: true
+    computed: true
+    use_state: true
+    ndfc_nested:
+    - rbac
+    example: all-tenants-domain
+
+  - model_name: domains
+    tf_name: security_domains
+    description:  The security domains of the local user. At least one security domain must be provided when creating the user.
+    type: Map
+    mandatory: true
+    map_value_type: Struct
+    ndfc_nested:
+    - rbac
+    example: all
+    attributes:
+    - model_name: roles
+      tf_name: roles
+      description: The list of Nexus Dashboard Roles of the local user. Allowed values are "approver", "designer", "fabric-admin", "observer", "super-admin", and "support-engineer".
+      type: List:String
+      mandatory: true
+      validator: 'ValueStringsAre(stringvalidator.OneOf("approver", "designer", "fabric-admin", "observer", "super-admin", "support-engineer"))'
+      example: '["approver", "designer"]'

@@ -60,3 +60,20 @@ nd:
       - serial: "SERIAL003"
         ip: "10.0.0.3"
         role: "leaf"
+
+  # Local user test configuration
+  local_user:
+    login_id: "tf_local_user_acc"
+    user_password: "Str0ng_P@ssw0rd_123!"
+    email: "tf_local_user_acc@mail.com"
+    first_name: "tf_first"
+    last_name: "tf_last"
+    remote_id_claim: "tf_remote_id_claim"
+    remote_user_authorization: false
+    reuse_limitation: 10
+    time_interval_limitation: 20
+    tenant_domain: "all-tenants-domain"
+    security_domains:
+      all:
+        - "approver"
+        - "designer"

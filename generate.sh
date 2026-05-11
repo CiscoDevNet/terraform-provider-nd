@@ -82,6 +82,17 @@ for filename in $FILES; do
     fi
 done
 
+# TODO: Need to enable the below code to fix the missing imports
+# # Stage 2.1 - Fixing imports in generated files via goimports
+# # Resolve any missing imports the framework generator did not add
+# # (e.g. nested validators like stringvalidator inside setvalidator.ValueStringsAre).
+# if [[ ! -f $GOPATH/bin/goimports ]]
+# then
+#     go install golang.org/x/tools/cmd/goimports@latest
+# fi
+# echo "Stage 2.1 - Fixing imports in generated files via goimports"
+# $GOPATH/bin/goimports -w $OUTDIR
+
 #Stage 3: Generate additional encoder/decoder code for the generated definitions
 #Generated in the same output folder of Stage 2
 echo "Stage 3 - Generating additional codec code"
