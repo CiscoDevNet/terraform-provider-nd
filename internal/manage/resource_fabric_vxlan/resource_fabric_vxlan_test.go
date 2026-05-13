@@ -5,6 +5,7 @@ package resource_fabric_vxlan
 import (
 	"encoding/json"
 	"os"
+	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -39,7 +40,7 @@ func TestResourceFabricVxlan(t *testing.T) {
 				t.Errorf("File read failure %v", err)
 				return
 			}
-			modelData := NDFCFabricVxlanModel{}
+			modelData := resource_fabric_common.NDFCFabricCommonModel{}
 			v := FabricVxlanModel{}
 
 			err = json.Unmarshal(dataFromFile, &modelData)

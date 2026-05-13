@@ -15,6 +15,7 @@ import (
 	"log"
 	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage/api"
+	"terraform-provider-nd/internal/manage/resource_fabric_common"
 
 	"time"
 
@@ -67,37 +68,39 @@ func (r *fabricVxlanResource) rscCreateFabric(ctx context.Context, dg *diag.Diag
 
 // GetFabric retrieves fabric information by name
 func (r *fabricVxlanResource) rscGetFabric(ctx context.Context, dg *diag.Diagnostics, in *FabricVxlanModel) {
-
+	tflog.Debug(ctx, "Read fabric", map[string]interface{}{
+		"fabric_name": in.FabricName.ValueString(),
+	})
 	fabricAPI := api.NewFabricAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 	fabricAPI.FabricName = in.FabricName.ValueString()
 	respData, err := fabricAPI.Get()
 	if err != nil {
 		dg.AddError(
-			"Error Creating Fabric",
+			"Error reading Fabric",
 			fmt.Sprintf("Could not read fabric, unexpected error: %v: %s", err, string(respData)),
 		)
 		return
 	}
-	var outData NDFCFabricVxlanModel
+	var outData resource_fabric_common.NDFCFabricCommonModel
 
 	err = json.Unmarshal(respData, &outData)
 	if err != nil {
 		dg.AddError(
-			"Error Creating Fabric",
+			"Error reading Fabric",
 			fmt.Sprintf("Could not read fabric, unexpected error: %v %v", err, respData),
 		)
 		return
 	}
-	log.Printf("Location = %v %v", *outData.Location.Latitude, *outData.Location.Longitude)
-	log.Printf("Netflow = %v", *outData.Management.NetflowSettings.NetflowEnable)
 	in.SetModelData(&outData)
-	log.Printf("Location from model=%v,%v", in.Location.Latitude.ValueFloat64(), in.Location.Longitude.ValueFloat64())
 }
 
 // UpdateFabricEVPN updates a fabric with the provided payload
 func (r *fabricVxlanResource) rscUpdateFabric(ctx context.Context, dg *diag.Diagnostics, fabricModel *FabricVxlanModel) {
 	inData := fabricModel.GetModelData()
-	log.Printf("Creating fabric %s with category %s", inData.FabricName, inData.Category)
+	tflog.Debug(ctx, "Update fabric", map[string]interface{}{
+		"fabric_name": inData.FabricName,
+		"category":    inData.Category,
+	})
 
 	fabricAPI := api.NewFabricAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 	fabricAPI.FabricName = inData.FabricName
@@ -130,6 +133,9 @@ func (r *fabricVxlanResource) rscUpdateFabric(ctx context.Context, dg *diag.Diag
 func (r *fabricVxlanResource) rscDeleteFabric(ctx context.Context, dg *diag.Diagnostics, fabricName string) {
 	fabricAPI := api.NewFabricAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 	fabricAPI.FabricName = fabricName
+	tflog.Debug(ctx, "Delete fabric", map[string]interface{}{
+		"fabric_name": fabricName,
+	})
 	res, err := fabricAPI.Delete()
 	if err != nil {
 		dg.AddError(

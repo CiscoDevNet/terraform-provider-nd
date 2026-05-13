@@ -4,13 +4,13 @@ package resource_fabric_vxlan
 
 import (
 	"strconv"
-	"terraform-provider-nd/internal/manage/resource_fabric_vxlan"
+	"terraform-provider-nd/internal/manage/resource_fabric_common"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func FabricVxlanModelHelperStateCheck(RscName string, c resource_fabric_vxlan.NDFCFabricVxlanModel, attrPath path.Path) []resource.TestCheckFunc {
+func FabricVxlanModelHelperStateCheck(RscName string, c resource_fabric_common.NDFCFabricCommonModel, attrPath path.Path) []resource.TestCheckFunc {
 	ret := []resource.TestCheckFunc{}
 
 	if c.FabricName != "" {
