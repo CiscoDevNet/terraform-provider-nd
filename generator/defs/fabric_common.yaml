@@ -1,9 +1,8 @@
 resource:
-  name: fabric_vxlan
-  generate_tf_resource: true
+  name: fabric_common
+  generate_tf_resource: false
+  inherited_model: true
   skip_equality: true
-  parent_package: resource_fabric_common
-  parent_model: fabric_common
   category: manage
   attributes:
   - model_name: name
