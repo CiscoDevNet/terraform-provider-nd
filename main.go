@@ -27,7 +27,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 
-//go:generate ./generate.sh ./internal/manage --replace
+//go:generate ./generate.sh ./internal/ --replace
 
 var (
 	// these will be set by the goreleaser configuration

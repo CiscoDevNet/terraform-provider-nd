@@ -32,199 +32,16 @@ type NDFCFabricVxlanModel struct {
 	Category                   string                             `json:"category,omitempty"`
 	Location                   NDFCLocationValue                  `json:"location,omitempty"`
 	AlertSuspend               string                             `json:"alertSuspend,omitempty"`
+	ExternalStreamingSettings  NDFCExternalStreamingSettingsValue `json:"externalStreamingSettings,omitempty"`
+	Management                 NDFCManagementValue                `json:"management,omitempty"`
 	FeatureStatus              NDFCFeatureStatusValue             `json:"featureStatus,omitempty"`
 	Meta                       NDFCMetaValue                      `json:"meta,omitempty"`
 	TelemetrySettings          NDFCTelemetrySettingsValue         `json:"telemetrySettings,omitempty"`
-	ExternalStreamingSettings  NDFCExternalStreamingSettingsValue `json:"externalStreamingSettings,omitempty"`
-	Management                 NDFCManagementValue                `json:"management,omitempty"`
 }
 
 type NDFCLocationValue struct {
 	Latitude  *float64 `json:"latitude,omitempty"`
 	Longitude *float64 `json:"longitude,omitempty"`
-}
-
-type NDFCFeatureStatusValue struct {
-	ControllerStatus    string `json:"controller,omitempty"`
-	TelemetryStatus     string `json:"telemetry,omitempty"`
-	OrchestrationStatus string `json:"orchestration,omitempty"`
-	TrapForwarderStatus string `json:"trapForwarder,omitempty"`
-}
-
-type NDFCMetaValue struct {
-	AllowedActions []string `json:"allowedActions,omitempty"`
-}
-
-type NDFCTelemetrySettingsValue struct {
-	DummyField       string                                     `json:"-"`
-	FlowCollection   NDFCTelemetrySettingsFlowCollectionValue   `json:"flowCollection,omitempty"`
-	Microburst       NDFCTelemetrySettingsMicroburstValue       `json:"microburst,omitempty"`
-	AnalysisSettings NDFCTelemetrySettingsAnalysisSettingsValue `json:"analysisSettings,omitempty"`
-	Nas              NDFCTelemetrySettingsNasValue              `json:"nas,omitempty"`
-	EnergyManagement NDFCTelemetrySettingsEnergyManagementValue `json:"energyManagement,omitempty"`
-}
-
-type NDFCTelemetrySettingsFlowCollectionValue struct {
-	TrafficAnalytics           string                                            `json:"trafficAnalytics,omitempty"`
-	OperatingMode              string                                            `json:"operatingMode,omitempty"`
-	UdpCategorizationSupport   string                                            `json:"udpCategorization,omitempty"`
-	FlowCollectionModes        NDFCFlowCollectionFlowCollectionModesValue        `json:"flowCollectionModes,omitempty"`
-	FlowRules                  NDFCFlowCollectionFlowRulesValue                  `json:"flowRules,omitempty"`
-	TrafficAnalyticsRules      NDFCFlowCollectionTrafficAnalyticsRulesValue      `json:"trafficAnalyticsRules,omitempty"`
-	FlowCollectionCapabilities NDFCFlowCollectionFlowCollectionCapabilitiesValue `json:"flowCollectionCapabilities,omitempty"`
-}
-
-type NDFCFlowCollectionFlowCollectionModesValue struct {
-	NetFlow       *bool `json:"netFlow,omitempty"`
-	SFlow         *bool `json:"sFlow,omitempty"`
-	FlowTelemetry *bool `json:"flowTelemetry,omitempty"`
-}
-
-type NDFCFlowCollectionFlowRulesValue struct {
-	VrfFlowRules       NDFCVrfFlowRulesValues       `json:"vrfFlowRules,omitempty"`
-	InterfaceFlowRules NDFCInterfaceFlowRulesValues `json:"interfaceFlowRules,omitempty"`
-	L3OutFlowRules     NDFCL3OutFlowRulesValues     `json:"l3OutFlowRules,omitempty"`
-}
-
-type NDFCVrfFlowRulesValues []NDFCVrfFlowRulesValue
-
-type NDFCVrfFlowRulesValue struct {
-	VrfFlowRuleName       string                          `json:"name,omitempty"`
-	VrfFlowRuleUuid       string                          `json:"uuid,omitempty"`
-	VrfFlowRuleTenant     string                          `json:"tenant,omitempty"`
-	VrfFlowRuleVrf        string                          `json:"vrf,omitempty"`
-	VrfFlowRuleSubnets    []string                        `json:"subnets,omitempty"`
-	VrfFlowRuleAttributes NDFCVrfFlowRuleAttributesValues `json:"attributes,omitempty"`
-}
-
-type NDFCVrfFlowRuleAttributesValues []NDFCVrfFlowRuleAttributesValue
-
-type NDFCVrfFlowRuleAttributesValue struct {
-	VrfFlowRuleBidirectional *bool  `json:"bidirectional,omitempty"`
-	VrfFlowRuleDstIp         string `json:"dstIp,omitempty"`
-	VrfFlowRuleSrcIp         string `json:"srcIp,omitempty"`
-	VrfFlowRuleDstPort       string `json:"dstPort,omitempty"`
-	VrfFlowRuleSrcPort       string `json:"srcPort,omitempty"`
-	VrfFlowRuleProtocol      string `json:"protocol,omitempty"`
-	VrfFlowRuleAttributeId   string `json:"attributeId,omitempty"`
-}
-
-type NDFCInterfaceFlowRulesValues []NDFCInterfaceFlowRulesValue
-
-type NDFCInterfaceFlowRulesValue struct {
-	InterfaceFlowRuleName                string                                         `json:"name,omitempty"`
-	InterfaceFlowRuleUuid                string                                         `json:"uuid,omitempty"`
-	InterfaceFlowRuleType                string                                         `json:"type,omitempty"`
-	InterfaceFlowRuleInterfaceCollection NDFCInterfaceFlowRuleInterfaceCollectionValues `json:"interfaceCollection,omitempty"`
-	InterfaceFlowRuleSubnets             []string                                       `json:"subnets,omitempty"`
-	InterfaceFlowRuleAttributes          NDFCInterfaceFlowRuleAttributesValues          `json:"attributes,omitempty"`
-}
-
-type NDFCInterfaceFlowRuleInterfaceCollectionValues []NDFCInterfaceFlowRuleInterfaceCollectionValue
-
-type NDFCInterfaceFlowRuleInterfaceCollectionValue struct {
-	InterfaceFlowRuleSwitchId   string   `json:"switchId,omitempty"`
-	InterfaceFlowRuleSwitchName string   `json:"switchName,omitempty"`
-	InterfaceFlowRuleInterfaces []string `json:"interfaces,omitempty"`
-}
-
-type NDFCInterfaceFlowRuleAttributesValues []NDFCInterfaceFlowRuleAttributesValue
-
-type NDFCInterfaceFlowRuleAttributesValue struct {
-	InterfaceFlowRuleBidirectional *bool  `json:"bidirectional,omitempty"`
-	InterfaceFlowRuleDstIp         string `json:"dstIp,omitempty"`
-	InterfaceFlowRuleSrcIp         string `json:"srcIp,omitempty"`
-	InterfaceFlowRuleDstPort       string `json:"dstPort,omitempty"`
-	InterfaceFlowRuleSrcPort       string `json:"srcPort,omitempty"`
-	InterfaceFlowRuleProtocol      string `json:"protocol,omitempty"`
-	InterfaceFlowRuleAttributeId   string `json:"attributeId,omitempty"`
-}
-
-type NDFCL3OutFlowRulesValues []NDFCL3OutFlowRulesValue
-
-type NDFCL3OutFlowRulesValue struct {
-	L3OutFlowRuleName                string                                     `json:"name,omitempty"`
-	L3OutFlowRuleUuid                string                                     `json:"uuid,omitempty"`
-	L3OutFlowRuleType                string                                     `json:"type,omitempty"`
-	L3OutFlowRuleInterfaceCollection NDFCL3OutFlowRuleInterfaceCollectionValues `json:"interfaceCollection,omitempty"`
-	L3OutFlowRuleSubnets             []string                                   `json:"subnets,omitempty"`
-}
-
-type NDFCL3OutFlowRuleInterfaceCollectionValues []NDFCL3OutFlowRuleInterfaceCollectionValue
-
-type NDFCL3OutFlowRuleInterfaceCollectionValue struct {
-	L3OutFlowRuleTenant     string   `json:"tenant,omitempty"`
-	L3OutFlowRuleL3Out      string   `json:"l3Out,omitempty"`
-	L3OutFlowRuleEncap      string   `json:"encap,omitempty"`
-	L3OutFlowRuleSwitchName string   `json:"switchName,omitempty"`
-	L3OutFlowRuleSwitchId   string   `json:"switchId,omitempty"`
-	L3OutFlowRuleInterfaces []string `json:"interfaces,omitempty"`
-}
-
-type NDFCFlowCollectionTrafficAnalyticsRulesValue struct {
-	TrafficAnalyticsRulesEnabled *bool                    `json:"enabled,omitempty"`
-	InterfaceRules               NDFCInterfaceRulesValues `json:"interfaceRules,omitempty"`
-}
-
-type NDFCInterfaceRulesValues []NDFCInterfaceRulesValue
-
-type NDFCInterfaceRulesValue struct {
-	InterfaceRuleName                     string                                     `json:"name,omitempty"`
-	InterfaceRuleInterfaceCollection      NDFCInterfaceRuleInterfaceCollectionValues `json:"interfaceCollection,omitempty"`
-	InterfaceRuleEnabled                  *bool                                      `json:"enabled,omitempty"`
-	InterfaceRuleEnableFabricInterconnect *bool                                      `json:"enableFabricInterconnect,omitempty"`
-	InterfaceRuleEnableL3Out              *bool                                      `json:"enableL3Out,omitempty"`
-	InterfaceRuleUuid                     string                                     `json:"uuid,omitempty"`
-	InterfaceRuleSubnets                  []string                                   `json:"subnets,omitempty"`
-}
-
-type NDFCInterfaceRuleInterfaceCollectionValues []NDFCInterfaceRuleInterfaceCollectionValue
-
-type NDFCInterfaceRuleInterfaceCollectionValue struct {
-	InterfaceRuleSwitchId   string                            `json:"switchId,omitempty"`
-	InterfaceRuleSwitchName string                            `json:"switchName,omitempty"`
-	InterfaceRuleVrfName    string                            `json:"vrfName,omitempty"`
-	InterfaceRuleInterfaces NDFCInterfaceRuleInterfacesValues `json:"interfaces,omitempty"`
-	InterfaceRuleTenant     string                            `json:"tenant,omitempty"`
-	InterfaceRuleL3Out      string                            `json:"l3Out,omitempty"`
-}
-
-type NDFCInterfaceRuleInterfacesValues []NDFCInterfaceRuleInterfacesValue
-
-type NDFCInterfaceRuleInterfacesValue struct {
-	InterfaceRuleInterfaceName    string `json:"name,omitempty"`
-	InterfaceRuleInterfaceType    string `json:"type,omitempty"`
-	InterfaceRuleInterfaceEncap   string `json:"encap,omitempty"`
-	InterfaceRuleInterfaceVrfName string `json:"vrfName,omitempty"`
-}
-
-type NDFCFlowCollectionFlowCollectionCapabilitiesValue struct {
-	TrafficAnalyticsMode        string `json:"trafficAnalyticsMode,omitempty"`
-	UdpCategorization           string `json:"udpCategorization,omitempty"`
-	TrafficAnalyticsFilterRules string `json:"trafficAnalyticsFilterRules,omitempty"`
-}
-
-type NDFCTelemetrySettingsMicroburstValue struct {
-	Microburst  *bool  `json:"microburst,omitempty"`
-	Sensitivity string `json:"sensitivity,omitempty"`
-}
-
-type NDFCTelemetrySettingsAnalysisSettingsValue struct {
-	AnalysisSettingsIsEnabled *bool `json:"isEnabled,omitempty"`
-}
-
-type NDFCTelemetrySettingsNasValue struct {
-	Server         string                     `json:"server,omitempty"`
-	ExportSettings NDFCNasExportSettingsValue `json:"exportSettings,omitempty"`
-}
-
-type NDFCNasExportSettingsValue struct {
-	ExportType   string `json:"exportType,omitempty"`
-	ExportFormat string `json:"exportFormat,omitempty"`
-}
-
-type NDFCTelemetrySettingsEnergyManagementValue struct {
-	Cost *float64 `json:"cost,omitempty"`
 }
 
 type NDFCExternalStreamingSettingsValue struct {
@@ -559,6 +376,189 @@ type NDFCNetflowSamplerCollectionValue struct {
 	SamplerName  string `json:"samplerName,omitempty"`
 	NumSamples   *int64 `json:"numSamples,omitempty"`
 	SamplingRate *int64 `json:"samplingRate,omitempty"`
+}
+
+type NDFCFeatureStatusValue struct {
+	ControllerStatus    string `json:"controller,omitempty"`
+	TelemetryStatus     string `json:"telemetry,omitempty"`
+	OrchestrationStatus string `json:"orchestration,omitempty"`
+	TrapForwarderStatus string `json:"trapForwarder,omitempty"`
+}
+
+type NDFCMetaValue struct {
+	AllowedActions []string `json:"allowedActions,omitempty"`
+}
+
+type NDFCTelemetrySettingsValue struct {
+	DummyField       string                                     `json:"-"`
+	FlowCollection   NDFCTelemetrySettingsFlowCollectionValue   `json:"flowCollection,omitempty"`
+	Microburst       NDFCTelemetrySettingsMicroburstValue       `json:"microburst,omitempty"`
+	AnalysisSettings NDFCTelemetrySettingsAnalysisSettingsValue `json:"analysisSettings,omitempty"`
+	Nas              NDFCTelemetrySettingsNasValue              `json:"nas,omitempty"`
+	EnergyManagement NDFCTelemetrySettingsEnergyManagementValue `json:"energyManagement,omitempty"`
+}
+
+type NDFCTelemetrySettingsFlowCollectionValue struct {
+	TrafficAnalytics           string                                            `json:"trafficAnalytics,omitempty"`
+	OperatingMode              string                                            `json:"operatingMode,omitempty"`
+	UdpCategorizationSupport   string                                            `json:"udpCategorization,omitempty"`
+	FlowCollectionModes        NDFCFlowCollectionFlowCollectionModesValue        `json:"flowCollectionModes,omitempty"`
+	FlowRules                  NDFCFlowCollectionFlowRulesValue                  `json:"flowRules,omitempty"`
+	TrafficAnalyticsRules      NDFCFlowCollectionTrafficAnalyticsRulesValue      `json:"trafficAnalyticsRules,omitempty"`
+	FlowCollectionCapabilities NDFCFlowCollectionFlowCollectionCapabilitiesValue `json:"flowCollectionCapabilities,omitempty"`
+}
+
+type NDFCFlowCollectionFlowCollectionModesValue struct {
+	NetFlow       *bool `json:"netFlow,omitempty"`
+	SFlow         *bool `json:"sFlow,omitempty"`
+	FlowTelemetry *bool `json:"flowTelemetry,omitempty"`
+}
+
+type NDFCFlowCollectionFlowRulesValue struct {
+	VrfFlowRules       NDFCVrfFlowRulesValues       `json:"vrfFlowRules,omitempty"`
+	InterfaceFlowRules NDFCInterfaceFlowRulesValues `json:"interfaceFlowRules,omitempty"`
+	L3OutFlowRules     NDFCL3OutFlowRulesValues     `json:"l3OutFlowRules,omitempty"`
+}
+
+type NDFCVrfFlowRulesValues []NDFCVrfFlowRulesValue
+
+type NDFCVrfFlowRulesValue struct {
+	VrfFlowRuleName       string                          `json:"name,omitempty"`
+	VrfFlowRuleUuid       string                          `json:"uuid,omitempty"`
+	VrfFlowRuleTenant     string                          `json:"tenant,omitempty"`
+	VrfFlowRuleVrf        string                          `json:"vrf,omitempty"`
+	VrfFlowRuleSubnets    []string                        `json:"subnets,omitempty"`
+	VrfFlowRuleAttributes NDFCVrfFlowRuleAttributesValues `json:"attributes,omitempty"`
+}
+
+type NDFCVrfFlowRuleAttributesValues []NDFCVrfFlowRuleAttributesValue
+
+type NDFCVrfFlowRuleAttributesValue struct {
+	VrfFlowRuleBidirectional *bool  `json:"bidirectional,omitempty"`
+	VrfFlowRuleDstIp         string `json:"dstIp,omitempty"`
+	VrfFlowRuleSrcIp         string `json:"srcIp,omitempty"`
+	VrfFlowRuleDstPort       string `json:"dstPort,omitempty"`
+	VrfFlowRuleSrcPort       string `json:"srcPort,omitempty"`
+	VrfFlowRuleProtocol      string `json:"protocol,omitempty"`
+	VrfFlowRuleAttributeId   string `json:"attributeId,omitempty"`
+}
+
+type NDFCInterfaceFlowRulesValues []NDFCInterfaceFlowRulesValue
+
+type NDFCInterfaceFlowRulesValue struct {
+	InterfaceFlowRuleName                string                                         `json:"name,omitempty"`
+	InterfaceFlowRuleUuid                string                                         `json:"uuid,omitempty"`
+	InterfaceFlowRuleType                string                                         `json:"type,omitempty"`
+	InterfaceFlowRuleInterfaceCollection NDFCInterfaceFlowRuleInterfaceCollectionValues `json:"interfaceCollection,omitempty"`
+	InterfaceFlowRuleSubnets             []string                                       `json:"subnets,omitempty"`
+	InterfaceFlowRuleAttributes          NDFCInterfaceFlowRuleAttributesValues          `json:"attributes,omitempty"`
+}
+
+type NDFCInterfaceFlowRuleInterfaceCollectionValues []NDFCInterfaceFlowRuleInterfaceCollectionValue
+
+type NDFCInterfaceFlowRuleInterfaceCollectionValue struct {
+	InterfaceFlowRuleSwitchId   string   `json:"switchId,omitempty"`
+	InterfaceFlowRuleSwitchName string   `json:"switchName,omitempty"`
+	InterfaceFlowRuleInterfaces []string `json:"interfaces,omitempty"`
+}
+
+type NDFCInterfaceFlowRuleAttributesValues []NDFCInterfaceFlowRuleAttributesValue
+
+type NDFCInterfaceFlowRuleAttributesValue struct {
+	InterfaceFlowRuleBidirectional *bool  `json:"bidirectional,omitempty"`
+	InterfaceFlowRuleDstIp         string `json:"dstIp,omitempty"`
+	InterfaceFlowRuleSrcIp         string `json:"srcIp,omitempty"`
+	InterfaceFlowRuleDstPort       string `json:"dstPort,omitempty"`
+	InterfaceFlowRuleSrcPort       string `json:"srcPort,omitempty"`
+	InterfaceFlowRuleProtocol      string `json:"protocol,omitempty"`
+	InterfaceFlowRuleAttributeId   string `json:"attributeId,omitempty"`
+}
+
+type NDFCL3OutFlowRulesValues []NDFCL3OutFlowRulesValue
+
+type NDFCL3OutFlowRulesValue struct {
+	L3OutFlowRuleName                string                                     `json:"name,omitempty"`
+	L3OutFlowRuleUuid                string                                     `json:"uuid,omitempty"`
+	L3OutFlowRuleType                string                                     `json:"type,omitempty"`
+	L3OutFlowRuleInterfaceCollection NDFCL3OutFlowRuleInterfaceCollectionValues `json:"interfaceCollection,omitempty"`
+	L3OutFlowRuleSubnets             []string                                   `json:"subnets,omitempty"`
+}
+
+type NDFCL3OutFlowRuleInterfaceCollectionValues []NDFCL3OutFlowRuleInterfaceCollectionValue
+
+type NDFCL3OutFlowRuleInterfaceCollectionValue struct {
+	L3OutFlowRuleTenant     string   `json:"tenant,omitempty"`
+	L3OutFlowRuleL3Out      string   `json:"l3Out,omitempty"`
+	L3OutFlowRuleEncap      string   `json:"encap,omitempty"`
+	L3OutFlowRuleSwitchName string   `json:"switchName,omitempty"`
+	L3OutFlowRuleSwitchId   string   `json:"switchId,omitempty"`
+	L3OutFlowRuleInterfaces []string `json:"interfaces,omitempty"`
+}
+
+type NDFCFlowCollectionTrafficAnalyticsRulesValue struct {
+	TrafficAnalyticsRulesEnabled *bool                    `json:"enabled,omitempty"`
+	InterfaceRules               NDFCInterfaceRulesValues `json:"interfaceRules,omitempty"`
+}
+
+type NDFCInterfaceRulesValues []NDFCInterfaceRulesValue
+
+type NDFCInterfaceRulesValue struct {
+	InterfaceRuleName                     string                                     `json:"name,omitempty"`
+	InterfaceRuleInterfaceCollection      NDFCInterfaceRuleInterfaceCollectionValues `json:"interfaceCollection,omitempty"`
+	InterfaceRuleEnabled                  *bool                                      `json:"enabled,omitempty"`
+	InterfaceRuleEnableFabricInterconnect *bool                                      `json:"enableFabricInterconnect,omitempty"`
+	InterfaceRuleEnableL3Out              *bool                                      `json:"enableL3Out,omitempty"`
+	InterfaceRuleUuid                     string                                     `json:"uuid,omitempty"`
+	InterfaceRuleSubnets                  []string                                   `json:"subnets,omitempty"`
+}
+
+type NDFCInterfaceRuleInterfaceCollectionValues []NDFCInterfaceRuleInterfaceCollectionValue
+
+type NDFCInterfaceRuleInterfaceCollectionValue struct {
+	InterfaceRuleSwitchId   string                            `json:"switchId,omitempty"`
+	InterfaceRuleSwitchName string                            `json:"switchName,omitempty"`
+	InterfaceRuleVrfName    string                            `json:"vrfName,omitempty"`
+	InterfaceRuleInterfaces NDFCInterfaceRuleInterfacesValues `json:"interfaces,omitempty"`
+	InterfaceRuleTenant     string                            `json:"tenant,omitempty"`
+	InterfaceRuleL3Out      string                            `json:"l3Out,omitempty"`
+}
+
+type NDFCInterfaceRuleInterfacesValues []NDFCInterfaceRuleInterfacesValue
+
+type NDFCInterfaceRuleInterfacesValue struct {
+	InterfaceRuleInterfaceName    string `json:"name,omitempty"`
+	InterfaceRuleInterfaceType    string `json:"type,omitempty"`
+	InterfaceRuleInterfaceEncap   string `json:"encap,omitempty"`
+	InterfaceRuleInterfaceVrfName string `json:"vrfName,omitempty"`
+}
+
+type NDFCFlowCollectionFlowCollectionCapabilitiesValue struct {
+	TrafficAnalyticsMode        string `json:"trafficAnalyticsMode,omitempty"`
+	UdpCategorization           string `json:"udpCategorization,omitempty"`
+	TrafficAnalyticsFilterRules string `json:"trafficAnalyticsFilterRules,omitempty"`
+}
+
+type NDFCTelemetrySettingsMicroburstValue struct {
+	Microburst  *bool  `json:"microburst,omitempty"`
+	Sensitivity string `json:"sensitivity,omitempty"`
+}
+
+type NDFCTelemetrySettingsAnalysisSettingsValue struct {
+	AnalysisSettingsIsEnabled *bool `json:"isEnabled,omitempty"`
+}
+
+type NDFCTelemetrySettingsNasValue struct {
+	Server         string                     `json:"server,omitempty"`
+	ExportSettings NDFCNasExportSettingsValue `json:"exportSettings,omitempty"`
+}
+
+type NDFCNasExportSettingsValue struct {
+	ExportType   string `json:"exportType,omitempty"`
+	ExportFormat string `json:"exportFormat,omitempty"`
+}
+
+type NDFCTelemetrySettingsEnergyManagementValue struct {
+	Cost *float64 `json:"cost,omitempty"`
 }
 
 func (v *FabricVxlanModel) SetModelData(jsonData *NDFCFabricVxlanModel) diag.Diagnostics {

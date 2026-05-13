@@ -2,6 +2,7 @@ resource:
   name: fabric_vxlan
   generate_tf_resource: true
   skip_equality: true
+  category: manage
   attributes:
   - model_name: name
     tf_name: fabric_name

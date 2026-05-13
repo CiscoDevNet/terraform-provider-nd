@@ -2,6 +2,7 @@ resource:
   name: multi_cluster_connectivity
   generate_tf_resource: true
   skip_equality: true
+  category: infra
   attributes:
   - model_name: name
     tf_name: id
