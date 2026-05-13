@@ -39,20 +39,46 @@ $GOPATH/bin/generator spec -in ./generator/defs -out ./out -split
 # Stage 2: Use TF plugin generator framrework to generate Resource/Provider/Datasource definitions 
 # Use Stage 1 output as input here
 echo "Stage 2 - Generating TF provider definitions from spec JSON"
+CATEGORY_FILE="./out/category.json"
 FILES=$(ls ./out)
 for filename in $FILES; do
+    # Skip category.json and non-json files
+    if [[ $filename == "category.json" ]]; then
+        continue
+    fi
+
     if [[ $filename == *"provider.json" ]]
     then
         echo "Generate provider code from $filename"
         tfplugingen-framework generate provider --input ./out/$filename --output internal/provider --package provider
     elif [[ $filename == *"resource.json" ]]
     then
-        echo "Generate Resource code from $filename"
-        tfplugingen-framework generate resources --input ./out/$filename --output $OUTDIR
+        # Extract resource name: provider_spec_<name>_resource.json -> <name>
+        RSC_NAME="${filename#provider_spec_}"
+        RSC_NAME="${RSC_NAME%_resource.json}"
+        RSC_OUTDIR="$OUTDIR"
+        if [[ -f "$CATEGORY_FILE" ]]; then
+            CATEGORY=$(jq -r --arg name "$RSC_NAME" '.[$name] // empty' "$CATEGORY_FILE")
+            if [[ -n "$CATEGORY" ]]; then
+                RSC_OUTDIR="$OUTDIR/${CATEGORY}"
+            fi
+        fi
+        echo "Generate Resource code from $filename (resource=$RSC_NAME, output=$RSC_OUTDIR)"
+        tfplugingen-framework generate resources --input ./out/$filename --output $RSC_OUTDIR
     elif [[ $filename == *"datasource.json" ]]
     then
-        echo "Generate data-source code from $filename"
-        tfplugingen-framework generate data-sources --input ./out/$filename --output $OUTDIR 
+        # Extract datasource name: provider_spec_<name>_datasource.json -> <name>
+        DS_NAME="${filename#provider_spec_}"
+        DS_NAME="${DS_NAME%_datasource.json}"
+        DS_OUTDIR="$OUTDIR"
+        if [[ -f "$CATEGORY_FILE" ]]; then
+            CATEGORY=$(jq -r --arg name "$DS_NAME" '.[$name] // empty' "$CATEGORY_FILE")
+            if [[ -n "$CATEGORY" ]]; then
+                DS_OUTDIR="$OUTDIR/${CATEGORY}"
+            fi
+        fi
+        echo "Generate data-source code from $filename (datasource=$DS_NAME, output=$DS_OUTDIR)"
+        tfplugingen-framework generate data-sources --input ./out/$filename --output $DS_OUTDIR 
     fi
 done
 

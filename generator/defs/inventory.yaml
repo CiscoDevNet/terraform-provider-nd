@@ -2,6 +2,7 @@ resource:
   name: inventory_switch
   generate_tf_resource: true
   skip_equality: false
+  category: manage
   attributes:
   # Required - Fabric identifier
   - model_name: fabricName

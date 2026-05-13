@@ -19,7 +19,6 @@ import (
 	"time"
 
 	_ "terraform-provider-nd/internal/infra/resource_multi_cluster_connectivity"
-	_ "terraform-provider-nd/internal/manage/resource_fabric_vxlan"
 	_ "terraform-provider-nd/internal/manage/resource_inventory_switch"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
