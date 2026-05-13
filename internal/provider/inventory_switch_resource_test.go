@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"testing"
 
-	"terraform-provider-nd/internal/manage/resource_fabric_vxlan"
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
 	helper "terraform-provider-nd/internal/provider/testing"
 
@@ -48,7 +47,7 @@ func TestAccInventorySwitchMultiResource(t *testing.T) {
 	stepCount := new(int)
 	*stepCount = 0
 
-	fabricRsc := new(resource_fabric_vxlan.NDFCFabricVxlanModel)
+	fabricRsc := new(helper.NDFCFabricVxlanTestData)
 	switchRsc1 := new(resource_inventory_switch.NDFCInventorySwitchModel)
 	switchRsc2 := new(resource_inventory_switch.NDFCInventorySwitchModel)
 
@@ -136,7 +135,7 @@ func TestAccInventorySwitchResourceCRUD(t *testing.T) {
 	stepCount := new(int)
 	*stepCount = 0
 
-	fabricRsc := new(resource_fabric_vxlan.NDFCFabricVxlanModel)
+	fabricRsc := new(helper.NDFCFabricVxlanTestData)
 	switchRsc := new(resource_inventory_switch.NDFCInventorySwitchModel)
 
 	// Build initial switch map from testbed config (first 2 switches)

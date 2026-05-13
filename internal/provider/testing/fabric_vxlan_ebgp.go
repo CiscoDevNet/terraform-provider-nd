@@ -12,9 +12,13 @@ import (
 	"terraform-provider-nd/internal/manage/resource_fabric_common"
 )
 
-// defaultFabricValues returns sensible defaults for a VXLAN fabric.
-// Tests can override any of these via the overrides map passed to GenerateFabricVxlanObject.
-func defaultFabricValues() map[string]interface{} {
+// NDFCFabricEbgpTestData wraps NDFCFabricCommonModel for eBGP test template selection.
+type NDFCFabricEbgpTestData struct {
+	resource_fabric_common.NDFCFabricCommonModel
+}
+
+// defaultFabricEbgpValues returns sensible defaults for an eBGP VXLAN fabric.
+func defaultFabricEbgpValues() map[string]interface{} {
 	return map[string]interface{}{
 		"license_tier":                  "premier",
 		"category":                      "fabric",
@@ -47,28 +51,18 @@ func defaultFabricValues() map[string]interface{} {
 	}
 }
 
-// NDFCFabricVxlanTestData wraps NDFCFabricCommonModel for VXLAN test template selection.
-type NDFCFabricVxlanTestData struct {
-	resource_fabric_common.NDFCFabricCommonModel
-}
-
-// GenerateFabricVxlanObject creates a VXLAN fabric model object for testing.
-// fabricName, bgpAsn, and fabricType are mandatory identifiers.
-// overrides lets each test supply unique values for any field so that
-// multiple fabrics can coexist without conflicting on IP ranges, VNI ranges, etc.
-// Any key not present in overrides gets the value from defaultFabricValues().
-func GenerateFabricVxlanObject(obj **NDFCFabricVxlanTestData,
-	fabricName string, bgpAsn string, fabricType string,
+// GenerateFabricEbgpObject creates an eBGP VXLAN fabric model object for testing.
+func GenerateFabricEbgpObject(obj **NDFCFabricEbgpTestData,
+	fabricName string, bgpAsn string,
 	overrides map[string]interface{}) {
 
-	fabric := new(NDFCFabricVxlanTestData)
+	fabric := new(NDFCFabricEbgpTestData)
 
 	fabric.FabricName = fabricName
-	fabric.Management.FabricType = fabricType
 	fabric.Management.BgpAsn = bgpAsn
 
 	// Merge defaults with caller overrides (overrides win)
-	merged := defaultFabricValues()
+	merged := defaultFabricEbgpValues()
 	for k, v := range overrides {
 		merged[k] = v
 	}
@@ -78,10 +72,9 @@ func GenerateFabricVxlanObject(obj **NDFCFabricVxlanTestData,
 	*obj = fabric
 }
 
-// ModifyFabricVxlanObject modifies fields on an existing fabric model.
-// Uses the same key set as GenerateFabricVxlanObject overrides.
-func ModifyFabricVxlanObject(
-	obj **NDFCFabricVxlanTestData,
+// ModifyFabricEbgpObject modifies fields on an existing eBGP fabric model.
+func ModifyFabricEbgpObject(
+	obj **NDFCFabricEbgpTestData,
 	values map[string]interface{},
 ) {
 	fabric := *obj

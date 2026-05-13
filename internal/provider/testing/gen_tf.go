@@ -19,7 +19,6 @@ import (
 	"text/template"
 	"time"
 
-	"terraform-provider-nd/internal/manage/resource_fabric_vxlan"
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
 )
 
@@ -118,12 +117,28 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 		}
 
 		switch v := rsc.(type) {
-		case *resource_fabric_vxlan.NDFCFabricVxlanModel:
+		case *NDFCFabricVxlanTestData:
 			args["FabricVxlan"] = v
 			args["RscName"] = rscName
 			err = t.ExecuteTemplate(&output, "ND_FABRIC_VXLAN_RSC", args)
 			if err != nil {
 				panic(fmt.Sprintf("Failed to execute ND_FABRIC_VXLAN_RSC template: %v", err))
+			}
+
+		case *NDFCFabricIbgpTestData:
+			args["FabricIbgp"] = v
+			args["RscName"] = rscName
+			err = t.ExecuteTemplate(&output, "ND_FABRIC_VXLAN_IBGP_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_FABRIC_VXLAN_IBGP_RSC template: %v", err))
+			}
+
+		case *NDFCFabricEbgpTestData:
+			args["FabricEbgp"] = v
+			args["RscName"] = rscName
+			err = t.ExecuteTemplate(&output, "ND_FABRIC_VXLAN_EBGP_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_FABRIC_VXLAN_EBGP_RSC template: %v", err))
 			}
 
 		case *resource_inventory_switch.NDFCInventorySwitchModel:

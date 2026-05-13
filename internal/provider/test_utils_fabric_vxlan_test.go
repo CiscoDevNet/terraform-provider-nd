@@ -11,13 +11,13 @@ package provider
 import (
 	"strconv"
 
-	"terraform-provider-nd/internal/manage/resource_fabric_vxlan"
+	helper "terraform-provider-nd/internal/provider/testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func FabricVxlanModelHelperStateCheck(RscName string, c resource_fabric_vxlan.NDFCFabricVxlanModel, attrPath path.Path) []resource.TestCheckFunc {
+func FabricVxlanModelHelperStateCheck(RscName string, c helper.NDFCFabricVxlanTestData, attrPath path.Path) []resource.TestCheckFunc {
 	ret := []resource.TestCheckFunc{}
 
 	if c.FabricName != "" {

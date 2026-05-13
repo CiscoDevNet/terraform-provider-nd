@@ -1,13 +1,14 @@
 resource:
-  name: fabric_common
-  generate_tf_resource: false
-  inherited_model: true
+  name: fabric_vxlan_ibgp
+  generate_tf_resource: true
   skip_equality: true
+  parent_package: resource_fabric_common
+  parent_model: fabric_common
   category: manage
   attributes:
   - model_name: name
     tf_name: fabric_name
-    description: The name of the fabric_vxlan resource
+    description: The name of the fabric_vxlan_ibgp resource
     type: String
     mandatory: true
     example: my_fabric
@@ -22,28 +23,28 @@ resource:
     tf_name: controller_status
     ndfc_nested:
     - featureStatus
-    description: The controller status of the fabric_vxlan resource
+    description: The controller status of the fabric_vxlan_ibgp resource
     type: String
     example: enabled
   - model_name: telemetry
     tf_name: telemetry_status
     ndfc_nested:
     - featureStatus
-    description: The telemetry status of the fabric_vxlan resource
+    description: The telemetry status of the fabric_vxlan_ibgp resource
     type: String
     example: enabled
   - model_name: orchestration
     tf_name: orchestration_status
     ndfc_nested:
     - featureStatus
-    description: The orchestration status of the fabric_vxlan resource
+    description: The orchestration status of the fabric_vxlan_ibgp resource
     type: String
     example: enabled
   - model_name: trapForwarder
     tf_name: trap_forwarder_status
     ndfc_nested:
     - featureStatus
-    description: The trap forwarder status of the fabric_vxlan resource
+    description: The trap forwarder status of the fabric_vxlan_ibgp resource
     type: String
     example: enabled
   - model_name: telemetryCollection
@@ -96,6 +97,7 @@ resource:
     ndfc_nested:
     - management
     description: Type of Interface Group
+    tf_hide: true
   - model_name: bgpAsn
     tf_name: bgp_asn
     type: String
@@ -104,117 +106,6 @@ resource:
     - management
     example: '55000'
     description: Autonomous system number 1-4294967295 | 1-65535[.0-65535]
-  - model_name: superSpineBgpAs
-    tf_name: super_spine_bgp_as
-    type: String
-    optional: true
-    ndfc_nested:
-    - management
-    example: '65000'
-    description: BGP AS number for super spine switches 1-4294967295 | 1-65535[.0-65535]
-    validator: 
-  - model_name: leafBgpAs
-    tf_name: leaf_bgp_as
-    type: String
-    computed: true
-    optional: true
-    ndfc_nested:
-    - management
-    example: '65001'
-    description: BGP AS number for leaf switches 1-4294967295 | 1-65535[.0-65535]
-  - model_name: borderBgpAs
-    tf_name: border_bgp_as
-    type: String
-    computed: true
-    optional: true
-    ndfc_nested:
-    - management
-    example: '65002'
-    description: BGP AS number for border switches 1-4294967295 | 1-65535[.0-65535]
-  - model_name: bgpAsMode
-    tf_name: bgp_as_mode
-    type: String
-    optional: true
-    ndfc_nested:
-    - management
-    example: 'multiAS'
-    description: Multi-AS Unique ASN per Leaf/Border/Border Gateway (Borders and border
-      gateways are allowed to share ASN). Same-Tier-AS Leafs share one ASN,
-      Borders/border gateways share one ASN
-  - model_name: bgpAsnAutoAllocation
-    tf_name: bgp_asn_auto_allocation
-    type: Bool
-    default_value: true
-    ndfc_type: bool
-    example: true
-    ndfc_nested:
-    - management
-    description: Enable automatic BGP ASN allocation from the bgpAsnRange pool
-  - model_name: bgpAsnRange
-    tf_name: bgp_asn_range
-    type: String
-    computed: true
-    optional: true
-    ndfc_nested:
-    - management
-    example: '65000-65535'
-    description: BGP ASN range for automatic ASN allocation (e.g. 65000-65535)
-  - model_name: bgpAllowAsInNum
-    tf_name: bgp_allow_as_in_num
-    type: Int64
-    example: 1
-    computed: true
-    optional: true
-    ndfc_nested:
-    - management
-    description: Number of occurrences of the local AS number allowed in the BGP AS-path
-  - model_name: bgpMaxPath
-    tf_name: bgp_max_path
-    type: Int64
-    example: 4
-    computed: true
-    optional: true
-    ndfc_nested:
-    - management
-    description: Maximum number of BGP equal-cost paths
-  - model_name: bgpUnderlayFailureProtect
-    tf_name: bgp_underlay_failure_protect
-    type: Bool
-    default_value: false
-    ndfc_type: bool
-    example: false
-    ndfc_nested:
-    - management
-    description: Enable BGP underlay failure protection
-  - model_name: autoConfigureEbgpEvpnPeering
-    tf_name: auto_configure_ebgp_evpn_peering
-    type: Bool
-    default_value: true
-    ndfc_type: bool
-    example: true
-    ndfc_nested:
-    - management
-    description: Automatically configure eBGP EVPN overlay peering between leaf and spine switches
-  - model_name: allowLeafSameAs
-    tf_name: allow_leaf_same_as
-    type: Bool
-    default_value: false
-    ndfc_type: bool
-    example: false
-    ndfc_nested:
-    - management
-    description: Allow leaf switches to have the same BGP ASN even when AS mode is Multi-AS
-  - model_name: assignIpv4ToLoopback0
-    tf_name: assign_ipv4_to_loopback0
-    type: Bool
-    computed: true
-    optional: true
-    ndfc_type: bool
-    example: true
-    ndfc_nested:
-    - management
-    description: In an IPv6 routed fabric or VXLAN EVPN fabric with IPv6 underlay, assign
-      IPv4 address used for BGP Router ID to the routing loopback interface
   - model_name: targetSubnetMask
     tf_name: target_subnet_mask
     type: Int64
@@ -1428,7 +1319,8 @@ resource:
   - model_name: dlbMode
     tf_name: dlb_mode
     type: String
-    default_value: flowlet
+    computed: true
+    optional: true
     example: flowlet
     ndfc_nested:
     - management
@@ -1436,7 +1328,8 @@ resource:
   - model_name: dlbMixedModeDefault
     tf_name: dlb_mixed_mode_default
     type: String
-    default_value: ecmp
+    optional: true
+    computed: true
     example: ecmp
     ndfc_nested:
     - management
@@ -1445,7 +1338,8 @@ resource:
   - model_name: flowletAging
     tf_name: flowlet_aging
     type: Int64
-    default_value: 1
+    optional: true
+    computed: true
     example: 1
     ndfc_nested:
     - management
@@ -1476,15 +1370,16 @@ resource:
   - model_name: rocev2
     tf_name: roce_v2
     type: String
-    default_value: '26'
-    example: '26'
+    optional: true
+    computed: true
     ndfc_nested:
     - management
     description: RoCEv2 DSCP value for AI/ML QoS
   - model_name: cnp
     tf_name: cnp
     type: String
-    default_value: '48'
+    optional: true
+    computed: true
     example: '48'
     ndfc_nested:
     - management
@@ -1492,7 +1387,8 @@ resource:
   - model_name: wredMin
     tf_name: wred_min
     type: Int64
-    default_value: 950
+    optional: true
+    computed: true
     example: 950
     ndfc_nested:
     - management
@@ -1500,7 +1396,8 @@ resource:
   - model_name: wredMax
     tf_name: wred_max
     type: Int64
-    default_value: 3000
+    computed: true
+    optional: true
     example: 3000
     ndfc_nested:
     - management
@@ -1508,7 +1405,8 @@ resource:
   - model_name: wredDropProbability
     tf_name: wred_drop_probability
     type: Int64
-    default_value: 7
+    optional: true
+    computed: true
     example: 7
     ndfc_nested:
     - management
@@ -1516,7 +1414,8 @@ resource:
   - model_name: wredWeight
     tf_name: wred_weight
     type: Int64
-    default_value: 0
+    optional: true
+    computed: true
     example: 0
     ndfc_nested:
     - management
@@ -1524,8 +1423,8 @@ resource:
   - model_name: bandwidthRemaining
     tf_name: bandwidth_remaining
     type: Int64
-    default_value: 50
-    example: 50
+    computed: true
+    optional: true
     ndfc_nested:
     - management
     description: Bandwidth remaining percentage for AI/ML QoS
@@ -1870,7 +1769,8 @@ resource:
   - model_name: securityGroupTagMacSegmentation
     tf_name: security_group_tag_mac_segmentation
     type: Bool
-    default_value: false
+    optional: true
+    computed: true
     example: false
     ndfc_type: bool
     ndfc_nested:
@@ -2331,16 +2231,6 @@ resource:
     ndfc_nested:
     - management
     description: Enable Smart Switch onboarding
-  - model_name: enableDpuPinning
-    tf_name: enable_dpu_pinning
-    type: Bool
-    computed: true
-    optional: true
-    ndfc_type: bool
-    example: false
-    ndfc_nested:
-    - management
-    description: Enable pinning of VRFs and networks to specific DPUs on smart switches
   - model_name: connectivityDomainName
     tf_name: connectivity_domain_name
     type: String
