@@ -6,7 +6,14 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-// Fabric CRUD logic has been moved to resource_fabric_common/fabric_crud.go.
-// This file is retained as a placeholder and can be safely deleted.
+package resource_fabric_vxlan_ibgp
 
-package resource_fabric_vxlan
+import (
+	"terraform-provider-nd/internal/registry"
+)
+
+const ModuleKey = "manage"
+
+func init() {
+	registry.RegisterResource(ModuleKey, NewFabricVxlanIbgpResource)
+}

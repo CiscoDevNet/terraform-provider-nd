@@ -6,7 +6,9 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-// Fabric CRUD logic has been moved to resource_fabric_common/fabric_crud.go.
-// This file is retained as a placeholder and can be safely deleted.
-
 package resource_fabric_vxlan
+
+// GetFabricName returns the fabric name from the Terraform model.
+func (v *FabricVxlanModel) GetFabricName() string {
+	return v.FabricName.ValueString()
+}

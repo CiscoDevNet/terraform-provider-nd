@@ -1,13 +1,14 @@
 resource:
-  name: fabric_common
-  generate_tf_resource: false
-  inherited_model: true
+  name: fabric_vxlan_ebgp
+  generate_tf_resource: true
   skip_equality: true
+  parent_package: resource_fabric_common
+  parent_model: fabric_common
   category: manage
   attributes:
   - model_name: name
     tf_name: fabric_name
-    description: The name of the fabric_vxlan resource
+    description: The name of the fabric_vxlan_ebgp resource
     type: String
     mandatory: true
     example: my_fabric
@@ -92,10 +93,11 @@ resource:
   - model_name: type
     tf_name: fabric_type
     type: String
-    example: vxlanIbgp
+    example: vxlanEbgp
     ndfc_nested:
     - management
-    description: Type of Interface Group
+    description: Type of eBGP VXLAN Fabric
+    tf_hide: true
   - model_name: bgpAsn
     tf_name: bgp_asn
     type: String
@@ -116,7 +118,6 @@ resource:
   - model_name: leafBgpAs
     tf_name: leaf_bgp_as
     type: String
-    computed: true
     optional: true
     ndfc_nested:
     - management
@@ -125,7 +126,6 @@ resource:
   - model_name: borderBgpAs
     tf_name: border_bgp_as
     type: String
-    computed: true
     optional: true
     ndfc_nested:
     - management
@@ -135,6 +135,7 @@ resource:
     tf_name: bgp_as_mode
     type: String
     optional: true
+    computed: true
     ndfc_nested:
     - management
     example: 'multiAS'
@@ -153,8 +154,8 @@ resource:
   - model_name: bgpAsnRange
     tf_name: bgp_asn_range
     type: String
-    computed: true
     optional: true
+    computed: true
     ndfc_nested:
     - management
     example: '65000-65535'
@@ -207,9 +208,9 @@ resource:
   - model_name: assignIpv4ToLoopback0
     tf_name: assign_ipv4_to_loopback0
     type: Bool
+    ndfc_type: bool
     computed: true
     optional: true
-    ndfc_type: bool
     example: true
     ndfc_nested:
     - management
@@ -261,14 +262,6 @@ resource:
     - management
     description: Multicast pool prefix between 8 to 30. A multicast group ipv4
       from this pool is used for BUM traffic for each overlay network
-  - model_name: underlayMulticastGroupAddressLimit
-    tf_name: underlay_multicast_group_address_limit
-    type: Int64
-    default_value: 128
-    example: 128
-    ndfc_nested:
-    - management
-    description: Underlay multicast group address limit. Valid values are 128 or 512
   - model_name: tenantRoutedMulticast
     tf_name: tenant_routed_multicast
     type: Bool
@@ -833,34 +826,6 @@ resource:
     - management
     description: Enter One Subnet Scope per line. Start_IP, End_IP, Gateway, Prefix e.g.
       10.6.0.2, 10.6.0.9, 10.6.0.1, 24
-  - model_name: bootstrapSubnetCollection
-    tf_name: bootstrap_subnet_collection
-    type: List
-    optional: true
-    ndfc_nested:
-    - management
-    attributes:
-    - model_name: startIp
-      tf_name: start_ip
-      type: String
-      example: 10.6.0.2
-      description: Start IP address of the bootstrap subnet scope
-    - model_name: endIp
-      tf_name: end_ip
-      type: String
-      example: 10.6.0.9
-      description: End IP address of the bootstrap subnet scope
-    - model_name: defaultGateway
-      tf_name: default_gateway
-      type: String
-      example: 10.6.0.1
-      description: Default gateway for the bootstrap subnet scope
-    - model_name: subnetPrefix
-      tf_name: subnet_prefix
-      type: Int64
-      example: 24
-      description: Subnet prefix length for the bootstrap subnet scope
-    description: Bootstrap subnet collection for switch POAP
   - model_name: extraConfigNxosBootstrap
     tf_name: extra_config_nxos_bootstrap
     type: String
@@ -1067,15 +1032,6 @@ resource:
     ndfc_nested:
     - management
     description: Qos Policy name should be same on all spines
-  - model_name: enablePeerSwitch
-    tf_name: enable_peer_switch
-    type: Bool
-    default_value: false
-    example: false
-    ndfc_type: bool
-    ndfc_nested:
-    - management
-    description: Enable vPC Peer Switch
   - model_name: anycastLoopbackId
     tf_name: anycast_loopback_id
     type: Int64
@@ -1416,119 +1372,6 @@ resource:
     - management
     description: Acceptable values from 101 to 1000 (milliseconds). Leave blank
       for system default (100ms)
-  - model_name: dlb
-    tf_name: dlb
-    type: Bool
-    default_value: false
-    example: false
-    ndfc_type: bool
-    ndfc_nested:
-    - management
-    description: Enable Dynamic Load Balancing (DLB) on all VTEPs
-  - model_name: dlbMode
-    tf_name: dlb_mode
-    type: String
-    default_value: flowlet
-    example: flowlet
-    ndfc_nested:
-    - management
-    description: DLB mode. Valid values are flowlet, per-packet, mixed-mode
-  - model_name: dlbMixedModeDefault
-    tf_name: dlb_mixed_mode_default
-    type: String
-    default_value: ecmp
-    example: ecmp
-    ndfc_nested:
-    - management
-    description: Default load balancing mode for mixed-mode DLB. Valid values are
-      ecmp, flowlet, per-packet
-  - model_name: flowletAging
-    tf_name: flowlet_aging
-    type: Int64
-    default_value: 1
-    example: 1
-    ndfc_nested:
-    - management
-    description: Flowlet aging timer in microseconds
-  - model_name: flowletDscp
-    tf_name: flowlet_dscp
-    type: String
-    example: '0'
-    ndfc_nested:
-    - management
-    description: DSCP values for flowlet mode
-  - model_name: perPacketDscp
-    tf_name: per_packet_dscp
-    type: String
-    example: '0'
-    ndfc_nested:
-    - management
-    description: DSCP values for per-packet mode
-  - model_name: aiLoadSharing
-    tf_name: ai_load_sharing
-    type: Bool
-    default_value: false
-    example: false
-    ndfc_type: bool
-    ndfc_nested:
-    - management
-    description: Enable AI Load Sharing
-  - model_name: rocev2
-    tf_name: roce_v2
-    type: String
-    default_value: '26'
-    example: '26'
-    ndfc_nested:
-    - management
-    description: RoCEv2 DSCP value for AI/ML QoS
-  - model_name: cnp
-    tf_name: cnp
-    type: String
-    default_value: '48'
-    example: '48'
-    ndfc_nested:
-    - management
-    description: CNP DSCP value for AI/ML QoS
-  - model_name: wredMin
-    tf_name: wred_min
-    type: Int64
-    default_value: 950
-    example: 950
-    ndfc_nested:
-    - management
-    description: WRED minimum threshold for AI/ML QoS
-  - model_name: wredMax
-    tf_name: wred_max
-    type: Int64
-    default_value: 3000
-    example: 3000
-    ndfc_nested:
-    - management
-    description: WRED maximum threshold for AI/ML QoS
-  - model_name: wredDropProbability
-    tf_name: wred_drop_probability
-    type: Int64
-    default_value: 7
-    example: 7
-    ndfc_nested:
-    - management
-    description: WRED drop probability for AI/ML QoS
-  - model_name: wredWeight
-    tf_name: wred_weight
-    type: Int64
-    default_value: 0
-    example: 0
-    ndfc_nested:
-    - management
-    description: WRED weight for AI/ML QoS
-  - model_name: bandwidthRemaining
-    tf_name: bandwidth_remaining
-    type: Int64
-    default_value: 50
-    example: 50
-    ndfc_nested:
-    - management
-    description: Bandwidth remaining percentage for AI/ML QoS
   - model_name: staticUnderlayIpAllocation
     tf_name: static_underlay_ip_allocation
     type: Bool
@@ -1867,15 +1710,6 @@ resource:
     ndfc_nested:
     - management
     description: Generate security groups configuration for non-enforced VRFs
-  - model_name: securityGroupTagMacSegmentation
-    tf_name: security_group_tag_mac_segmentation
-    type: Bool
-    default_value: false
-    example: false
-    ndfc_type: bool
-    ndfc_nested:
-    - management
-    description: Enable SGT MAC Segmentation on all switches in the fabric
   - model_name: securityGroupStatus
     tf_name: security_group_status
     type: String
@@ -2326,8 +2160,8 @@ resource:
     tf_name: allow_smart_switch_onboarding
     type: Bool
     default_value: false
-    example: false
     ndfc_type: bool
+    example: false
     ndfc_nested:
     - management
     description: Enable Smart Switch onboarding
@@ -2368,7 +2202,7 @@ resource:
     example: loopback0
     ndfc_nested:
     - management
-    description: Hypershield connectivity source interface
+    description: Loopback interface on smart switch for communication with Hypershield
   - model_name: dnsCollection
     tf_name: dns_collection
     type: List:String

@@ -5,4 +5,6 @@ files:
   - fabric_common.yaml
   - inventory.yaml
   - multi_cluster_connectivity.yaml
+  - fabric_vxlan_ibgp.yaml
+  - fabric_vxlan_ebgp.yaml
   #- sample.yaml

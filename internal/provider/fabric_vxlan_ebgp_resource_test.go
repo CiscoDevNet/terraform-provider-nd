@@ -18,9 +18,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccFabricVxlanResourceCRUD(t *testing.T) {
+func TestAccFabricVxlanEbgpResourceCRUD(t *testing.T) {
 	x := &map[string]string{
-		"RscType":  "nd_fabric_vxlan",
+		"RscType":  "nd_fabric_vxlan_ebgp",
 		"RscName":  "fabric_test",
 		"User":     helper.GetConfig("global").ND.User,
 		"Password": helper.GetConfig("global").ND.Password,
@@ -32,22 +32,21 @@ func TestAccFabricVxlanResourceCRUD(t *testing.T) {
 	stepCount := new(int)
 	*stepCount = 0
 
-	fabricRsc := new(helper.NDFCFabricVxlanTestData)
+	fabricRsc := new(helper.NDFCFabricEbgpTestData)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Step 1: Create a basic VXLAN fabric
+			// Step 1: Create a basic eBGP VXLAN fabric
 			{
 				Config: func() string {
 					*stepCount++
 					tName := fmt.Sprintf("%s_%d", t.Name(), *stepCount)
 
-					helper.GenerateFabricVxlanObject(&fabricRsc,
+					helper.GenerateFabricEbgpObject(&fabricRsc,
 						helper.GetConfig("global").ND.Fabric,
 						"55000",
-						"vxlanIbgp",
 						nil,
 					)
 
@@ -58,20 +57,20 @@ func TestAccFabricVxlanResourceCRUD(t *testing.T) {
 					return *tfConfig
 				}(),
 				Check: resource.ComposeTestCheckFunc(
-					FabricVxlanModelHelperStateCheck(
-						"nd_fabric_vxlan.fabric_test",
+					FabricVxlanEbgpModelHelperStateCheck(
+						"nd_fabric_vxlan_ebgp.fabric_test",
 						*fabricRsc,
 						path.Empty(),
 					)...,
 				),
 			},
-			// Step 2: Modify fabric parameters (MTU, overlay mode)
+			// Step 2: Modify fabric parameters (MTU)
 			{
 				Config: func() string {
 					*stepCount++
 					tName := fmt.Sprintf("%s_%d", t.Name(), *stepCount)
 
-					helper.ModifyFabricVxlanObject(&fabricRsc, map[string]interface{}{
+					helper.ModifyFabricEbgpObject(&fabricRsc, map[string]interface{}{
 						"fabric_mtu":            9000,
 						"l2_host_interface_mtu": 9000,
 					})
@@ -82,8 +81,8 @@ func TestAccFabricVxlanResourceCRUD(t *testing.T) {
 					return *tfConfig
 				}(),
 				Check: resource.ComposeTestCheckFunc(
-					FabricVxlanModelHelperStateCheck(
-						"nd_fabric_vxlan.fabric_test",
+					FabricVxlanEbgpModelHelperStateCheck(
+						"nd_fabric_vxlan_ebgp.fabric_test",
 						*fabricRsc,
 						path.Empty(),
 					)...,
@@ -95,7 +94,7 @@ func TestAccFabricVxlanResourceCRUD(t *testing.T) {
 					*stepCount++
 					tName := fmt.Sprintf("%s_%d", t.Name(), *stepCount)
 
-					helper.ModifyFabricVxlanObject(&fabricRsc, map[string]interface{}{
+					helper.ModifyFabricEbgpObject(&fabricRsc, map[string]interface{}{
 						"vpc_peer_link_vlan": "3601",
 						"l2_vni_range":       "30000-48000",
 						"l3_vni_range":       "50000-58000",
@@ -107,8 +106,8 @@ func TestAccFabricVxlanResourceCRUD(t *testing.T) {
 					return *tfConfig
 				}(),
 				Check: resource.ComposeTestCheckFunc(
-					FabricVxlanModelHelperStateCheck(
-						"nd_fabric_vxlan.fabric_test",
+					FabricVxlanEbgpModelHelperStateCheck(
+						"nd_fabric_vxlan_ebgp.fabric_test",
 						*fabricRsc,
 						path.Empty(),
 					)...,
