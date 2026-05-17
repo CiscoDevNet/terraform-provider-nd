@@ -91,6 +91,11 @@ func (p *NexusDashboardProvider) Configure(ctx context.Context, req provider.Con
 		config.Password = types.StringValue(password)
 	}
 
+	if config.ApiKey.IsUnknown() || config.ApiKey.IsNull() {
+		apiKey := os.Getenv("ND_API_KEY")
+		config.ApiKey = types.StringValue(apiKey)
+	}
+
 	if config.Domain.IsUnknown() || config.Domain.IsNull() {
 		domain := os.Getenv("ND_DOMAIN")
 		config.Domain = types.StringValue(domain)
@@ -159,12 +164,11 @@ func (p *NexusDashboardProvider) Configure(ctx context.Context, req provider.Con
 		)
 	}
 
-	if config.Password.ValueString() == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("password"),
-			"Missing Nexus Dashboard Password",
-			"The provider cannot create the Nexus Dashboard API client without a password. "+
-				"Set the password value in the configuration or use the ND_PASSWORD environment variable.",
+	if config.Password.ValueString() == "" && config.ApiKey.ValueString() == "" {
+		resp.Diagnostics.AddError(
+			"Missing Nexus Dashboard Credentials",
+			"Either 'password' or 'api_key' must be provided. "+
+				"Set the value in the configuration or use the ND_PASSWORD or ND_API_KEY environment variable.",
 		)
 	}
 
@@ -191,10 +195,17 @@ func (p *NexusDashboardProvider) Configure(ctx context.Context, req provider.Con
 
 	basePath := "/api/v1"
 
+	// Build client options
+	var mods []func(*nd.Client)
+	mods = append(mods, nd.MaxRetries(int(config.MaxRetries.ValueInt64())))
+	mods = append(mods, nd.RequestTimeout(timeout))
+	if config.ApiKey.ValueString() != "" {
+		mods = append(mods, nd.UserApiKey(config.ApiKey.ValueString()))
+	}
+
 	// Create the shared API client
 	client, err := nd.NewClient(url, basePath, username, password,
-		domain, insecure, nd.MaxRetries(int(config.MaxRetries.ValueInt64())),
-		nd.RequestTimeout(timeout))
+		domain, insecure, mods...)
 	if err != nil {
 		tflog.Error(ctx, "Error creating Nexus Dashboard client", map[string]interface{}{"error": err.Error()})
 		resp.Diagnostics.AddError(
