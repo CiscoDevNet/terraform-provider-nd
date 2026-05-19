@@ -4,13 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/infra/api"
 
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // rscCreateLocalUser creates a nd local user resource
@@ -27,7 +25,7 @@ func (r *localUserNdResource) rscCreateLocalUser(ctx context.Context, dg *diag.D
 	inData := input.GetModelData()
 
 	// Create nd local user API client
-	localUserAPI := api.NewLocalUserAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
+	localUserAPI := api.NewLocalUserAPI(r.infraClient.ApiClient)
 
 	// Convert model data to JSON
 	localUserPayload, err := json.Marshal(inData)
@@ -57,11 +55,7 @@ func (r *localUserNdResource) rscGetLocalUser(ctx context.Context, dg *diag.Diag
 	// Preserve sensitive fields that are not returned by the API
 	preservedUserPassword := in.UserPassword
 
-	// Preserve reuse_limitation and time_interval_limitation as well since they are not returned by the API
-	preservedReuseLimitation := in.ReuseLimitation
-	preservedTimeIntervalLimitation := in.TimeIntervalLimitation
-
-	localUserAPI := api.NewLocalUserAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
+	localUserAPI := api.NewLocalUserAPI(r.infraClient.ApiClient)
 	localUserAPI.LoginId = in.LoginId.ValueString()
 	respData, err := localUserAPI.Get()
 
@@ -87,22 +81,6 @@ func (r *localUserNdResource) rscGetLocalUser(ctx context.Context, dg *diag.Diag
 
 	// Restore sensitive fields after SetModelData (API does not return them)
 	in.UserPassword = preservedUserPassword
-
-	// Restore reuse_limitation and time_interval_limitation only when they were
-	// known (i.e. user-supplied) prior to the API call, since the API does not
-	// return these fields. If the value was unknown (user did not specify) and
-	// the API did not return it, leave it as Null so Terraform does not see an
-	// unknown value after apply.
-	if !preservedReuseLimitation.IsNull() && !preservedReuseLimitation.IsUnknown() {
-		in.ReuseLimitation = preservedReuseLimitation
-	} else {
-		in.ReuseLimitation = types.Int64Null()
-	}
-	if !preservedTimeIntervalLimitation.IsNull() && !preservedTimeIntervalLimitation.IsUnknown() {
-		in.TimeIntervalLimitation = preservedTimeIntervalLimitation
-	} else {
-		in.TimeIntervalLimitation = types.Int64Null()
-	}
 }
 
 // rscUpdateLocalUser updates a nd local user with the provided payload.
@@ -125,7 +103,7 @@ func (r *localUserNdResource) rscUpdateLocalUser(ctx context.Context, dg *diag.D
 		inData.UserPassword = ""
 	}
 
-	localUserAPI := api.NewLocalUserAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
+	localUserAPI := api.NewLocalUserAPI(r.infraClient.ApiClient)
 	localUserAPI.LoginId = plan.LoginId.ValueString()
 
 	inDataBytes, err := json.Marshal(inData)
@@ -154,7 +132,7 @@ func (r *localUserNdResource) rscUpdateLocalUser(ctx context.Context, dg *diag.D
 // rscDeleteLocalUser deletes a nd local user by login_id
 func (r *localUserNdResource) rscDeleteLocalUser(ctx context.Context, dg *diag.Diagnostics, state *LocalUserModel) {
 	log.Printf("[INFO] Delete nd_local_user login_id=%s", state.LoginId.ValueString())
-	localUserAPI := api.NewLocalUserAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
+	localUserAPI := api.NewLocalUserAPI(r.infraClient.ApiClient)
 	localUserAPI.LoginId = state.LoginId.ValueString()
 
 	res, err := localUserAPI.Delete(nil)

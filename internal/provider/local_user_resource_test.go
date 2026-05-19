@@ -19,15 +19,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-// stepInfo carries the per-step name and rendered HCL from build time
-// (when Config is evaluated) to step-execution time (when PreConfig fires).
-// This lets us print the step header / snapshot path / TF config inline with
-// the actual API call logs instead of all at once at test setup.
-type stepInfo struct {
-	name string
-	cfg  string
-}
-
 // TestAccLocalUserMultiResource creates two independent nd_local_user
 // resources in the same apply and exercises distinct lifecycles per user:
 //
@@ -153,7 +144,6 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 			// excluded from the ImportStateVerify diff comparison:
 			//   - user_password (write-only / sensitive)
 			//   - tenant_domain (not returned)
-			//   - reuse_limitation, time_interval_limitation (not returned)
 			{
 				PreConfig: func() {
 					t.Logf("===== STEP 3: %s_3_import_user_one =====", t.Name())
@@ -166,8 +156,6 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 				ImportStateVerifyIgnore: []string{
 					"user_password",
 					"tenant_domain",
-					"reuse_limitation",
-					"time_interval_limitation",
 				},
 			},
 		},
@@ -258,11 +246,9 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 					s2.name = fmt.Sprintf("%s_%d_modify_scalars", t.Name(), *stepCount)
 
 					helper.ModifyLocalUserObject(&userRsc, map[string]interface{}{
-						"first_name":               "updated_first",
-						"last_name":                "updated_last",
-						"email":                    "updated_user@mail.com",
-						"reuse_limitation":         15,
-						"time_interval_limitation": 30,
+						"first_name": "updated_first",
+						"last_name":  "updated_last",
+						"email":      "updated_user@mail.com",
 					})
 
 					helper.GetTFConfigWithSingleResource(s2.name, *x,

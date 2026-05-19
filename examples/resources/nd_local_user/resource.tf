@@ -7,8 +7,6 @@ resource "nd_local_user" "test_resource_local_user_1" {
   last_name                 = "last_name"
   remote_id_claim           = "tf_remote_id_claim"
   remote_user_authorization = false
-  reuse_limitation          = 10
-  time_interval_limitation  = 20
   tenant_domain             = "all-tenants-domain"
   security_domains = {
     "all" = {

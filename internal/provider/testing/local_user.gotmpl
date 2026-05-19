@@ -23,12 +23,6 @@ resource "nd_local_user" "{{.RscName}}" {
     {{- if .RemoteUserAuthorization}}
     remote_user_authorization = {{deref_bool .RemoteUserAuthorization}}
     {{- end}}
-    {{- if .PasswordPolicy.ReuseLimitation}}
-    reuse_limitation = {{deref_int64 .PasswordPolicy.ReuseLimitation}}
-    {{- end}}
-    {{- if .PasswordPolicy.TimeIntervalLimitation}}
-    time_interval_limitation = {{deref_int64 .PasswordPolicy.TimeIntervalLimitation}}
-    {{- end}}
     {{- if .Rbac.TenantDomain}}
     tenant_domain = "{{.Rbac.TenantDomain}}"
     {{- end}}
