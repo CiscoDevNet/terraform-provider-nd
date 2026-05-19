@@ -14,7 +14,6 @@ description: |-
 
 ```terraform
 resource "nd_multi_cluster_connectivity" "test_resource_multi_cluster_connectivity_1" {
-  cluster_type               = "ND"
   cluster_name               = "nd4x"
   hostname                   = "10.15.1.111"
   username                   = "username"
@@ -36,10 +35,9 @@ resource "nd_multi_cluster_connectivity" "test_resource_multi_cluster_connectivi
 ### Optional
 
 - `cluster_name` (String) The name of the ND cluster.
-- `cluster_type` (String) The type of the cluster. The value will be auto filled as "ND" for this resource.
 - `login_domain` (String, Sensitive) The login domain of the ND cluster. The login domain is used during the connection of clusters to specify the authentication domain for the remote clusters.
 - `multi_cluster_login_domain` (String, Sensitive) The multi-cluster login domain is created on the primary cluster and can be configured either during initial onboarding or manually at a later time. Each primary cluster supports only one login domain of type Multi-cluster. This domain enables the primary cluster to function as the shared authentication authority for the multi-cluster group, allowing users defined on the primary cluster to remotely log in to any connected cluster.
 
 ### Read-Only
 
-- `id` (String) The unique identifier of the terraform resource.
+- `cluster_type` (String) The type of the cluster. The value will be auto filled as "ND" for this resource.

@@ -93,7 +93,7 @@ func (r *multiClusterConnectivityNdResource) Create(ctx context.Context, req res
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &in)...)
-	log.Printf("[DEBUG] End create of resource nd_multi_cluster_connectivity with id '%s'", in.Id.ValueString())
+	log.Printf("[DEBUG] End create of resource nd_multi_cluster_connectivity with cluster_name '%s'", in.ClusterName.ValueString())
 }
 
 // Read refreshes the Terraform state with the latest data.
@@ -118,7 +118,7 @@ func (r *multiClusterConnectivityNdResource) Read(ctx context.Context, req resou
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-	log.Printf("[DEBUG] End read of resource nd_multi_cluster_connectivity with id '%s'", state.Id.ValueString())
+	log.Printf("[DEBUG] End read of resource nd_multi_cluster_connectivity with cluster_name '%s'", state.ClusterName.ValueString())
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
@@ -141,7 +141,7 @@ func (r *multiClusterConnectivityNdResource) Update(ctx context.Context, req res
 	}
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	log.Printf("[DEBUG] End update of resource nd_multi_cluster_connectivity with id '%s'", plan.Id.ValueString())
+	log.Printf("[DEBUG] End update of resource nd_multi_cluster_connectivity with cluster_name '%s'", plan.ClusterName.ValueString())
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
@@ -157,7 +157,7 @@ func (r *multiClusterConnectivityNdResource) Delete(ctx context.Context, req res
 	}
 
 	r.rscDeleteMultiClusterConnectivity(ctx, &resp.Diagnostics, &state)
-	log.Printf("[DEBUG] End delete of resource nd_multi_cluster_connectivity with id '%s'", state.Id.ValueString())
+	log.Printf("[DEBUG] End delete of resource nd_multi_cluster_connectivity with cluster_name '%s'", state.ClusterName.ValueString())
 }
 
 // ImportState imports a multi cluster connectivity nd resource by cluster name.
@@ -174,5 +174,5 @@ func (r *multiClusterConnectivityNdResource) ImportState(ctx context.Context, re
 	// TODO: The values for `username`, `password`, `login_domain` and `multi_cluster_login_domain` attributes will not be imported when the nd_multi_cluster_connectivity resource imports an already registered cluster from Nexus Dashboard.
 	// Need to use Environment Variables or CLUSTER_CREDENTIALS_FILE_LOCATION file to import those values during the import of the resource.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-	log.Printf("[DEBUG] End import of state resource: nd_multi_cluster_connectivity")
+	log.Printf("[DEBUG] End import of state resource: nd_multi_cluster_connectivity with cluster_name '%s'", state.ClusterName.ValueString())
 }

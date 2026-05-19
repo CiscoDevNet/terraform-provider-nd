@@ -18,6 +18,14 @@ nd:
   # Prefixes for dynamically created resources during tests
   fabric_prefix: "at_fabric_"
 
+  # Multi-cluster connectivity test configuration
+  multi_cluster_connectivity:
+    hostname: "198.18.133.100"
+    username: "admin"
+    password: "password"
+    login_domain: "local"
+    multi_cluster_login_domain: "multi_cluster_login_domain"
+
   # Integration test configuration
   integration_test:
     fabric: at_int_test_vxlan

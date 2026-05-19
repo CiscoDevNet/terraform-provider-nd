@@ -4,19 +4,11 @@ resource:
   skip_equality: true
   category: infra
   attributes:
-  - model_name: name
-    tf_name: id
-    description: The unique identifier of the terraform resource.
-    type: String
-    computed: true
-    payload_hide: true
-
   - model_name: clusterType
     tf_name: cluster_type
     description: The type of the cluster. The value will be auto filled as "ND" for this resource.
     type: String
     computed: true
-    default_value: ND
     ndfc_nested:
     - spec
     example: ND
