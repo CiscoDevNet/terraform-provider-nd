@@ -29,10 +29,9 @@ type LocalUserAPI struct {
 	LoginId string
 }
 
-func NewLocalUserAPI(client *nd.Client, fabric string) *LocalUserAPI {
+func NewLocalUserAPI(client *nd.Client) *LocalUserAPI {
 	papi := new(LocalUserAPI)
 	papi.Client = client
-	papi.Fabric = fabric
 	papi.NexusDashboardAPI = papi
 	return papi
 }

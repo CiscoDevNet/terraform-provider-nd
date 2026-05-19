@@ -12,20 +12,14 @@ import (
 )
 
 type NDFCLocalUserModel struct {
-	LoginId                 string                  `json:"loginID,omitempty"`
-	UserPassword            string                  `json:"password,omitempty"`
-	Email                   string                  `json:"email,omitempty"`
-	FirstName               string                  `json:"firstName,omitempty"`
-	LastName                string                  `json:"lastName,omitempty"`
-	RemoteIdClaim           string                  `json:"remoteIDClaim,omitempty"`
-	RemoteUserAuthorization *bool                   `json:"xLaunch,omitempty"`
-	PasswordPolicy          NDFCPasswordPolicyValue `json:"passwordPolicy,omitempty"`
-	Rbac                    NDFCRbacValue           `json:"rbac,omitempty"`
-}
-
-type NDFCPasswordPolicyValue struct {
-	ReuseLimitation        *int64 `json:"reuseLimitation,omitempty"`
-	TimeIntervalLimitation *int64 `json:"timeIntervalLimitation,omitempty"`
+	LoginId                 string        `json:"loginID,omitempty"`
+	UserPassword            string        `json:"password,omitempty"`
+	Email                   string        `json:"email,omitempty"`
+	FirstName               string        `json:"firstName,omitempty"`
+	LastName                string        `json:"lastName,omitempty"`
+	RemoteIdClaim           string        `json:"remoteIDClaim,omitempty"`
+	RemoteUserAuthorization *bool         `json:"xLaunch,omitempty"`
+	Rbac                    NDFCRbacValue `json:"rbac,omitempty"`
 }
 
 type NDFCRbacValue struct {
@@ -82,20 +76,6 @@ func (v *LocalUserModel) SetModelData(jsonData *NDFCLocalUserModel) diag.Diagnos
 
 	} else {
 		v.RemoteUserAuthorization = types.BoolNull()
-	}
-
-	if jsonData.PasswordPolicy.ReuseLimitation != nil {
-		v.ReuseLimitation = types.Int64Value(*jsonData.PasswordPolicy.ReuseLimitation)
-
-	} else {
-		v.ReuseLimitation = types.Int64Null()
-	}
-
-	if jsonData.PasswordPolicy.TimeIntervalLimitation != nil {
-		v.TimeIntervalLimitation = types.Int64Value(*jsonData.PasswordPolicy.TimeIntervalLimitation)
-
-	} else {
-		v.TimeIntervalLimitation = types.Int64Null()
 	}
 
 	if jsonData.Rbac.TenantDomain != "" {
@@ -203,22 +183,6 @@ func (v LocalUserModel) GetModelData() *NDFCLocalUserModel {
 		*data.RemoteUserAuthorization = v.RemoteUserAuthorization.ValueBool()
 	} else {
 		data.RemoteUserAuthorization = nil
-	}
-
-	if !v.ReuseLimitation.IsNull() && !v.ReuseLimitation.IsUnknown() {
-		data.PasswordPolicy.ReuseLimitation = new(int64)
-		*data.PasswordPolicy.ReuseLimitation = v.ReuseLimitation.ValueInt64()
-
-	} else {
-		data.PasswordPolicy.ReuseLimitation = nil
-	}
-
-	if !v.TimeIntervalLimitation.IsNull() && !v.TimeIntervalLimitation.IsUnknown() {
-		data.PasswordPolicy.TimeIntervalLimitation = new(int64)
-		*data.PasswordPolicy.TimeIntervalLimitation = v.TimeIntervalLimitation.ValueInt64()
-
-	} else {
-		data.PasswordPolicy.TimeIntervalLimitation = nil
 	}
 
 	if !v.TenantDomain.IsNull() && !v.TenantDomain.IsUnknown() {

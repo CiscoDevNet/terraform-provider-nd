@@ -47,8 +47,6 @@ type LocalUserConfig struct {
 	LastName                string              `yaml:"last_name"`
 	RemoteIDClaim           string              `yaml:"remote_id_claim"`
 	RemoteUserAuthorization bool                `yaml:"remote_user_authorization"`
-	ReuseLimitation         int                 `yaml:"reuse_limitation"`
-	TimeIntervalLimitation  int                 `yaml:"time_interval_limitation"`
 	TenantDomain            string              `yaml:"tenant_domain"`
 	SecurityDomains         map[string][]string `yaml:"security_domains"`
 }

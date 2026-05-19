@@ -21,8 +21,6 @@ func defaultLocalUserValues() map[string]interface{} {
 		"first_name":                "first_name",
 		"last_name":                 "last_name",
 		"remote_user_authorization": false,
-		"reuse_limitation":          10,
-		"time_interval_limitation":  20,
 		// Note: `remote_id_claim` and `tenant_domain` are intentionally
 		// omitted from defaults. `remote_id_claim` must be unique per user
 		// (API rejects duplicates with HTTP 500). `tenant_domain` is not
@@ -142,12 +140,6 @@ func applyLocalUserValues(user *resource_local_user.NDFCLocalUserModel, values m
 		case "remote_user_authorization":
 			v := val.(bool)
 			user.RemoteUserAuthorization = &v
-		case "reuse_limitation":
-			v := int64(val.(int))
-			user.PasswordPolicy.ReuseLimitation = &v
-		case "time_interval_limitation":
-			v := int64(val.(int))
-			user.PasswordPolicy.TimeIntervalLimitation = &v
 		case "tenant_domain":
 			user.Rbac.TenantDomain = val.(string)
 		}

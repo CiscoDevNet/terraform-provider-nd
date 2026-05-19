@@ -21,8 +21,6 @@ resource "nd_local_user" "test_resource_local_user_1" {
   last_name                 = "last_name"
   remote_id_claim           = "tf_remote_id_claim"
   remote_user_authorization = false
-  reuse_limitation          = 10
-  time_interval_limitation  = 20
   tenant_domain             = "all-tenants-domain"
   security_domains = {
     "all" = {
@@ -38,7 +36,7 @@ resource "nd_local_user" "test_resource_local_user_1" {
 
 ### Required
 
-- `login_id` (String) The login ID of the local user.
+- `login_id` (String) The User ID of the local user.
 - `security_domains` (Attributes Map) The security domains of the local user. At least one security domain must be provided when creating the user. (see [below for nested schema](#nestedatt--security_domains))
 - `user_password` (String, Sensitive) The password of the local user.
 
@@ -47,11 +45,9 @@ resource "nd_local_user" "test_resource_local_user_1" {
 - `email` (String) The email address of the local user.
 - `first_name` (String) The first name of the local user.
 - `last_name` (String) The last name of the local user.
-- `remote_id_claim` (String) The CX UserID mapped to the local user.
-- `remote_user_authorization` (Boolean) The user cross launch option of the local user.
-- `reuse_limitation` (Number) The password reuse limitation of the local user.
+- `remote_id_claim` (String) The Remote ID claim of the local user. This is required when the remote user authorization option is enabled for the local user.
+- `remote_user_authorization` (Boolean) The Remote user authorization is used for signing into Nexus Dashboard when using identity providers that cannot provide authorization claims. Once this attribute is enabled, the local user ID cannot be used to directly login to Nexus Dashboard.
 - `tenant_domain` (String) The name of the tenant domain of the local user.
-- `time_interval_limitation` (Number) The password time interval limitation of the local user.
 
 <a id="nestedatt--security_domains"></a>
 ### Nested Schema for `security_domains`

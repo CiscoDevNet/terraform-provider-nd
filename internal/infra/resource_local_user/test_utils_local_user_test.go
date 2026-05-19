@@ -36,12 +36,6 @@ func LocalUserModelHelperStateCheck(RscName string, c resource_local_user.NDFCLo
 	} else {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("remote_user_authorization").String(), "false"))
 	}
-	if c.PasswordPolicy.ReuseLimitation != nil {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("reuse_limitation").String(), strconv.Itoa(int(*c.PasswordPolicy.ReuseLimitation))))
-	}
-	if c.PasswordPolicy.TimeIntervalLimitation != nil {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("time_interval_limitation").String(), strconv.Itoa(int(*c.PasswordPolicy.TimeIntervalLimitation))))
-	}
 	if c.Rbac.TenantDomain != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("tenant_domain").String(), c.Rbac.TenantDomain))
 	}

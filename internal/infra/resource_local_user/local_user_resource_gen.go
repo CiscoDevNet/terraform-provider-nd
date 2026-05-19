@@ -5,21 +5,19 @@ package resource_local_user
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
@@ -56,8 +54,8 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"login_id": schema.StringAttribute{
 				Required:            true,
-				Description:         "The login ID of the local user.",
-				MarkdownDescription: "The login ID of the local user.",
+				Description:         "The User ID of the local user.",
+				MarkdownDescription: "The User ID of the local user.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -65,8 +63,8 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 			"remote_id_claim": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "The CX UserID mapped to the local user.",
-				MarkdownDescription: "The CX UserID mapped to the local user.",
+				Description:         "The Remote ID claim of the local user. This is required when the remote user authorization option is enabled for the local user.",
+				MarkdownDescription: "The Remote ID claim of the local user. This is required when the remote user authorization option is enabled for the local user.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -74,21 +72,12 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 			"remote_user_authorization": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "The user cross launch option of the local user.",
-				MarkdownDescription: "The user cross launch option of the local user.",
+				Description:         "The Remote user authorization is used for signing into Nexus Dashboard when using identity providers that cannot provide authorization claims. Once this attribute is enabled, the local user ID cannot be used to directly login to Nexus Dashboard.",
+				MarkdownDescription: "The Remote user authorization is used for signing into Nexus Dashboard when using identity providers that cannot provide authorization claims. Once this attribute is enabled, the local user ID cannot be used to directly login to Nexus Dashboard.",
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
 				Default: booldefault.StaticBool(false),
-			},
-			"reuse_limitation": schema.Int64Attribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "The password reuse limitation of the local user.",
-				MarkdownDescription: "The password reuse limitation of the local user.",
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
-				},
 			},
 			"security_domains": schema.MapNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
@@ -122,15 +111,6 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"time_interval_limitation": schema.Int64Attribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "The password time interval limitation of the local user.",
-				MarkdownDescription: "The password time interval limitation of the local user.",
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
-				},
-			},
 			"user_password": schema.StringAttribute{
 				Required:            true,
 				Sensitive:           true,
@@ -148,10 +128,8 @@ type LocalUserModel struct {
 	LoginId                 types.String `tfsdk:"login_id"`
 	RemoteIdClaim           types.String `tfsdk:"remote_id_claim"`
 	RemoteUserAuthorization types.Bool   `tfsdk:"remote_user_authorization"`
-	ReuseLimitation         types.Int64  `tfsdk:"reuse_limitation"`
 	SecurityDomains         types.Map    `tfsdk:"security_domains"`
 	TenantDomain            types.String `tfsdk:"tenant_domain"`
-	TimeIntervalLimitation  types.Int64  `tfsdk:"time_interval_limitation"`
 	UserPassword            types.String `tfsdk:"user_password"`
 }
 
