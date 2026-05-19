@@ -8,7 +8,6 @@ import (
 )
 
 type NDFCMultiClusterConnectivityModel struct {
-	Id   string        `json:"-"`
 	Spec NDFCSpecValue `json:"spec,omitempty"`
 }
 
@@ -33,12 +32,6 @@ type NDFCSpecNdValue struct {
 func (v *MultiClusterConnectivityModel) SetModelData(jsonData *NDFCMultiClusterConnectivityModel) diag.Diagnostics {
 	var err diag.Diagnostics
 	err = nil
-
-	if jsonData.Id != "" {
-		v.Id = types.StringValue(jsonData.Id)
-	} else {
-		v.Id = types.StringNull()
-	}
 
 	if jsonData.Spec.ClusterType != "" {
 		v.ClusterType = types.StringValue(jsonData.Spec.ClusterType)

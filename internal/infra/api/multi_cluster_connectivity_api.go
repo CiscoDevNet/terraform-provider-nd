@@ -75,17 +75,6 @@ func (c *ClusterAPI) GetDeleteQP() []string {
 	return nil
 }
 
-func (c *ClusterAPI) PostDelete(payload []byte) (nd.Res, error) {
-	guard := ndapi.Acquire(c.FabricScope(), c.RscName(), ndapi.LockCRUD)
-	defer guard.Release()
-
-	res, err := c.Client.Post(fmt.Sprintf(UrlClusterRemoveByName, c.ClusterName), string(payload))
-	if err != nil {
-		return res, err
-	}
-	return res, nil
-}
-
 func (c *ClusterAPI) RscName() string {
 	return RscNameMultiClusterConnectivity
 }

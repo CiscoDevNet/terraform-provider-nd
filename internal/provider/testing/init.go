@@ -24,18 +24,29 @@ type Config struct {
 
 // NDConfig represents the ND controller configuration
 type NDConfig struct {
-	URL             string           `yaml:"url"`
-	User            string           `yaml:"user"`
-	Password        string           `yaml:"pwd"`
-	Insecure        string           `yaml:"insecure"`
-	Fabric          string           `yaml:"fabric"`
-	Switches        []string         `yaml:"switches"`
-	SwitchIP        []string         `yaml:"switch_ip"`
-	FabricPrefix    string           `yaml:"fabric_prefix"`
-	IntegrationTest IntegratedConfig `yaml:"integration_test"`
-	Inventory       InventoryConfig  `yaml:"inventory"`
-	VpcPair         *VpcPairConfig   `yaml:"vpc_pair"`
-	LocalUser       LocalUserConfig  `yaml:"local_user"`
+	URL                      string                         `yaml:"url"`
+	User                     string                         `yaml:"user"`
+	Password                 string                         `yaml:"pwd"`
+	Insecure                 string                         `yaml:"insecure"`
+	Fabric                   string                         `yaml:"fabric"`
+	Switches                 []string                       `yaml:"switches"`
+	SwitchIP                 []string                       `yaml:"switch_ip"`
+	FabricPrefix             string                         `yaml:"fabric_prefix"`
+	IntegrationTest          IntegratedConfig               `yaml:"integration_test"`
+	Inventory                InventoryConfig                `yaml:"inventory"`
+	VpcPair                  *VpcPairConfig                 `yaml:"vpc_pair"`
+	LocalUser                LocalUserConfig                `yaml:"local_user"`
+	MultiClusterConnectivity MultiClusterConnectivityConfig `yaml:"multi_cluster_connectivity"`
+}
+
+// MultiClusterConnectivityConfig represents the multi-cluster connectivity test configuration
+type MultiClusterConnectivityConfig struct {
+	ClusterName             string `yaml:"cluster_name"`
+	Hostname                string `yaml:"hostname"`
+	Username                string `yaml:"username"`
+	Password                string `yaml:"password"`
+	LoginDomain             string `yaml:"login_domain"`
+	MultiClusterLoginDomain string `yaml:"multi_cluster_login_domain"`
 }
 
 // LocalUserConfig represents the local-user-specific test configuration

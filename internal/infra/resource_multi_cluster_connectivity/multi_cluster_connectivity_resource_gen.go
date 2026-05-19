@@ -5,7 +5,6 @@ package resource_multi_cluster_connectivity
 import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -25,11 +24,9 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 				},
 			},
 			"cluster_type": schema.StringAttribute{
-				Optional:            true,
 				Computed:            true,
 				Description:         "The type of the cluster. The value will be auto filled as \"ND\" for this resource.",
 				MarkdownDescription: "The type of the cluster. The value will be auto filled as \"ND\" for this resource.",
-				Default:             stringdefault.StaticString("ND"),
 			},
 			"hostname": schema.StringAttribute{
 				Required:            true,
@@ -38,11 +35,6 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
-			},
-			"id": schema.StringAttribute{
-				Computed:            true,
-				Description:         "The unique identifier of the terraform resource.",
-				MarkdownDescription: "The unique identifier of the terraform resource.",
 			},
 			"login_domain": schema.StringAttribute{
 				Optional:            true,
@@ -84,7 +76,6 @@ type MultiClusterConnectivityModel struct {
 	ClusterName             types.String `tfsdk:"cluster_name"`
 	ClusterType             types.String `tfsdk:"cluster_type"`
 	Hostname                types.String `tfsdk:"hostname"`
-	Id                      types.String `tfsdk:"id"`
 	LoginDomain             types.String `tfsdk:"login_domain"`
 	MultiClusterLoginDomain types.String `tfsdk:"multi_cluster_login_domain"`
 	Password                types.String `tfsdk:"password"`

@@ -13,16 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// setModelId sets the Id field on the model based on ClusterName.
-// This is kept outside resource_codec_gen.go to avoid conflicts with the internal generator.
-func setModelId(model *MultiClusterConnectivityModel) {
-	if !model.ClusterName.IsNull() && !model.ClusterName.IsUnknown() {
-		model.Id = types.StringValue(model.ClusterName.ValueString())
-	} else {
-		model.Id = types.StringNull()
-	}
-}
-
 // RscCreateMultiClusterConnectivity creates a multi cluster connectivity nd resource
 func (r *multiClusterConnectivityNdResource) rscCreateMultiClusterConnectivity(ctx context.Context, dg *diag.Diagnostics, input *MultiClusterConnectivityModel) {
 	if input == nil {
@@ -34,11 +24,11 @@ func (r *multiClusterConnectivityNdResource) rscCreateMultiClusterConnectivity(c
 	}
 
 	inData := input.GetModelData()
+	inData.Spec.ClusterType = "ND"
 
 	// Create multi cluster connectivity nd API client
 	clusterAPI := api.NewClusterAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
 
-	// Convert model data to JSON
 	clusterPayload, err := json.Marshal(inData)
 	if err != nil {
 		dg.AddError(
@@ -59,19 +49,24 @@ func (r *multiClusterConnectivityNdResource) rscCreateMultiClusterConnectivity(c
 	}
 
 	r.rscGetMultiClusterConnectivity(ctx, dg, input)
-
-	// Set Id from ClusterName (logic kept outside generated codec)
-	setModelId(input)
 }
 
 // GetMultiClusterConnectivity retrieves multi cluster connectivity nd information by name
 func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivity(ctx context.Context, dg *diag.Diagnostics, in *MultiClusterConnectivityModel) {
 
-	// Preserve sensitive fields that are not returned by the API
+	// Preserve sensitive fields that are not returned by the API.
+	// Coerce unknown (planned but unset Optional+Computed) to null so the
+	// provider does not return unknowns after apply.
 	preservedUsername := in.Username
 	preservedPassword := in.Password
 	preservedLoginDomain := in.LoginDomain
+	if preservedLoginDomain.IsUnknown() {
+		preservedLoginDomain = types.StringNull()
+	}
 	preservedMultiClusterLoginDomain := in.MultiClusterLoginDomain
+	if preservedMultiClusterLoginDomain.IsUnknown() {
+		preservedMultiClusterLoginDomain = types.StringNull()
+	}
 
 	clusterAPI := api.NewClusterAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
 	clusterAPI.ClusterName = in.ClusterName.ValueString()
@@ -99,15 +94,13 @@ func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivity(ctx 
 		}
 
 		hostname := in.Hostname.ValueString()
-		clusterType := in.ClusterType.ValueString()
 		for _, cluster := range clustersResp["clusters"] {
-			if cluster.Spec.Hostname == hostname && cluster.Spec.ClusterType == clusterType {
+			if cluster.Spec.Hostname == hostname && cluster.Spec.ClusterType == "ND" {
 				in.SetModelData(&cluster)
 				in.Username = preservedUsername
 				in.Password = preservedPassword
 				in.LoginDomain = preservedLoginDomain
 				in.MultiClusterLoginDomain = preservedMultiClusterLoginDomain
-				setModelId(in)
 				return
 			}
 		}
@@ -135,8 +128,6 @@ func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivity(ctx 
 		in.Password = preservedPassword
 		in.LoginDomain = preservedLoginDomain
 		in.MultiClusterLoginDomain = preservedMultiClusterLoginDomain
-
-		setModelId(in)
 	}
 }
 
@@ -189,10 +180,6 @@ func (r *multiClusterConnectivityNdResource) rscUpdateMultiClusterConnectivity(c
 	}
 	// Read the updated multi cluster connectivity nd
 	r.rscGetMultiClusterConnectivity(ctx, dg, clusterModel)
-
-	// Set Id from ClusterName (logic kept outside generated codec)
-	setModelId(clusterModel)
-
 }
 
 // DeleteMultiClusterConnectivity deletes a multi cluster connectivity nd by name
@@ -221,7 +208,7 @@ func (r *multiClusterConnectivityNdResource) rscDeleteMultiClusterConnectivity(c
 		return
 	}
 
-	res, err := clusterAPI.PostDelete(payload)
+	res, err := clusterAPI.Post(payload, &ndapi.APIOptions{PostToDeleteUrl: true})
 	if err != nil {
 		dg.AddError(
 			"Error Deleting Multi Cluster Connectivity ND",
