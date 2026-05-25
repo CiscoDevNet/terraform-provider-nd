@@ -37,6 +37,7 @@ type NDConfig struct {
 	VpcPair                  *VpcPairConfig                 `yaml:"vpc_pair"`
 	LocalUser                LocalUserConfig                `yaml:"local_user"`
 	MultiClusterConnectivity MultiClusterConnectivityConfig `yaml:"multi_cluster_connectivity"`
+	Backup                   BackupConfig                   `yaml:"backup"`
 }
 
 // MultiClusterConnectivityConfig represents the multi-cluster connectivity test configuration
@@ -98,6 +99,15 @@ type IntegratedConfig struct {
 type InventoryDevice struct {
 	Device string `yaml:"device"`
 	Role   string `yaml:"role"`
+}
+
+// BackupConfig represents the nd_backup-specific test configuration
+type BackupConfig struct {
+	Name          string `yaml:"name"`
+	Type          string `yaml:"type"`
+	Destination   string `yaml:"destination"`
+	EncryptionKey string `yaml:"encryption_key"`
+	TelemetryData bool   `yaml:"telemetry_data"`
 }
 
 var (

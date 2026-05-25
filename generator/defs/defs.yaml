@@ -10,4 +10,5 @@ files:
   - vpc_pair.yaml
   - fabric_external.yaml
   - local_user.yaml
+  - backup.yaml
   #- sample.yaml
