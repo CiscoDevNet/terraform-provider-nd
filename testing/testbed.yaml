@@ -54,3 +54,11 @@ inventory:
     - serial: "SERIAL003"
       ip: "10.0.0.3"
       role: "leaf"
+
+# nd_backup test configuration
+backup:
+  name: "tf-backup-acc"
+  type: "configOnly"
+  destination: ""
+  encryption_key: "backupKey123"
+  telemetry_data: false

@@ -19,6 +19,7 @@ import (
 	"text/template"
 	"time"
 
+	"terraform-provider-nd/internal/infra/resource_backup"
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
 )
 
@@ -160,6 +161,14 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 				panic(fmt.Sprintf("Failed to execute ND_INVENTORY_SWITCH_RSC template: %v", err))
 			}
 
+		case *resource_backup.NDFCBackupModel:
+			args["Backup"] = v
+			args["RscName"] = rscName
+			err = t.ExecuteTemplate(&output, "ND_BACKUP_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_BACKUP_RSC template: %v", err))
+			}
+
 		default:
 			panic(fmt.Sprintf("Unknown resource type: %T", rsc))
 		}
@@ -168,26 +177,40 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 	result := output.String()
 	*out = &result
 
-	// Write snapshot to temp directory for debugging
+	// Write snapshot to temp directory for debugging.
+	// Logging of the snapshot path / rendered HCL is deferred to the test
+	// step's PreConfig hook (see LogStep) so it appears next to the actual
+	// API calls instead of all at once at test setup time.
 	writeSnapshot(tt, result)
 }
 
-// writeSnapshot writes the generated HCL to a temp file for post-test debugging
-func writeSnapshot(testName, content string) {
+// writeSnapshot writes the generated HCL to a temp file for post-test debugging.
+// Returns the absolute path of the snapshot file. Errors are logged but not
+// fatal; an empty string is returned when the snapshot could not be written.
+func writeSnapshot(testName, content string) string {
 	if err := os.MkdirAll(testOutputDir, 0755); err != nil {
 		log.Printf("Warning: failed to create snapshot dir %s: %v", testOutputDir, err)
-		return
+		return ""
 	}
 
 	// Sanitize test name for filename
 	safeName := strings.ReplaceAll(testName, "/", "_")
 	safeName = strings.ReplaceAll(safeName, " ", "_")
-	filePath := filepath.Join(testOutputDir, safeName+".tf")
+	filePath := SnapshotPath(testName)
 
 	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 		log.Printf("Warning: failed to write snapshot %s: %v", filePath, err)
-		return
+		return ""
 	}
 
-	log.Printf("Snapshot written to: %s", filePath)
+	return filePath
+}
+
+// SnapshotPath returns the file path that writeSnapshot would use for the
+// given test/step name. Tests may call this from PreConfig to log the path
+// next to the actual API execution.
+func SnapshotPath(testName string) string {
+	safeName := strings.ReplaceAll(testName, "/", "_")
+	safeName = strings.ReplaceAll(safeName, " ", "_")
+	return filepath.Join(testOutputDir, safeName+".tf")
 }

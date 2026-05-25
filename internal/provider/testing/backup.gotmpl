@@ -1,0 +1,18 @@
+{{define "ND_BACKUP_RSC"}}
+resource "nd_backup" "{{.RscName}}" {
+{{- if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+{{- end}}
+{{with .Backup}}
+    name           = "{{.Name}}"
+    {{- if .Type}}
+    type           = "{{.Type}}"
+    {{- end}}
+    destination    = "{{.Destination}}"
+    encryption_key = "{{.EncryptionKey}}"
+    {{- if ne .TelemetryData nil}}
+    telemetry_data = {{deref_bool .TelemetryData}}
+    {{- end}}
+{{end}}
+}
+{{end}}

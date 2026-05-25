@@ -21,3 +21,12 @@ func getStringAttributeValue(ctx context.Context, attributeValue basetypes.Strin
 	}
 	return attributeValue.ValueString()
 }
+
+// stepInfo carries the per-step name and rendered HCL from build time
+// (when Config is evaluated) to step-execution time (when PreConfig fires).
+// This lets us print the step header / snapshot path / TF config inline with
+// the actual API call logs instead of all at once at test setup.
+type stepInfo struct {
+	name string
+	cfg  string
+}
