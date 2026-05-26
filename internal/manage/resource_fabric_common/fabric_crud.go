@@ -28,6 +28,7 @@ type FabricModel interface {
 	GetModelData() *NDFCFabricCommonModel
 	SetModelData(*NDFCFabricCommonModel) diag.Diagnostics
 	GetFabricName() string
+	GetFabricType() string
 }
 
 // FabricPreMarshal is an optional interface. Implement it on a fabric model
@@ -46,6 +47,11 @@ type FabricPostUnmarshal interface {
 
 // RscCreateFabric creates a fabric resource via the NDFC API.
 func RscCreateFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
+	fabricHandler(model.GetFabricType()).Create(ctx, client, dg, model)
+}
+
+// createDefault is the built-in create logic.
+func createDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
 	inData := model.GetModelData()
 	if pm, ok := model.(FabricPreMarshal); ok {
 		pm.PreMarshal(ctx, inData)
@@ -79,6 +85,11 @@ func RscCreateFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostic
 
 // RscGetFabric retrieves fabric information by name and populates the model.
 func RscGetFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
+	fabricHandler(model.GetFabricType()).Read(ctx, client, dg, model)
+}
+
+// readDefault is the built-in read logic.
+func readDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
 	fabricName := model.GetFabricName()
 	tflog.Debug(ctx, "Read fabric", map[string]interface{}{
 		"fabric_name": fabricName,
@@ -111,6 +122,11 @@ func RscGetFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, 
 
 // RscUpdateFabric updates a fabric resource via the NDFC API.
 func RscUpdateFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
+	fabricHandler(model.GetFabricType()).Update(ctx, client, dg, model)
+}
+
+// updateDefault is the built-in update logic.
+func updateDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
 	inData := model.GetModelData()
 	if pm, ok := model.(FabricPreMarshal); ok {
 		pm.PreMarshal(ctx, inData)
@@ -146,8 +162,14 @@ func RscUpdateFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostic
 	log.Printf("Updated fabric %s with category %s", inData.FabricName, inData.Category)
 }
 
-// RscDeleteFabric deletes a fabric resource by name via the NDFC API.
-func RscDeleteFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, fabricName string) {
+// RscDeleteFabric deletes a fabric resource via the NDFC API.
+func RscDeleteFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
+	fabricHandler(model.GetFabricType()).Delete(ctx, client, dg, model)
+}
+
+// deleteDefault is the built-in delete logic.
+func deleteDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
+	fabricName := model.GetFabricName()
 	fabricAPI := api.NewFabricAPI(client, ndapi.DefaultFabric)
 	fabricAPI.FabricName = fabricName
 	tflog.Debug(ctx, "Delete fabric", map[string]interface{}{
