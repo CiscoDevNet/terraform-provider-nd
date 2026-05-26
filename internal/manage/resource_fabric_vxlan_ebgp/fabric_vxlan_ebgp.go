@@ -160,5 +160,5 @@ func (r *fabricVxlanEbgpResource) Delete(ctx context.Context, req resource.Delet
 		"fabric_name": state.FabricName.ValueString(),
 	})
 
-	resource_fabric_common.RscDeleteFabric(ctx, r.manageClient.ApiClient, &resp.Diagnostics, state.FabricName.ValueString())
+	resource_fabric_common.RscDeleteFabric(ctx, r.manageClient.ApiClient, &resp.Diagnostics, &state)
 }

@@ -19,6 +19,11 @@ func (v *FabricVxlanEbgpModel) GetFabricName() string {
 	return v.FabricName.ValueString()
 }
 
+// GetFabricType returns the fabric type identifier for handler dispatch.
+func (v *FabricVxlanEbgpModel) GetFabricType() string {
+	return "vxlanEbgp"
+}
+
 // PreMarshal injects the fabric type before the payload is sent to the API.
 // FabricType is tf_hide in the schema, so it must be set here.
 func (v *FabricVxlanEbgpModel) PreMarshal(_ context.Context, data *resource_fabric_common.NDFCFabricCommonModel) {

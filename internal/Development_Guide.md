@@ -748,3 +748,207 @@ The FSM handles deploy via `ConfigSaveAndDeploy`, which acquires `LockDeploy` on
 - [ ] Deploy operations use `ndapi.Acquire(..., ndapi.LockDeploy)` + `DeployPost()`
 - [ ] No `Post()`/`Put()`/`Delete()` calls inside a `LockDeploy` scope (deadlock risk)
 - [ ] Tested concurrent operations to verify no deadlocks or races
+
+---
+
+# Fabric CRUD Handler Pattern (Strategy Registry)
+
+The provider supports multiple fabric types (`vxlan`, `vxlanIbgp`, `vxlanEbgp`, etc.) that share a common CRUD flow. The **Fabric Handler** pattern allows any fabric type to selectively override Create, Read, Update, or Delete without modifying the shared CRUD code or other fabric types.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Fabric Resource (e.g. resource_fabric_vxlan_ebgp)      │
+│    calls RscCreateFabric / RscGetFabric / etc.          │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│  resource_fabric_common/fabric_crud.go                  │
+│    RscCreateFabric → fabricHandler(type).Create(...)       │
+│    RscGetFabric    → fabricHandler(type).Read(...)         │
+│    RscUpdateFabric → fabricHandler(type).Update(...)       │
+│    RscDeleteFabric → fabricHandler(type).Delete(...)       │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+            ┌──────────┴──────────┐
+            ▼                     ▼
+   DefaultFabricHandler    Custom handler (registered)
+   (common CRUD flow)      (overrides specific methods)
+```
+
+## Key Interfaces and Types
+
+All defined in `resource_fabric_common/fabric_handlers.go` and `resource_fabric_common/fabric_crud.go`.
+
+### FabricModel
+
+Every fabric type model must implement this interface:
+
+```go
+type FabricModel interface {
+    GetModelData() *NDFCFabricCommonModel
+    SetModelData(*NDFCFabricCommonModel) diag.Diagnostics
+    GetFabricName() string
+    GetFabricType() string   // e.g. "vxlan", "vxlanIbgp", "vxlanEbgp"
+}
+```
+
+`GetFabricType()` is defined in each fabric's `resource_custom_codec.go` and returns a constant string used for handler dispatch.
+
+### FabricPreMarshal / FabricPostUnmarshal (optional)
+
+These are **data-level hooks** on the model, called within the default CRUD flow:
+
+```go
+type FabricPreMarshal interface {
+    PreMarshal(ctx context.Context, data *NDFCFabricCommonModel)
+}
+type FabricPostUnmarshal interface {
+    PostUnmarshal(ctx context.Context, data *NDFCFabricCommonModel)
+}
+```
+
+- **PreMarshal** — adjust model data before POST/PUT (e.g. inject `FabricType` field).
+- **PostUnmarshal** — adjust model data after GET unmarshal (e.g. normalize API quirks).
+
+These are independent from the handler pattern and apply regardless of which handler is active.
+
+### FabricHandler
+
+The strategy interface for CRUD operations:
+
+```go
+type FabricHandler interface {
+    Create(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel)
+    Read(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel)
+    Update(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel)
+    Delete(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel)
+}
+```
+
+### DefaultFabricHandler
+
+Implements `FabricHandler` by delegating to the existing common CRUD logic (`createDefault`, `readDefault`, `updateDefault`, `deleteDefault`):
+
+```go
+type DefaultFabricHandler struct{}
+
+func (DefaultFabricHandler) Create(ctx, client, dg, model) { createDefault(ctx, client, dg, model) }
+func (DefaultFabricHandler) Read(ctx, client, dg, model)   { readDefault(ctx, client, dg, model) }
+func (DefaultFabricHandler) Update(ctx, client, dg, model) { updateDefault(ctx, client, dg, model) }
+func (DefaultFabricHandler) Delete(ctx, client, dg, model) { deleteDefault(ctx, client, dg, model) }
+```
+
+## How Dispatch Works
+
+The public `Rsc*` functions are thin dispatchers:
+
+```go
+func RscCreateFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
+    fabricHandler(model.GetFabricType()).Create(ctx, client, dg, model)
+}
+// same for RscGetFabric, RscUpdateFabric, RscDeleteFabric
+```
+
+`fabricHandler()` looks up the fabric type in a thread-safe registry. If no custom handler is registered, it returns `DefaultFabricHandler{}`.
+
+## Handler Registry
+
+```go
+var (
+    handlersMu sync.RWMutex
+    handlers   = map[string]FabricHandler{}
+)
+
+func RegisterFabricHandler(fabricType string, h FabricHandler) { ... }
+func fabricHandler(fabricType string) FabricHandler { ... }
+```
+
+The registry exists to **break the import cycle**: custom handlers live in per-fabric packages (e.g. `resource_fabric_vxlan_ebgp`) that already import `resource_fabric_common`. A factory switch inside `resource_fabric_common` would create a circular dependency. The registry lets fabric packages self-register without common code knowing about them.
+
+## Default Behavior (No Custom Handler)
+
+If a fabric type does **not** register a custom handler, all CRUD operations use the default common flow. This is the current behavior for all existing fabric types — no changes needed.
+
+## Creating a Custom Handler
+
+To override CRUD operations for a specific fabric type, create a handler in the fabric-specific package.
+
+### Example: Override only Create for vxlanEbgp
+
+```go
+// internal/manage/resource_fabric_vxlan_ebgp/fabric_handler.go
+package resource_fabric_vxlan_ebgp
+
+import (
+    "context"
+
+    "github.com/hashicorp/terraform-plugin-framework/diag"
+    "github.com/netascode/go-nd"
+    "terraform-provider-nd/internal/manage/resource_fabric_common"
+)
+
+func init() {
+    resource_fabric_common.RegisterFabricHandler("vxlanEbgp", vxlanEbgpHandler{})
+}
+
+type vxlanEbgpHandler struct {
+    resource_fabric_common.DefaultFabricHandler // Read, Update, Delete inherited
+}
+
+// Only Create is overridden — Read/Update/Delete use DefaultFabricHandler.
+func (h vxlanEbgpHandler) Create(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model resource_fabric_common.FabricModel) {
+    // custom pre-create logic here
+    h.DefaultFabricHandler.Create(ctx, client, dg, model) // delegate to default
+    // custom post-create logic here
+}
+```
+
+### Example: Fully replace Delete
+
+```go
+func (h vxlanEbgpHandler) Delete(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model resource_fabric_common.FabricModel) {
+    // completely custom delete — does NOT call DefaultFabricHandler.Delete
+    fabricName := model.GetFabricName()
+    // ... custom API calls, cleanup, etc.
+}
+```
+
+### Key Points
+
+- **Embed `DefaultFabricHandler`** — you only override methods you need. Unoverridden methods automatically use the default common flow (Go struct embedding).
+- **Register in `init()`** — the handler self-registers when the package is loaded. Since the provider already imports the fabric package (for resource registration), no additional wiring is needed.
+- **One handler per fabric type** — the registry key is the fabric type string returned by `GetFabricType()`.
+- **Full flexibility** — an overridden method can call the default (`h.DefaultFabricHandler.Create(...)`) for pre/post wrapping, or skip it entirely for a full replacement.
+
+## Two Levels of Customization
+
+| Level | Mechanism | Scope | When to use |
+|---|---|---|---|
+| **Data hooks** | `PreMarshal` / `PostUnmarshal` on model | Runs within default CRUD | Inject fields, normalize data |
+| **CRUD override** | Custom `FabricHandler` | Replaces or wraps entire operation | Custom API calls, multi-step flows, skip default |
+
+Most fabric types only need `PreMarshal` (e.g. to inject `FabricType`). The handler pattern is for cases where the **operation itself** needs to change.
+
+## Source Files
+
+| File | Contents |
+|---|---|
+| `resource_fabric_common/fabric_handlers.go` | `FabricHandler` interface, `DefaultFabricHandler`, registry (`RegisterFabricHandler`, `fabricHandler`) |
+| `resource_fabric_common/fabric_crud.go` | `FabricModel` interface, `Rsc*` dispatch functions, `createDefault`/`readDefault`/`updateDefault`/`deleteDefault` |
+| `resource_fabric_vxlan/resource_custom_codec.go` | `GetFabricType() → "vxlan"` |
+| `resource_fabric_vxlan_ibgp/resource_custom_codec.go` | `GetFabricType() → "vxlanIbgp"` |
+| `resource_fabric_vxlan_ebgp/resource_custom_codec.go` | `GetFabricType() → "vxlanEbgp"` |
+
+## Checklist for Adding a Custom Handler
+
+- [ ] Created `fabric_handler.go` in the fabric-specific package
+- [ ] Embedded `resource_fabric_common.DefaultFabricHandler`
+- [ ] Overridden only the CRUD methods that need custom behavior
+- [ ] Called `resource_fabric_common.RegisterFabricHandler` in `init()`
+- [ ] Fabric type string matches `GetFabricType()` return value
+- [ ] Verified build passes (`go build ./...`)
+- [ ] Tested that non-overridden operations still use default flow
+- [ ] Tested that overridden operations execute custom logic

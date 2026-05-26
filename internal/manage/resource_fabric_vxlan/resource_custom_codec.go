@@ -12,3 +12,8 @@ package resource_fabric_vxlan
 func (v *FabricVxlanModel) GetFabricName() string {
 	return v.FabricName.ValueString()
 }
+
+// GetFabricType returns the fabric type identifier for handler dispatch.
+func (v *FabricVxlanModel) GetFabricType() string {
+	return "vxlan"
+}
