@@ -58,5 +58,10 @@ func RemoteStorageLocationModelHelperStateCheck(RscName string, c resource_remot
 	if c.IgnoreHostKeyValidation != nil {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("ignore_host_key_validation").String(), strconv.FormatBool(*c.IgnoreHostKeyValidation)))
 	}
+	if c.AcceptHostKey {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("accept_host_key").String(), "true"))
+	} else {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("accept_host_key").String(), "false"))
+	}
 	return ret
 }

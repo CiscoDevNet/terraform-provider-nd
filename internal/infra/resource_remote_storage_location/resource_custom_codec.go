@@ -1,17 +1,27 @@
 package resource_remote_storage_location
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"errors"
+)
 
-type customNDFCRemoteStorageLocationModel NDFCRemoteStorageLocationModel
+type customNDRemoteStorageLocationModel NDFCRemoteStorageLocationModel
 
 type remoteStorageLocationWrappedResponse struct {
-	Spec *customNDFCRemoteStorageLocationModel `json:"spec"`
+	Spec *customNDRemoteStorageLocationModel `json:"spec"`
 }
 
 func (m *NDFCRemoteStorageLocationModel) UnmarshalJSON(data []byte) error {
 	var wrapped remoteStorageLocationWrappedResponse
-	if err := json.Unmarshal(data, &wrapped); err == nil && wrapped.Spec != nil {
+	err := json.Unmarshal(data, &wrapped)
+	if err != nil {
+		return err
+	}
+
+	if wrapped.Spec != nil {
 		*m = NDFCRemoteStorageLocationModel(*wrapped.Spec)
+	} else {
+		return errors.New(string(data))
 	}
 	return nil
 }
@@ -24,5 +34,5 @@ func (m NDFCRemoteStorageLocationModel) MarshalJSON() ([]byte, error) {
 			m.Authentication.AuthenticationType = "password"
 		}
 	}
-	return json.Marshal(customNDFCRemoteStorageLocationModel(m))
+	return json.Marshal(customNDRemoteStorageLocationModel(m))
 }

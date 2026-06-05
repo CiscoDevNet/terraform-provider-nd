@@ -19,10 +19,8 @@ resource "nd_remote_storage_location" "test_resource_remote_storage_location_1" 
   storage_location_type      = "scp"
   read_write                 = true
   hostname                   = "192.168.100.100"
-  port                       = 2049
+  port                       = 22
   path                       = "/export/path/"
-  alert_threshold            = 90
-  limit                      = "300GB"
   username                   = "root"
   password                   = "password"
   ignore_host_key_validation = true
@@ -37,21 +35,22 @@ resource "nd_remote_storage_location" "test_resource_remote_storage_location_1" 
 - `hostname` (String) The hostname or IP address of the remote storage server.
 - `name` (String) The name of the remote storage location.
 - `path` (String) The export path for NFS storage or the base path for SCP/SFTP storage on the remote server.
-- `port` (Number) The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP.
-- `storage_location_type` (String) The type of the remote storage location.
+- `storage_location_type` (String) The type of the remote storage location. Allowed values are "nfs", "scp", and "sftp".
 
 ### Optional
 
-- `alert_threshold` (Number) The capacity threshold percentage for triggering an alert when the storage usage exceeds this value. Valid for NFS storage type.
+- `accept_host_key` (Boolean) Indicates whether to accept host key for the remote storage location when the type is SCP or SFTP.
+- `alert_threshold` (Number) The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If not specified during creation, the default value is 80. Valid values are between 1 and 100.
 - `description` (String) The description of the remote storage location.
 - `ignore_host_key_validation` (Boolean) Indicates whether to ignore host key validation for the remote storage location when the type is SCP or SFTP.
 - `limit` (String) The storage capacity limit for the remote storage location. Valid for NFS storage type. The value should be specified in megabytes (MB) or gigabytes (GB), for example, 500GB or 1000MB.
 - `passphrase` (String, Sensitive) The optional passphrase associated with the private key for the remote storage location when the type is SCP or SFTP.
 - `password` (String, Sensitive) The password for the remote storage location when the type is SCP or SFTP.
+- `port` (Number) The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP. The valid range is between 1 and 65535.
 - `read_write` (Boolean) Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only.
 - `ssh_key` (String, Sensitive) The private key for the remote storage location when the type is SCP or SFTP.
-- `username` (String, Sensitive) The username for the remote storage location when the type is SCP or SFTP.
+- `username` (String) The username for the remote storage location when the type is SCP or SFTP.
 
 ### Read-Only
 
-- `authentication_type` (String, Sensitive) The authentication_type for the remote storage location when the type is SCP or SFTP.
+- `authentication_type` (String) The authentication type for the remote storage location when the type is SCP or SFTP.

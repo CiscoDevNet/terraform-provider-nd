@@ -23,14 +23,11 @@ resource:
 
   - model_name: type
     tf_name: storage_location_type
-    description: The type of the remote storage location.
+    description: The type of the remote storage location. Allowed values are "nfs", "scp", and "sftp".
     type: String
     mandatory: true
     tf_requires_replace: true
-    enum_values:
-    - nfs
-    - scp
-    - sftp
+    validator: 'OneOf("nfs", "scp", "sftp")'
     example: scp
 
   - model_name: readWrite
@@ -50,10 +47,12 @@ resource:
 
   - model_name: port
     tf_name: port
-    description: The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP.
+    description: The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP. The valid range is between 1 and 65535.
     type: Int64
-    mandatory: true
-    example: 2049
+    optional: true
+    computed: true
+    validator: 'Between(1, 65535)'
+    example: 22
 
   - model_name: path
     tf_name: path
@@ -64,26 +63,23 @@ resource:
 
   - model_name: alertThreshold
     tf_name: alert_threshold
-    description: The capacity threshold percentage for triggering an alert when the storage usage exceeds this value. Valid for NFS storage type.
+    description: The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If not specified during creation, the default value is 80. Valid values are between 1 and 100.
     type: Int64
     optional: true
-    validator: 'ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation"))'
-    example: 90
+    validator: 'Between(1, 100), int64validator.ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation"))'
 
   - model_name: limit
     tf_name: limit
     description: The storage capacity limit for the remote storage location. Valid for NFS storage type. The value should be specified in megabytes (MB) or gigabytes (GB), for example, 500GB or 1000MB.
     type: String
-    validator: 'ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation"))'
+    validator: 'ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation")), stringvalidator.RegexMatches(regexp.MustCompile(`^[1-9][0-9]*(MB|GB)$`), "must be a positive number followed by MB or GB, for example 500GB or 1000MB")'
     optional: true
-    example: 300GB
 
   - model_name: username
     tf_name: username
     description: The username for the remote storage location when the type is SCP or SFTP.
     type: String
     optional: true
-    sensitive: true
     tf_requires_replace: true
     validator: 'ConflictsWith(path.MatchRoot("limit"), path.MatchRoot("alert_threshold"))'
     example: root
@@ -93,10 +89,9 @@ resource:
 
   - model_name: type
     tf_name: authentication_type
-    description: The authentication_type for the remote storage location when the type is SCP or SFTP.
+    description: The authentication type for the remote storage location when the type is SCP or SFTP.
     type: String
     computed: true
-    sensitive: true
     example: password
     ndfc_nested:
     - authentication
@@ -144,8 +139,16 @@ resource:
     type: Bool
     ndfc_type: bool
     optional: true
-    sensitive: true
     validator: 'ConflictsWith(path.MatchRoot("limit"), path.MatchRoot("alert_threshold"))'
     example: true
     ndfc_nested:
     - authentication
+
+  - model_name: acceptHostKey
+    tf_name: accept_host_key
+    description: Indicates whether to accept host key for the remote storage location when the type is SCP or SFTP.
+    type: Bool
+    ndfc_type: bool
+    optional: true
+    validator: 'ConflictsWith(path.MatchRoot("limit"), path.MatchRoot("alert_threshold"), path.MatchRoot("ignore_host_key_validation"))'
+    payload_hide: true

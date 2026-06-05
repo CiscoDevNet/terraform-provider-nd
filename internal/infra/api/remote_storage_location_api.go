@@ -26,7 +26,8 @@ const RscNameRemoteStorageLocation = "remote_storage_location"
 
 type RemoteStorageLocationAPI struct {
 	ndapi.NexusDashboardAPICommon
-	Name string
+	Name          string
+	AcceptHostKey bool
 }
 
 func NewRemoteStorageLocationAPI(client *nd.Client) *RemoteStorageLocationAPI {
@@ -44,11 +45,11 @@ func (c *RemoteStorageLocationAPI) GetUrl() string {
 }
 
 func (c *RemoteStorageLocationAPI) PostUrl() string {
-	return UrlRemoteStorageLocation
+	return c.withAcceptHostKeyQuery(UrlRemoteStorageLocation)
 }
 
 func (c *RemoteStorageLocationAPI) PutUrl() string {
-	return fmt.Sprintf(UrlRemoteStorageLocationByName, c.Name)
+	return c.withAcceptHostKeyQuery(fmt.Sprintf(UrlRemoteStorageLocationByName, c.Name))
 }
 
 func (c *RemoteStorageLocationAPI) DeleteUrl() string {
@@ -62,4 +63,11 @@ func (c *RemoteStorageLocationAPI) GetDeleteQP() []string {
 
 func (c *RemoteStorageLocationAPI) RscName() string {
 	return RscNameRemoteStorageLocation
+}
+
+func (c *RemoteStorageLocationAPI) withAcceptHostKeyQuery(url string) string {
+	if c.AcceptHostKey {
+		return fmt.Sprintf("%s?acceptHostKey=true", url)
+	}
+	return url
 }

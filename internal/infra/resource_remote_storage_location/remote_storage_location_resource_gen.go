@@ -20,19 +20,26 @@ import (
 func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"accept_host_key": schema.BoolAttribute{
+				Optional:            true,
+				Description:         "Indicates whether to accept host key for the remote storage location when the type is SCP or SFTP.",
+				MarkdownDescription: "Indicates whether to accept host key for the remote storage location when the type is SCP or SFTP.",
+				Validators: []validator.Bool{
+					boolvalidator.ConflictsWith(path.MatchRoot("limit"), path.MatchRoot("alert_threshold"), path.MatchRoot("ignore_host_key_validation")),
+				},
+			},
 			"alert_threshold": schema.Int64Attribute{
 				Optional:            true,
-				Description:         "The capacity threshold percentage for triggering an alert when the storage usage exceeds this value. Valid for NFS storage type.",
-				MarkdownDescription: "The capacity threshold percentage for triggering an alert when the storage usage exceeds this value. Valid for NFS storage type.",
+				Description:         "The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If not specified during creation, the default value is 80. Valid values are between 1 and 100.",
+				MarkdownDescription: "The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If not specified during creation, the default value is 80. Valid values are between 1 and 100.",
 				Validators: []validator.Int64{
-					int64validator.ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation")),
+					int64validator.Between(1, 100), int64validator.ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation")),
 				},
 			},
 			"authentication_type": schema.StringAttribute{
 				Computed:            true,
-				Sensitive:           true,
-				Description:         "The authentication_type for the remote storage location when the type is SCP or SFTP.",
-				MarkdownDescription: "The authentication_type for the remote storage location when the type is SCP or SFTP.",
+				Description:         "The authentication type for the remote storage location when the type is SCP or SFTP.",
+				MarkdownDescription: "The authentication type for the remote storage location when the type is SCP or SFTP.",
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
@@ -57,7 +64,7 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "The storage capacity limit for the remote storage location. Valid for NFS storage type. The value should be specified in megabytes (MB) or gigabytes (GB), for example, 500GB or 1000MB.",
 				MarkdownDescription: "The storage capacity limit for the remote storage location. Valid for NFS storage type. The value should be specified in megabytes (MB) or gigabytes (GB), for example, 500GB or 1000MB.",
 				Validators: []validator.String{
-					stringvalidator.ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation")),
+					stringvalidator.ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation")), stringvalidator.RegexMatches(regexp.MustCompile(`^[1-9][0-9]*(MB|GB)$`), "must be a positive number followed by MB or GB, for example 500GB or 1000MB"),
 				},
 			},
 			"name": schema.StringAttribute{
@@ -103,9 +110,13 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "The export path for NFS storage or the base path for SCP/SFTP storage on the remote server.",
 			},
 			"port": schema.Int64Attribute{
-				Required:            true,
-				Description:         "The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP.",
-				MarkdownDescription: "The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP.",
+				Optional:            true,
+				Computed:            true,
+				Description:         "The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP. The valid range is between 1 and 65535.",
+				MarkdownDescription: "The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP. The valid range is between 1 and 65535.",
+				Validators: []validator.Int64{
+					int64validator.Between(1, 65535),
+				},
 			},
 			"read_write": schema.BoolAttribute{
 				Optional:            true,
@@ -127,15 +138,17 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"storage_location_type": schema.StringAttribute{
 				Required:            true,
-				Description:         "The type of the remote storage location.",
-				MarkdownDescription: "The type of the remote storage location.",
+				Description:         "The type of the remote storage location. Allowed values are \"nfs\", \"scp\", and \"sftp\".",
+				MarkdownDescription: "The type of the remote storage location. Allowed values are \"nfs\", \"scp\", and \"sftp\".",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.OneOf("nfs", "scp", "sftp"),
 				},
 			},
 			"username": schema.StringAttribute{
 				Optional:            true,
-				Sensitive:           true,
 				Description:         "The username for the remote storage location when the type is SCP or SFTP.",
 				MarkdownDescription: "The username for the remote storage location when the type is SCP or SFTP.",
 				PlanModifiers: []planmodifier.String{
@@ -151,6 +164,7 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 }
 
 type RemoteStorageLocationModel struct {
+	AcceptHostKey           types.Bool   `tfsdk:"accept_host_key"`
 	AlertThreshold          types.Int64  `tfsdk:"alert_threshold"`
 	AuthenticationType      types.String `tfsdk:"authentication_type"`
 	Description             types.String `tfsdk:"description"`
