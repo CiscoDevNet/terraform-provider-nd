@@ -17,6 +17,7 @@ type NDFCRemoteStorageLocationModel struct {
 	Path                string                  `json:"path,omitempty"`
 	AlertThreshold      *int64                  `json:"alertThreshold,omitempty"`
 	Limit               string                  `json:"limit,omitempty"`
+	AcceptHostKey       bool                    `json:"-"`
 	Authentication      NDFCAuthenticationValue `json:"authentication,omitempty"`
 }
 
@@ -132,6 +133,8 @@ func (v *RemoteStorageLocationModel) SetModelData(jsonData *NDFCRemoteStorageLoc
 		v.IgnoreHostKeyValidation = types.BoolNull()
 	}
 
+	v.AcceptHostKey = types.BoolValue(jsonData.AcceptHostKey)
+
 	return err
 }
 
@@ -228,6 +231,10 @@ func (v RemoteStorageLocationModel) GetModelData() *NDFCRemoteStorageLocationMod
 		*data.Authentication.IgnoreHostKeyValidation = v.IgnoreHostKeyValidation.ValueBool()
 	} else {
 		data.Authentication.IgnoreHostKeyValidation = nil
+	}
+
+	if !v.AcceptHostKey.IsNull() && !v.AcceptHostKey.IsUnknown() {
+		data.AcceptHostKey = v.AcceptHostKey.ValueBool()
 	}
 
 	return data

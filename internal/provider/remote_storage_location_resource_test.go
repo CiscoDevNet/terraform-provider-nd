@@ -56,8 +56,7 @@ func TestAccRemoteStorageLocationResourceNAS(t *testing.T) {
 	rsc := new(helper.NDFCRemoteStorageLocationTestData)
 	rscAddr := "nd_remote_storage_location.nas_test"
 
-	s1 := &stepInfo{}
-	s2 := &stepInfo{}
+	stepInfos := make([]stepInfo, 2)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
@@ -67,7 +66,7 @@ func TestAccRemoteStorageLocationResourceNAS(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s1.name = fmt.Sprintf("%s_%d_create_nas", t.Name(), *stepCount)
+					stepInfos[0].name = fmt.Sprintf("%s_%d_create_nas", t.Name(), *stepCount)
 
 					helper.GenerateRemoteStorageLocationObject(&rsc, map[string]interface{}{
 						"name":                  "nas",
@@ -81,13 +80,13 @@ func TestAccRemoteStorageLocationResourceNAS(t *testing.T) {
 						"alert_threshold":       70,
 					})
 
-					helper.GetTFConfigWithSingleResource(s1.name, *x,
+					helper.GetTFConfigWithSingleResource(stepInfos[0].name, *x,
 						[]interface{}{rsc}, &tfConfig)
 
-					s1.cfg = *tfConfig
+					stepInfos[0].cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 1, s1.name, s1.cfg) },
+				PreConfig: func() { helper.LogStep(t, 1, stepInfos[0].name, stepInfos[0].cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					RemoteStorageLocationModelHelperStateCheck(rscAddr, *rsc, path.Empty())...,
 				),
@@ -96,7 +95,7 @@ func TestAccRemoteStorageLocationResourceNAS(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s2.name = fmt.Sprintf("%s_%d_update_nas", t.Name(), *stepCount)
+					stepInfos[1].name = fmt.Sprintf("%s_%d_update_nas", t.Name(), *stepCount)
 
 					helper.ModifyRemoteStorageLocationObject(&rsc, map[string]interface{}{
 						"name":                  "nas",
@@ -110,14 +109,14 @@ func TestAccRemoteStorageLocationResourceNAS(t *testing.T) {
 						"alert_threshold":       70,
 					})
 
-					helper.GetTFConfigWithSingleResource(s2.name, *x,
+					helper.GetTFConfigWithSingleResource(stepInfos[1].name, *x,
 						[]interface{}{rsc}, &tfConfig)
 
-					s2.cfg = *tfConfig
+					stepInfos[1].cfg = *tfConfig
 					return *tfConfig
 				}(),
 				PreConfig: func() {
-					helper.LogStep(t, 2, s2.name, s2.cfg)
+					helper.LogStep(t, 2, stepInfos[1].name, stepInfos[1].cfg)
 					t.Logf("Sleeping 90 seconds after NAS create before update to let the controller settle")
 					time.Sleep(90 * time.Second)
 				},
@@ -185,8 +184,7 @@ func TestAccRemoteStorageLocationResourceSCP(t *testing.T) {
 	rsc := new(helper.NDFCRemoteStorageLocationTestData)
 	rscAddr := "nd_remote_storage_location.scp_test"
 
-	s1 := &stepInfo{}
-	s2 := &stepInfo{}
+	stepInfos := make([]stepInfo, 2)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
@@ -196,26 +194,26 @@ func TestAccRemoteStorageLocationResourceSCP(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s1.name = fmt.Sprintf("%s_%d_create_scp", t.Name(), *stepCount)
+					stepInfos[0].name = fmt.Sprintf("%s_%d_create_scp", t.Name(), *stepCount)
 
 					helper.GenerateRemoteStorageLocationObject(&rsc, map[string]interface{}{
-						"name":                       "scp-sftp",
-						"storage_location_type":      "scp",
-						"hostname":                   host,
-						"port":                       22,
-						"path":                       "/tmp",
-						"username":                   username,
-						"password":                   password,
-						"ignore_host_key_validation": true,
+						"name":                  "scp-sftp",
+						"storage_location_type": "scp",
+						"hostname":              host,
+						"port":                  22,
+						"path":                  "/tmp",
+						"username":              username,
+						"password":              password,
+						"accept_host_key":       true,
 					})
 
-					helper.GetTFConfigWithSingleResource(s1.name, *x,
+					helper.GetTFConfigWithSingleResource(stepInfos[0].name, *x,
 						[]interface{}{rsc}, &tfConfig)
 
-					s1.cfg = *tfConfig
+					stepInfos[0].cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 1, s1.name, s1.cfg) },
+				PreConfig: func() { helper.LogStep(t, 1, stepInfos[0].name, stepInfos[0].cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					RemoteStorageLocationModelHelperStateCheck(rscAddr, *rsc, path.Empty())...,
 				),
@@ -226,27 +224,27 @@ func TestAccRemoteStorageLocationResourceSCP(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s2.name = fmt.Sprintf("%s_%d_update_sftp", t.Name(), *stepCount)
+					stepInfos[1].name = fmt.Sprintf("%s_%d_update_sftp", t.Name(), *stepCount)
 
 					helper.ModifyRemoteStorageLocationObject(&rsc, map[string]interface{}{
-						"name":                       "scp-sftp",
-						"description":                "sftp_storage_location",
-						"storage_location_type":      "sftp",
-						"hostname":                   host,
-						"port":                       22,
-						"path":                       "/home/cisco/tmp1",
-						"username":                   username,
-						"password":                   password,
-						"ignore_host_key_validation": true,
+						"name":                  "scp-sftp",
+						"description":           "sftp_storage_location",
+						"storage_location_type": "sftp",
+						"hostname":              host,
+						"port":                  22,
+						"path":                  "/home/cisco/tmp1",
+						"username":              username,
+						"password":              password,
+						"accept_host_key":       true,
 					})
 
-					helper.GetTFConfigWithSingleResource(s2.name, *x,
+					helper.GetTFConfigWithSingleResource(stepInfos[1].name, *x,
 						[]interface{}{rsc}, &tfConfig)
 
-					s2.cfg = *tfConfig
+					stepInfos[1].cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 2, s2.name, s2.cfg) },
+				PreConfig: func() { helper.LogStep(t, 2, stepInfos[1].name, stepInfos[1].cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					RemoteStorageLocationModelHelperStateCheck(rscAddr, *rsc, path.Empty())...,
 				),
@@ -293,8 +291,7 @@ func TestAccRemoteStorageLocationResourceSCPWithSSH(t *testing.T) {
 	rsc := new(helper.NDFCRemoteStorageLocationTestData)
 	rscAddr := "nd_remote_storage_location.scp_ssh_test"
 
-	s1 := &stepInfo{}
-	s2 := &stepInfo{}
+	stepInfos := make([]stepInfo, 2)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
@@ -304,7 +301,7 @@ func TestAccRemoteStorageLocationResourceSCPWithSSH(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s1.name = fmt.Sprintf("%s_%d_create_scp_ssh", t.Name(), *stepCount)
+					stepInfos[0].name = fmt.Sprintf("%s_%d_create_scp_ssh", t.Name(), *stepCount)
 
 					helper.GenerateRemoteStorageLocationObject(&rsc, map[string]interface{}{
 						"name":                       "scp-sftp-ssh",
@@ -319,13 +316,13 @@ func TestAccRemoteStorageLocationResourceSCPWithSSH(t *testing.T) {
 						"ignore_host_key_validation": true,
 					})
 
-					helper.GetTFConfigWithSingleResource(s1.name, *x,
+					helper.GetTFConfigWithSingleResource(stepInfos[0].name, *x,
 						[]interface{}{rsc}, &tfConfig)
 
-					s1.cfg = *tfConfig
+					stepInfos[0].cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 1, s1.name, s1.cfg) },
+				PreConfig: func() { helper.LogStep(t, 1, stepInfos[0].name, stepInfos[0].cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					RemoteStorageLocationModelHelperStateCheck(rscAddr, *rsc, path.Empty())...,
 				),
@@ -335,7 +332,7 @@ func TestAccRemoteStorageLocationResourceSCPWithSSH(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s2.name = fmt.Sprintf("%s_%d_update_sftp_ssh", t.Name(), *stepCount)
+					stepInfos[1].name = fmt.Sprintf("%s_%d_update_sftp_ssh", t.Name(), *stepCount)
 
 					helper.ModifyRemoteStorageLocationObject(&rsc, map[string]interface{}{
 						"name":                       "scp-sftp-ssh",
@@ -349,13 +346,13 @@ func TestAccRemoteStorageLocationResourceSCPWithSSH(t *testing.T) {
 						"ignore_host_key_validation": true,
 					})
 
-					helper.GetTFConfigWithSingleResource(s2.name, *x,
+					helper.GetTFConfigWithSingleResource(stepInfos[1].name, *x,
 						[]interface{}{rsc}, &tfConfig)
 
-					s2.cfg = *tfConfig
+					stepInfos[1].cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 2, s2.name, s2.cfg) },
+				PreConfig: func() { helper.LogStep(t, 2, stepInfos[1].name, stepInfos[1].cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					RemoteStorageLocationModelHelperStateCheck(rscAddr, *rsc, path.Empty())...,
 				),
@@ -397,8 +394,7 @@ func TestAccRemoteStorageLocationResourceAuthConflicts(t *testing.T) {
 
 	rsc := new(helper.NDFCRemoteStorageLocationTestData)
 
-	s1 := &stepInfo{}
-	s2 := &stepInfo{}
+	stepInfos := make([]stepInfo, 2)
 	authConflictErr := regexp.MustCompile("Invalid authentication configuration")
 
 	resource.Test(t, resource.TestCase{
@@ -409,7 +405,7 @@ func TestAccRemoteStorageLocationResourceAuthConflicts(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s1.name = fmt.Sprintf("%s_%d_password_ssh_key_conflict", t.Name(), *stepCount)
+					stepInfos[0].name = fmt.Sprintf("%s_%d_password_ssh_key_conflict", t.Name(), *stepCount)
 
 					helper.GenerateRemoteStorageLocationObject(&rsc, map[string]interface{}{
 						"name":                       "auth-conflict-password-ssh-key",
@@ -423,13 +419,13 @@ func TestAccRemoteStorageLocationResourceAuthConflicts(t *testing.T) {
 						"ignore_host_key_validation": true,
 					})
 
-					helper.GetTFConfigWithSingleResource(s1.name, *x,
+					helper.GetTFConfigWithSingleResource(stepInfos[0].name, *x,
 						[]interface{}{rsc}, &tfConfig)
 
-					s1.cfg = *tfConfig
+					stepInfos[0].cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig:   func() { helper.LogStep(t, 1, s1.name, s1.cfg) },
+				PreConfig:   func() { helper.LogStep(t, 1, stepInfos[0].name, stepInfos[0].cfg) },
 				PlanOnly:    true,
 				ExpectError: authConflictErr,
 			},
@@ -437,7 +433,7 @@ func TestAccRemoteStorageLocationResourceAuthConflicts(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s2.name = fmt.Sprintf("%s_%d_password_passphrase_conflict", t.Name(), *stepCount)
+					stepInfos[1].name = fmt.Sprintf("%s_%d_password_passphrase_conflict", t.Name(), *stepCount)
 
 					helper.GenerateRemoteStorageLocationObject(&rsc, map[string]interface{}{
 						"name":                       "auth-conflict-password-passphrase",
@@ -451,13 +447,13 @@ func TestAccRemoteStorageLocationResourceAuthConflicts(t *testing.T) {
 						"ignore_host_key_validation": true,
 					})
 
-					helper.GetTFConfigWithSingleResource(s2.name, *x,
+					helper.GetTFConfigWithSingleResource(stepInfos[1].name, *x,
 						[]interface{}{rsc}, &tfConfig)
 
-					s2.cfg = *tfConfig
+					stepInfos[1].cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig:   func() { helper.LogStep(t, 2, s2.name, s2.cfg) },
+				PreConfig:   func() { helper.LogStep(t, 2, stepInfos[1].name, stepInfos[1].cfg) },
 				PlanOnly:    true,
 				ExpectError: authConflictErr,
 			},

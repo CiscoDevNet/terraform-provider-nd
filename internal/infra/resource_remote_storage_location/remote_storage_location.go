@@ -187,8 +187,13 @@ func (r *remoteStorageLocationResource) Read(ctx context.Context, req resource.R
 
 	log.Printf("[DEBUG] Reading ND Remote Storage Location: name=%s", state.Name.ValueString())
 
-	r.rscGetRemoteStorageLocation(ctx, &resp.Diagnostics, &state)
+	found := r.rscGetRemoteStorageLocation(ctx, &resp.Diagnostics, &state)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !found {
+		resp.State.RemoveResource(ctx)
+		log.Printf("[DEBUG] Removed nd_remote_storage_location name=%s from state because it was not found", state.Name.ValueString())
 		return
 	}
 
@@ -238,8 +243,15 @@ func (r *remoteStorageLocationResource) ImportState(ctx context.Context, req res
 	var state RemoteStorageLocationModel
 	state.Name = types.StringValue(req.ID)
 
-	r.rscGetRemoteStorageLocation(ctx, &resp.Diagnostics, &state)
+	found := r.rscGetRemoteStorageLocation(ctx, &resp.Diagnostics, &state)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !found {
+		resp.Diagnostics.AddError(
+			"Error Importing ND Remote Storage Location",
+			fmt.Sprintf("Could not find nd_remote_storage_location %q", state.Name.ValueString()),
+		)
 		return
 	}
 
