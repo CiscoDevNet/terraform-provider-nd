@@ -24,13 +24,12 @@ type StepInfo struct {
 
 // LogStep emits the per-step log block (header, snapshot path, optional HCL
 // echo) at the moment the acceptance test framework is about to apply that
-// step. Call it from a TestStep's PreConfig so it interleaves with the
-// provider's [INFO] CREATE/UPDATE/READ/DELETE logs.
+// step. Call it from a TestStep's PreConfig so the Go test output shows the
+// step header before Terraform/provider execution for that step.
 //
 // Set ND_TEST_PRINT_TF=1 to also dump the rendered HCL between BEGIN/END
 // markers.
 func LogStep(t *testing.T, idx int, name, cfg string) {
-	t.Helper()
 	t.Logf("===== STEP %d: %s =====", idx, name)
 	t.Logf("Snapshot: %s", SnapshotPath(name))
 	if os.Getenv("ND_TEST_PRINT_TF") != "" {

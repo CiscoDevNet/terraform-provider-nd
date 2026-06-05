@@ -218,20 +218,18 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 // writeSnapshot writes the generated HCL to a temp file for post-test debugging.
 // Returns the absolute path of the snapshot file. Errors are logged but not
 // fatal; an empty string is returned when the snapshot could not be written.
-func writeSnapshot(testName, content string) string {
+func writeSnapshot(testName, content string) {
 	if err := os.MkdirAll(testOutputDir, 0755); err != nil {
 		log.Printf("Warning: failed to create snapshot dir %s: %v", testOutputDir, err)
-		return ""
+		return
 	}
 
 	filePath := SnapshotPath(testName)
 
 	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 		log.Printf("Warning: failed to write snapshot %s: %v", filePath, err)
-		return ""
+		return
 	}
-
-	return filePath
 }
 
 // SnapshotPath returns the file path that writeSnapshot would use for the

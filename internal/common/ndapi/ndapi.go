@@ -36,7 +36,6 @@ type NexusDashboardAPICommon struct {
 // APIOptions encapsulates optional settings for API calls.
 type APIOptions struct {
 	DisablePayloadLog bool // suppress body logging for sensitive payloads
-	PostToDeleteUrl   bool // when true, Post() targets DeleteUrl() instead of PostUrl() for POST-based remove endpoints
 }
 
 // Mods builds the request modifier list from the options and payload.
@@ -82,9 +81,6 @@ func (c NexusDashboardAPICommon) Post(payload []byte, opts *APIOptions) (gjson.R
 	defer guard.Release()
 
 	url := c.NexusDashboardAPI.PostUrl()
-	if opts != nil && opts.PostToDeleteUrl {
-		url = c.NexusDashboardAPI.DeleteUrl()
-	}
 	if strings.Contains(url, "deploy") {
 		panic("Deploy URL detected in Post call. Use DeployPost method for deployments")
 	}
