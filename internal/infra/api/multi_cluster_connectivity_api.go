@@ -41,6 +41,7 @@ const RscNameMultiClusterConnectivity = "multi_cluster_connectivity"
 type ClusterAPI struct {
 	ndapi.NexusDashboardAPICommon
 	ClusterName string
+	Delete      bool
 }
 
 func NewClusterAPI(client *nd.Client, fabric string) *ClusterAPI {
@@ -59,6 +60,9 @@ func (c *ClusterAPI) GetUrl() string {
 }
 
 func (c *ClusterAPI) PostUrl() string {
+	if c.Delete {
+		return c.DeleteUrl()
+	}
 	return UrlCluster
 }
 

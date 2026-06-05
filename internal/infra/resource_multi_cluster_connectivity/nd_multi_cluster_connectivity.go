@@ -186,6 +186,7 @@ func (r *multiClusterConnectivityNdResource) rscUpdateMultiClusterConnectivity(c
 func (r *multiClusterConnectivityNdResource) rscDeleteMultiClusterConnectivity(ctx context.Context, dg *diag.Diagnostics, state *MultiClusterConnectivityModel) {
 	clusterAPI := api.NewClusterAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
 	clusterAPI.ClusterName = state.ClusterName.ValueString()
+	clusterAPI.Delete = true
 
 	// Build the remove payload with credentials and force flag
 	removePayload := api.ClusterRemovePayload{
@@ -208,7 +209,7 @@ func (r *multiClusterConnectivityNdResource) rscDeleteMultiClusterConnectivity(c
 		return
 	}
 
-	res, err := clusterAPI.Post(payload, &ndapi.APIOptions{PostToDeleteUrl: true})
+	res, err := clusterAPI.Post(payload, nil)
 	if err != nil {
 		dg.AddError(
 			"Error Deleting Multi Cluster Connectivity ND",

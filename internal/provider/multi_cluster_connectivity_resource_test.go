@@ -53,11 +53,8 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 	rsc := new(resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel)
 
 	// Per-step info objects captured by both the Config builder (write) and
-	// PreConfig logger (read). Declared up-front so each step's closures
-	// reference an independent struct.
-	s1 := &stepInfo{}
-	s2 := &stepInfo{}
-	s4 := &stepInfo{}
+	// PreConfig logger (read).
+	stepInfos := make([]stepInfo, 4)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
@@ -67,7 +64,7 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s1.name = fmt.Sprintf("%s_%d_create", t.Name(), *stepCount)
+					stepInfos[0].name = fmt.Sprintf("%s_%d_create", t.Name(), *stepCount)
 
 					overrides := map[string]interface{}{}
 					if mccCfg.ClusterName != "" {
@@ -77,13 +74,15 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 						mccCfg.Hostname, mccCfg.Username, mccCfg.Password, overrides,
 					)
 
-					helper.GetTFConfigWithSingleResource(s1.name, *x,
+					helper.GetTFConfigWithSingleResource(stepInfos[0].name, *x,
 						[]interface{}{rsc}, &tfConfig)
 
-					s1.cfg = *tfConfig
+					stepInfos[0].cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 1, s1.name, s1.cfg) },
+				PreConfig: func() {
+					helper.LogStep(t, 1, stepInfos[0].name, stepInfos[0].cfg)
+				},
 				Check: resource.ComposeTestCheckFunc(
 					MultiClusterConnectivityModelHelperStateCheck(
 						rscAddr, *rsc, path.Empty(),
@@ -94,7 +93,7 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s2.name = fmt.Sprintf("%s_%d_update_optional", t.Name(), *stepCount)
+					stepInfos[1].name = fmt.Sprintf("%s_%d_update_optional", t.Name(), *stepCount)
 
 					updates := map[string]interface{}{}
 					if mccCfg.LoginDomain != "" {
@@ -105,13 +104,15 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 					}
 					helper.ModifyMultiClusterConnectivityObject(&rsc, updates)
 
-					helper.GetTFConfigWithSingleResource(s2.name, *x,
+					helper.GetTFConfigWithSingleResource(stepInfos[1].name, *x,
 						[]interface{}{rsc}, &tfConfig)
 
-					s2.cfg = *tfConfig
+					stepInfos[1].cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 2, s2.name, s2.cfg) },
+				PreConfig: func() {
+					helper.LogStep(t, 2, stepInfos[1].name, stepInfos[1].cfg)
+				},
 				Check: resource.ComposeTestCheckFunc(
 					MultiClusterConnectivityModelHelperStateCheck(
 						rscAddr, *rsc, path.Empty(),
@@ -123,7 +124,8 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 			// assigned by the API when not specified in the config).
 			{
 				PreConfig: func() {
-					t.Logf("===== STEP 3: %s_3_import =====", t.Name())
+					stepInfos[2].name = fmt.Sprintf("%s_3_import", t.Name())
+					t.Logf("===== STEP 3: %s =====", stepInfos[2].name)
 				},
 				ResourceName:                         rscAddr,
 				ImportState:                          true,
@@ -153,9 +155,9 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 			// destroy failures attributable to a specific step.
 			{
 				PreConfig: func() {
-					s4.name = fmt.Sprintf("%s_4_destroy", t.Name())
-					s4.cfg = *tfConfig
-					helper.LogStep(t, 4, s4.name, s4.cfg)
+					stepInfos[3].name = fmt.Sprintf("%s_4_destroy", t.Name())
+					stepInfos[3].cfg = *tfConfig
+					helper.LogStep(t, 4, stepInfos[3].name, stepInfos[3].cfg)
 				},
 				Config:  *tfConfig,
 				Destroy: true,
