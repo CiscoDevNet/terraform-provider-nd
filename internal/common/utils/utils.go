@@ -11,6 +11,7 @@ package utils
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -55,4 +56,15 @@ func PollUntil(ctx context.Context, interval time.Duration, timeout time.Duratio
 		case <-wait.C:
 		}
 	}
+}
+
+func EnabledDisabledToBool(status string) bool {
+	return strings.EqualFold(status, "enabled")
+}
+
+func BoolToEnabledDisabled(enabled bool) string {
+	if enabled {
+		return "enabled"
+	}
+	return "disabled"
 }

@@ -1,0 +1,205 @@
+resource:
+  name: fabric_aci
+  generate_tf_resource: true
+  skip_equality: true
+  category: manage
+  attributes:
+  - model_name: id
+    tf_name: id
+    description: The unique identifier of the terraform resource.
+    type: String
+    computed: true
+    id: true
+    use_state: true
+    payload_hide: true
+
+  - model_name: clusterType
+    tf_name: cluster_type
+    description: The type of the cluster. The value will be auto filled as "APIC" for this resource.
+    type: String
+    computed: true
+    default_value: APIC
+    tf_hide: true
+    ndfc_nested:
+    - spec
+
+  - model_name: onboardUrl
+    tf_name: hostname
+    description: The IP address or Hostname of the APIC cluster.
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    ndfc_nested:
+    - spec
+    example: 198.18.133.101
+
+  - model_name: latitude
+    tf_name: latitude
+    description: The latitude coordinate of the APIC cluster.
+    type: Float64
+    optional: true
+    computed: true
+    ndfc_nested:
+    - spec
+    - location
+    example: 37.3
+
+  - model_name: longitude
+    tf_name: longitude
+    description: The longitude coordinate of the APIC cluster.
+    type: Float64
+    optional: true
+    computed: true
+    ndfc_nested:
+    - spec
+    - location
+    example: -121.8
+
+  - model_name: user
+    tf_name: username
+    description: The username of the APIC cluster.
+    type: String
+    mandatory: true
+    sensitive: true
+    tf_requires_replace: true
+    ndfc_nested:
+    - spec
+    - credentials
+    example: admin
+
+  - model_name: password
+    tf_name: password
+    description: The password of the APIC cluster.
+    type: String
+    mandatory: true
+    sensitive: true
+    tf_requires_replace: true
+    ndfc_nested:
+    - spec
+    - credentials
+    example: C1sco12345
+
+  - model_name: loginDomain
+    tf_name: login_domain
+    description: The login domain of the APIC cluster.
+    type: String
+    optional: true
+    computed: true
+    sensitive: true
+    ndfc_nested:
+    - spec
+    - credentials
+    example: DefaultAuth
+
+  - model_name: name
+    tf_name: fabric_name
+    description: The name of the APIC cluster.
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    ndfc_nested:
+    - spec
+    - aci
+    example: apic1
+
+  - model_name: licenseTier
+    tf_name: license_tier
+    description: The license tier of the APIC cluster. Allowed values are essentials, or advantage, or premier.
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - spec
+    - aci
+    example: essentials
+    validator: 'OneOf("essentials", "advantage", "premier")'
+
+  - model_name: status
+    tf_name: telemetry_status
+    description: The status of telemetry collection for the APIC cluster. Allowed values are enabled or disabled. Defaults to disabled when unset during creation.
+    type: String
+    optional: true
+    computed: true
+    default_value: disabled
+    ndfc_nested:
+    - spec
+    - aci
+    - telemetry
+    example: enabled
+    validator: 'OneOf("enabled", "disabled")'
+
+  - model_name: network
+    tf_name: telemetry_network
+    description: The network type for telemetry collection. Allowed values are inband or outband.
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - spec
+    - aci
+    - telemetry
+    example: outband
+    validator: 'OneOf("inband", "outband")'
+
+  - model_name: epg
+    tf_name: telemetry_epg
+    description: The APIC End Point Group (EPG) Distinguished Name (DN) used by inband telemetry.
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - spec
+    - aci
+    - telemetry
+    example: uni/tn-mgmt/mgmtp-default/inb-nd-inb-mgmt
+
+  - model_name: streamingProtocol
+    tf_name: telemetry_streaming_protocol
+    description: The streaming protocol used for telemetry collection. Allowed values are ipv4 or ipv6. Defaults to ipv4 when unset during creation.
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - spec
+    - aci
+    - telemetry
+    example: ipv4
+    validator: 'OneOf("ipv4", "ipv6")'
+
+  - model_name: status
+    tf_name: orchestration_status
+    description: The status of the orchestration feature for the APIC cluster. Allowed values are enabled or disabled. Defaults to disabled when unset during creation.
+    type: String
+    optional: true
+    computed: true
+    default_value: disabled
+    ndfc_nested:
+    - spec
+    - aci
+    - orchestration
+    example: disabled
+    validator: 'OneOf("enabled", "disabled")'
+
+  - model_name: securityDomain
+    tf_name: security_domain
+    description: The name of the security domain for the APIC cluster. Defaults to all when unset during creation.
+    type: String
+    optional: true
+    computed: true
+    default_value: all
+    ndfc_nested:
+    - spec
+    - aci
+    example: all
+
+  - model_name: verifyCA
+    tf_name: verify_ca
+    description: This validates that connected host certificates are signed by a trusted Certificate Authority (CA). Defaults to false when unset during creation.
+    type: Bool
+    ndfc_type: bool
+    optional: true
+    computed: true
+    ndfc_nested:
+    - spec
+    - aci
+    example: false
