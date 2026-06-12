@@ -13,4 +13,5 @@ files:
   - backup.yaml
   - remote_storage_location.yaml
   - fabric_aci.yaml
+  - tenant.yaml
   #- sample.yaml

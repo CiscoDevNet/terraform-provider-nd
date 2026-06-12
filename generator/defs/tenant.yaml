@@ -1,0 +1,27 @@
+resource:
+  name: tenant
+  generate_tf_resource: true
+  skip_equality: true
+  category: infra
+  attributes:
+  - model_name: name
+    tf_name: id
+    description: The unique identifier of the terraform resource.
+    type: String
+    computed: true
+    payload_hide: true
+
+  - model_name: name
+    tf_name: name
+    description: The name of the tenant.
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    example: tenant1
+
+  - model_name: description
+    tf_name: description
+    description: The description of the tenant.
+    type: String
+    optional: true
+    example: Tenant description
