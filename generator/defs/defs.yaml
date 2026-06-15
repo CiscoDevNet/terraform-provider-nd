@@ -15,4 +15,5 @@ files:
   - fabric_aci.yaml
   - tenant.yaml
   - change_control.yaml
+  - tenant_domain.yaml
   #- sample.yaml
