@@ -29,7 +29,21 @@ resource "nd_tenant" "test_resource_tenant_1" {
 ### Optional
 
 - `description` (String) The description of the tenant.
+- `fabric_associations` (Attributes Set) The fabric associations for the tenant. (see [below for nested schema](#nestedatt--fabric_associations))
 
 ### Read-Only
 
 - `id` (String) The unique identifier of the terraform resource.
+
+<a id="nestedatt--fabric_associations"></a>
+### Nested Schema for `fabric_associations`
+
+Required:
+
+- `fabric_name` (String) The fabric name to associate with the tenant.
+
+Optional:
+
+- `allowed_vlans` (Set of String) The list of allowed VLANs for the tenant in the fabric.
+- `local_name` (String) The local name for the tenant in the fabric.
+- `tenant_prefix` (String) The tenant prefix for ACI fabrics.

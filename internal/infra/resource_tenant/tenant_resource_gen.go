@@ -4,9 +4,15 @@ package resource_tenant
 
 import (
 	"context"
+	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
@@ -18,6 +24,41 @@ func TenantResourceSchema(ctx context.Context) schema.Schema {
 				Optional:            true,
 				Description:         "The description of the tenant.",
 				MarkdownDescription: "The description of the tenant.",
+			},
+			"fabric_associations": schema.SetNestedAttribute{
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"allowed_vlans": schema.SetAttribute{
+							ElementType:         types.StringType,
+							Optional:            true,
+							Description:         "The list of allowed VLANs for the tenant in the fabric.",
+							MarkdownDescription: "The list of allowed VLANs for the tenant in the fabric.",
+						},
+						"fabric_name": schema.StringAttribute{
+							Required:            true,
+							Description:         "The fabric name to associate with the tenant.",
+							MarkdownDescription: "The fabric name to associate with the tenant.",
+						},
+						"local_name": schema.StringAttribute{
+							Optional:            true,
+							Description:         "The local name for the tenant in the fabric.",
+							MarkdownDescription: "The local name for the tenant in the fabric.",
+						},
+						"tenant_prefix": schema.StringAttribute{
+							Optional:            true,
+							Description:         "The tenant prefix for ACI fabrics.",
+							MarkdownDescription: "The tenant prefix for ACI fabrics.",
+						},
+					},
+					CustomType: FabricAssociationsType{
+						ObjectType: types.ObjectType{
+							AttrTypes: FabricAssociationsValue{}.AttributeTypes(ctx),
+						},
+					},
+				},
+				Optional:            true,
+				Description:         "The fabric associations for the tenant.",
+				MarkdownDescription: "The fabric associations for the tenant.",
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -37,7 +78,526 @@ func TenantResourceSchema(ctx context.Context) schema.Schema {
 }
 
 type TenantModel struct {
-	Description types.String `tfsdk:"description"`
-	Id          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
+	Description        types.String `tfsdk:"description"`
+	FabricAssociations types.Set    `tfsdk:"fabric_associations"`
+	Id                 types.String `tfsdk:"id"`
+	Name               types.String `tfsdk:"name"`
+}
+
+var _ basetypes.ObjectTypable = FabricAssociationsType{}
+
+type FabricAssociationsType struct {
+	basetypes.ObjectType
+}
+
+func (t FabricAssociationsType) Equal(o attr.Type) bool {
+	other, ok := o.(FabricAssociationsType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t FabricAssociationsType) String() string {
+	return "FabricAssociationsType"
+}
+
+func (t FabricAssociationsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	allowedVlansAttribute, ok := attributes["allowed_vlans"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`allowed_vlans is missing from object`)
+
+		return nil, diags
+	}
+
+	allowedVlansVal, ok := allowedVlansAttribute.(basetypes.SetValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`allowed_vlans expected to be basetypes.SetValue, was: %T`, allowedVlansAttribute))
+	}
+
+	fabricNameAttribute, ok := attributes["fabric_name"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`fabric_name is missing from object`)
+
+		return nil, diags
+	}
+
+	fabricNameVal, ok := fabricNameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`fabric_name expected to be basetypes.StringValue, was: %T`, fabricNameAttribute))
+	}
+
+	localNameAttribute, ok := attributes["local_name"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`local_name is missing from object`)
+
+		return nil, diags
+	}
+
+	localNameVal, ok := localNameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`local_name expected to be basetypes.StringValue, was: %T`, localNameAttribute))
+	}
+
+	tenantPrefixAttribute, ok := attributes["tenant_prefix"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`tenant_prefix is missing from object`)
+
+		return nil, diags
+	}
+
+	tenantPrefixVal, ok := tenantPrefixAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`tenant_prefix expected to be basetypes.StringValue, was: %T`, tenantPrefixAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return FabricAssociationsValue{
+		AllowedVlans: allowedVlansVal,
+		FabricName:   fabricNameVal,
+		LocalName:    localNameVal,
+		TenantPrefix: tenantPrefixVal,
+		state:        attr.ValueStateKnown,
+	}, diags
+}
+
+func NewFabricAssociationsValueNull() FabricAssociationsValue {
+	return FabricAssociationsValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewFabricAssociationsValueUnknown() FabricAssociationsValue {
+	return FabricAssociationsValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewFabricAssociationsValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (FabricAssociationsValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing FabricAssociationsValue Attribute Value",
+				"While creating a FabricAssociationsValue value, a missing attribute value was detected. "+
+					"A FabricAssociationsValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("FabricAssociationsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid FabricAssociationsValue Attribute Type",
+				"While creating a FabricAssociationsValue value, an invalid attribute value was detected. "+
+					"A FabricAssociationsValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("FabricAssociationsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("FabricAssociationsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra FabricAssociationsValue Attribute Value",
+				"While creating a FabricAssociationsValue value, an extra attribute value was detected. "+
+					"A FabricAssociationsValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra FabricAssociationsValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewFabricAssociationsValueUnknown(), diags
+	}
+
+	allowedVlansAttribute, ok := attributes["allowed_vlans"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`allowed_vlans is missing from object`)
+
+		return NewFabricAssociationsValueUnknown(), diags
+	}
+
+	allowedVlansVal, ok := allowedVlansAttribute.(basetypes.SetValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`allowed_vlans expected to be basetypes.SetValue, was: %T`, allowedVlansAttribute))
+	}
+
+	fabricNameAttribute, ok := attributes["fabric_name"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`fabric_name is missing from object`)
+
+		return NewFabricAssociationsValueUnknown(), diags
+	}
+
+	fabricNameVal, ok := fabricNameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`fabric_name expected to be basetypes.StringValue, was: %T`, fabricNameAttribute))
+	}
+
+	localNameAttribute, ok := attributes["local_name"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`local_name is missing from object`)
+
+		return NewFabricAssociationsValueUnknown(), diags
+	}
+
+	localNameVal, ok := localNameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`local_name expected to be basetypes.StringValue, was: %T`, localNameAttribute))
+	}
+
+	tenantPrefixAttribute, ok := attributes["tenant_prefix"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`tenant_prefix is missing from object`)
+
+		return NewFabricAssociationsValueUnknown(), diags
+	}
+
+	tenantPrefixVal, ok := tenantPrefixAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`tenant_prefix expected to be basetypes.StringValue, was: %T`, tenantPrefixAttribute))
+	}
+
+	if diags.HasError() {
+		return NewFabricAssociationsValueUnknown(), diags
+	}
+
+	return FabricAssociationsValue{
+		AllowedVlans: allowedVlansVal,
+		FabricName:   fabricNameVal,
+		LocalName:    localNameVal,
+		TenantPrefix: tenantPrefixVal,
+		state:        attr.ValueStateKnown,
+	}, diags
+}
+
+func NewFabricAssociationsValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) FabricAssociationsValue {
+	object, diags := NewFabricAssociationsValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewFabricAssociationsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t FabricAssociationsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewFabricAssociationsValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewFabricAssociationsValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewFabricAssociationsValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewFabricAssociationsValueMust(FabricAssociationsValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t FabricAssociationsType) ValueType(ctx context.Context) attr.Value {
+	return FabricAssociationsValue{}
+}
+
+var _ basetypes.ObjectValuable = FabricAssociationsValue{}
+
+type FabricAssociationsValue struct {
+	AllowedVlans basetypes.SetValue    `tfsdk:"allowed_vlans"`
+	FabricName   basetypes.StringValue `tfsdk:"fabric_name"`
+	LocalName    basetypes.StringValue `tfsdk:"local_name"`
+	TenantPrefix basetypes.StringValue `tfsdk:"tenant_prefix"`
+	state        attr.ValueState
+}
+
+func (v FabricAssociationsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["allowed_vlans"] = basetypes.SetType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["fabric_name"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["local_name"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["tenant_prefix"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.AllowedVlans.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["allowed_vlans"] = val
+
+		val, err = v.FabricName.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["fabric_name"] = val
+
+		val, err = v.LocalName.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["local_name"] = val
+
+		val, err = v.TenantPrefix.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["tenant_prefix"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v FabricAssociationsValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v FabricAssociationsValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v FabricAssociationsValue) String() string {
+	return "FabricAssociationsValue"
+}
+
+func (v FabricAssociationsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	var allowedVlansVal basetypes.SetValue
+	switch {
+	case v.AllowedVlans.IsUnknown():
+		allowedVlansVal = types.SetUnknown(types.StringType)
+	case v.AllowedVlans.IsNull():
+		allowedVlansVal = types.SetNull(types.StringType)
+	default:
+		var d diag.Diagnostics
+		allowedVlansVal, d = types.SetValue(types.StringType, v.AllowedVlans.Elements())
+		diags.Append(d...)
+	}
+
+	if diags.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"allowed_vlans": basetypes.SetType{
+				ElemType: types.StringType,
+			},
+			"fabric_name":   basetypes.StringType{},
+			"local_name":    basetypes.StringType{},
+			"tenant_prefix": basetypes.StringType{},
+		}), diags
+	}
+
+	attributeTypes := map[string]attr.Type{
+		"allowed_vlans": basetypes.SetType{
+			ElemType: types.StringType,
+		},
+		"fabric_name":   basetypes.StringType{},
+		"local_name":    basetypes.StringType{},
+		"tenant_prefix": basetypes.StringType{},
+	}
+
+	if v.IsNull() {
+		return types.ObjectNull(attributeTypes), diags
+	}
+
+	if v.IsUnknown() {
+		return types.ObjectUnknown(attributeTypes), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		attributeTypes,
+		map[string]attr.Value{
+			"allowed_vlans": allowedVlansVal,
+			"fabric_name":   v.FabricName,
+			"local_name":    v.LocalName,
+			"tenant_prefix": v.TenantPrefix,
+		})
+
+	return objVal, diags
+}
+
+func (v FabricAssociationsValue) Equal(o attr.Value) bool {
+	other, ok := o.(FabricAssociationsValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.AllowedVlans.Equal(other.AllowedVlans) {
+		return false
+	}
+
+	if !v.FabricName.Equal(other.FabricName) {
+		return false
+	}
+
+	if !v.LocalName.Equal(other.LocalName) {
+		return false
+	}
+
+	if !v.TenantPrefix.Equal(other.TenantPrefix) {
+		return false
+	}
+
+	return true
+}
+
+func (v FabricAssociationsValue) Type(ctx context.Context) attr.Type {
+	return FabricAssociationsType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v FabricAssociationsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"allowed_vlans": basetypes.SetType{
+			ElemType: types.StringType,
+		},
+		"fabric_name":   basetypes.StringType{},
+		"local_name":    basetypes.StringType{},
+		"tenant_prefix": basetypes.StringType{},
+	}
 }

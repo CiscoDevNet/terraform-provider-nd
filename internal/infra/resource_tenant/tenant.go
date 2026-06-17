@@ -125,9 +125,15 @@ func (r *tenantResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
+	var state TenantModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	log.Printf("[DEBUG] Updating Tenant: name=%s", plan.Name.ValueString())
 
-	r.rscUpdateTenant(ctx, &resp.Diagnostics, &plan)
+	r.rscUpdateTenant(ctx, &resp.Diagnostics, &state, &plan)
 	if resp.Diagnostics.HasError() {
 		return
 	}
