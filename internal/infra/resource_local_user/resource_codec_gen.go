@@ -12,6 +12,7 @@ import (
 )
 
 type NDFCLocalUserModel struct {
+	Id                      string        `json:"-"`
 	LoginId                 string        `json:"loginID,omitempty"`
 	UserPassword            string        `json:"password,omitempty"`
 	Email                   string        `json:"email,omitempty"`
@@ -34,6 +35,12 @@ type NDFCSecurityDomainsValue struct {
 func (v *LocalUserModel) SetModelData(jsonData *NDFCLocalUserModel) diag.Diagnostics {
 	var err diag.Diagnostics
 	err = nil
+
+	if jsonData.Id != "" {
+		v.Id = types.StringValue(jsonData.Id)
+	} else {
+		v.Id = types.StringNull()
+	}
 
 	if jsonData.LoginId != "" {
 		v.LoginId = types.StringValue(jsonData.LoginId)

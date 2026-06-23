@@ -13,6 +13,15 @@ import (
 	"testing"
 )
 
+// StepInfo carries the per-step name and rendered HCL from build time
+// (when Config is evaluated) to step-execution time (when PreConfig fires).
+// This lets tests print the step header / snapshot path / TF config inline
+// with the actual API call logs instead of all at once at test setup.
+type StepInfo struct {
+	Name string
+	Cfg  string
+}
+
 // LogStep emits the per-step log block (header, snapshot path, optional HCL
 // echo) at the moment the acceptance test framework is about to apply that
 // step. Call it from a TestStep's PreConfig so it interleaves with the

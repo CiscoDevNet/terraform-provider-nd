@@ -56,8 +56,8 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 	// Per-step info objects captured by both the Config builder (write) and
 	// PreConfig logger (read). Declared up-front so each step's closures
 	// reference an independent struct.
-	s1 := &stepInfo{}
-	s2 := &stepInfo{}
+	s1 := &helper.StepInfo{}
+	s2 := &helper.StepInfo{}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
@@ -68,7 +68,7 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s1.name = fmt.Sprintf("%s_%d_create_both_users", t.Name(), *stepCount)
+					s1.Name = fmt.Sprintf("%s_%d_create_both_users", t.Name(), *stepCount)
 
 					helper.GenerateLocalUserObject(&user1,
 						loginIDA,
@@ -83,13 +83,13 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 						nil,
 					)
 
-					helper.GetTFConfigWithSingleResource(s1.name, *x,
+					helper.GetTFConfigWithSingleResource(s1.Name, *x,
 						[]interface{}{user1, user2}, &tfConfig)
 
-					s1.cfg = *tfConfig
+					s1.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 1, s1.name, s1.cfg) },
+				PreConfig: func() { helper.LogStep(t, 1, s1.Name, s1.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					append(
 						LocalUserModelHelperStateCheck(
@@ -110,20 +110,20 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s2.name = fmt.Sprintf("%s_%d_update_user_one_add_remote_id_claim_and_tenant_domain", t.Name(), *stepCount)
+					s2.Name = fmt.Sprintf("%s_%d_update_user_one_add_remote_id_claim_and_tenant_domain", t.Name(), *stepCount)
 
 					helper.ModifyLocalUserObject(&user1, map[string]interface{}{
 						"remote_id_claim": "tf_remote_id_claim_a",
 						"tenant_domain":   "all-tenants-domain",
 					})
 
-					helper.GetTFConfigWithSingleResource(s2.name, *x,
+					helper.GetTFConfigWithSingleResource(s2.Name, *x,
 						[]interface{}{user1, user2}, &tfConfig)
 
-					s2.cfg = *tfConfig
+					s2.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 2, s2.name, s2.cfg) },
+				PreConfig: func() { helper.LogStep(t, 2, s2.Name, s2.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					append(
 						LocalUserModelHelperStateCheck(
@@ -199,10 +199,10 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 		}
 	}
 
-	s1 := &stepInfo{}
-	s2 := &stepInfo{}
-	s3 := &stepInfo{}
-	s4 := &stepInfo{}
+	s1 := &helper.StepInfo{}
+	s2 := &helper.StepInfo{}
+	s3 := &helper.StepInfo{}
+	s4 := &helper.StepInfo{}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
@@ -212,7 +212,7 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s1.name = fmt.Sprintf("%s_%d_create_local_user", t.Name(), *stepCount)
+					s1.Name = fmt.Sprintf("%s_%d_create_local_user", t.Name(), *stepCount)
 
 					helper.GenerateLocalUserObject(&userRsc,
 						loginID,
@@ -224,13 +224,13 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 						},
 					)
 
-					helper.GetTFConfigWithSingleResource(s1.name, *x,
+					helper.GetTFConfigWithSingleResource(s1.Name, *x,
 						[]interface{}{userRsc}, &tfConfig)
 
-					s1.cfg = *tfConfig
+					s1.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 1, s1.name, s1.cfg) },
+				PreConfig: func() { helper.LogStep(t, 1, s1.Name, s1.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					LocalUserModelHelperStateCheck(
 						"nd_local_user.user_test",
@@ -243,7 +243,7 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s2.name = fmt.Sprintf("%s_%d_modify_scalars", t.Name(), *stepCount)
+					s2.Name = fmt.Sprintf("%s_%d_modify_scalars", t.Name(), *stepCount)
 
 					helper.ModifyLocalUserObject(&userRsc, map[string]interface{}{
 						"first_name": "updated_first",
@@ -251,13 +251,13 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 						"email":      "updated_user@mail.com",
 					})
 
-					helper.GetTFConfigWithSingleResource(s2.name, *x,
+					helper.GetTFConfigWithSingleResource(s2.Name, *x,
 						[]interface{}{userRsc}, &tfConfig)
 
-					s2.cfg = *tfConfig
+					s2.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 2, s2.name, s2.cfg) },
+				PreConfig: func() { helper.LogStep(t, 2, s2.Name, s2.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					LocalUserModelHelperStateCheck(
 						"nd_local_user.user_test",
@@ -271,7 +271,7 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s3.name = fmt.Sprintf("%s_%d_toggle_xlaunch_extend_roles", t.Name(), *stepCount)
+					s3.Name = fmt.Sprintf("%s_%d_toggle_xlaunch_extend_roles", t.Name(), *stepCount)
 
 					helper.ModifyLocalUserObject(&userRsc, map[string]interface{}{
 						"remote_user_authorization": true,
@@ -280,13 +280,13 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 						[]string{"approver", "designer", "observer"},
 					)
 
-					helper.GetTFConfigWithSingleResource(s3.name, *x,
+					helper.GetTFConfigWithSingleResource(s3.Name, *x,
 						[]interface{}{userRsc}, &tfConfig)
 
-					s3.cfg = *tfConfig
+					s3.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 3, s3.name, s3.cfg) },
+				PreConfig: func() { helper.LogStep(t, 3, s3.Name, s3.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					LocalUserModelHelperStateCheck(
 						"nd_local_user.user_test",
@@ -300,19 +300,19 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 			{
 				Config: func() string {
 					*stepCount++
-					s4.name = fmt.Sprintf("%s_%d_shrink_roles", t.Name(), *stepCount)
+					s4.Name = fmt.Sprintf("%s_%d_shrink_roles", t.Name(), *stepCount)
 
 					helper.AddSecurityDomain(&userRsc, "all",
 						[]string{"approver", "designer"},
 					)
 
-					helper.GetTFConfigWithSingleResource(s4.name, *x,
+					helper.GetTFConfigWithSingleResource(s4.Name, *x,
 						[]interface{}{userRsc}, &tfConfig)
 
-					s4.cfg = *tfConfig
+					s4.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 4, s4.name, s4.cfg) },
+				PreConfig: func() { helper.LogStep(t, 4, s4.Name, s4.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					LocalUserModelHelperStateCheck(
 						"nd_local_user.user_test",

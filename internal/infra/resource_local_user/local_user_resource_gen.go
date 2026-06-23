@@ -43,6 +43,11 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"id": schema.StringAttribute{
+				Computed:            true,
+				Description:         "The unique identifier of the local user.",
+				MarkdownDescription: "The unique identifier of the local user.",
+			},
 			"last_name": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -118,12 +123,15 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "The password of the local user.",
 			},
 		},
+		Description:         "User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.",
+		MarkdownDescription: "User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.",
 	}
 }
 
 type LocalUserModel struct {
 	Email                   types.String `tfsdk:"email"`
 	FirstName               types.String `tfsdk:"first_name"`
+	Id                      types.String `tfsdk:"id"`
 	LastName                types.String `tfsdk:"last_name"`
 	LoginId                 types.String `tfsdk:"login_id"`
 	RemoteIdClaim           types.String `tfsdk:"remote_id_claim"`
