@@ -20,6 +20,9 @@ import (
 func LocalUserModelHelperStateCheck(RscName string, c resource_local_user.NDFCLocalUserModel, attrPath path.Path) []resource.TestCheckFunc {
 	ret := []resource.TestCheckFunc{}
 
+	if c.Id != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("id").String(), c.Id))
+	}
 	if c.LoginId != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("login_id").String(), c.LoginId))
 	}

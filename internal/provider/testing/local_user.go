@@ -47,6 +47,7 @@ func GenerateLocalUserObject(
 ) {
 	user := new(resource_local_user.NDFCLocalUserModel)
 
+	user.Id = loginID
 	user.LoginId = loginID
 	user.UserPassword = userPassword
 

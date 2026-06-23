@@ -3,11 +3,11 @@ package resource_local_user
 import (
 	"context"
 	"fmt"
+	"log"
 
+	"terraform-provider-nd/internal/common/utils"
 	"terraform-provider-nd/internal/infra"
 	"terraform-provider-nd/internal/registry"
-
-	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -84,7 +84,8 @@ func (r *localUserNdResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	log.Printf("[DEBUG] Creating ND Local User: login_id=%s", in.LoginId.ValueString())
+	id := utils.SetResourceID(&in.Id, in.LoginId)
+	log.Printf("[DEBUG] Creating ND Local User: id=%s", id)
 
 	r.rscCreateLocalUser(ctx, &resp.Diagnostics, &in)
 	if resp.Diagnostics.HasError() {
@@ -93,7 +94,10 @@ func (r *localUserNdResource) Create(ctx context.Context, req resource.CreateReq
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &in)...)
-	log.Printf("[DEBUG] End create of resource nd_local_user with login_id=%s", in.LoginId.ValueString())
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] End create of resource nd_local_user with id=%s", utils.SetResourceID(&in.Id, in.LoginId))
 }
 
 // Read refreshes the Terraform state with the latest data.
@@ -109,16 +113,24 @@ func (r *localUserNdResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	log.Printf("[DEBUG] Reading ND Local User: login_id=%s", state.LoginId.ValueString())
+	id := utils.SetResourceID(&state.Id, state.LoginId)
+	log.Printf("[DEBUG] Reading ND Local User: id=%s", id)
 
-	r.rscGetLocalUser(ctx, &resp.Diagnostics, &state)
+	if r.rscGetLocalUser(ctx, &resp.Diagnostics, &state) {
+		log.Printf("[DEBUG] ND Local User not found; removing resource from state: id=%s", utils.SetResourceID(&state.Id, state.LoginId))
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-	log.Printf("[DEBUG] End read of resource nd_local_user with login_id=%s", state.LoginId.ValueString())
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] End read of resource nd_local_user with id=%s", utils.SetResourceID(&state.Id, state.LoginId))
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
@@ -140,7 +152,8 @@ func (r *localUserNdResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	log.Printf("[DEBUG] Updating ND Local User: login_id=%s", plan.LoginId.ValueString())
+	id := utils.SetResourceID(&plan.Id, plan.LoginId)
+	log.Printf("[DEBUG] Updating ND Local User: id=%s", id)
 
 	r.rscUpdateLocalUser(ctx, &resp.Diagnostics, &plan, &state)
 	if resp.Diagnostics.HasError() {
@@ -148,7 +161,10 @@ func (r *localUserNdResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	log.Printf("[DEBUG] End update of resource nd_local_user with login_id=%s", plan.LoginId.ValueString())
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] End update of resource nd_local_user with id=%s", utils.SetResourceID(&plan.Id, plan.LoginId))
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
@@ -164,7 +180,10 @@ func (r *localUserNdResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 
 	r.rscDeleteLocalUser(ctx, &resp.Diagnostics, &state)
-	log.Printf("[DEBUG] End delete of resource nd_local_user with login_id=%s", state.LoginId.ValueString())
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] End delete of resource nd_local_user with id=%s", utils.SetResourceID(&state.Id, state.LoginId))
 }
 
 // ImportState imports a nd local user resource by login_id.
@@ -173,13 +192,23 @@ func (r *localUserNdResource) ImportState(ctx context.Context, req resource.Impo
 
 	var state LocalUserModel
 	state.LoginId = types.StringValue(req.ID)
+	id := utils.SetResourceID(&state.Id, state.LoginId)
 
-	r.rscGetLocalUser(ctx, &resp.Diagnostics, &state)
+	if r.rscGetLocalUser(ctx, &resp.Diagnostics, &state) {
+		resp.Diagnostics.AddError(
+			"Error Importing ND Local User",
+			fmt.Sprintf("Could not import nd local user with id %q: resource not found", id),
+		)
+		return
+	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	// TODO: The value for the `user_password` attribute will not be imported when the nd_local_user resource imports an already created local user from Nexus Dashboard.
 	// Need to use Environment Variables or a credentials file to supply the password during the import of the resource.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-	log.Printf("[DEBUG] End import of state resource: nd_local_user with login_id=%s", state.LoginId.ValueString())
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] End import of state resource: nd_local_user with id=%s", utils.SetResourceID(&state.Id, state.LoginId))
 }

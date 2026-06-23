@@ -3,12 +3,12 @@
 page_title: "nd_local_user Resource - terraform-provider-nd"
 subcategory: ""
 description: |-
-  
+  User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.
 ---
 
 # nd_local_user (Resource)
 
-
+User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.
 
 ## Example Usage
 
@@ -48,6 +48,10 @@ resource "nd_local_user" "test_resource_local_user_1" {
 - `remote_id_claim` (String) The Remote ID claim of the local user. This is required when the remote user authorization option is enabled for the local user.
 - `remote_user_authorization` (Boolean) The Remote user authorization is used for signing into Nexus Dashboard when using identity providers that cannot provide authorization claims. Once this attribute is enabled, the local user ID cannot be used to directly login to Nexus Dashboard.
 - `tenant_domain` (String) The name of the tenant domain of the local user.
+
+### Read-Only
+
+- `id` (String) The unique identifier of the local user.
 
 <a id="nestedatt--security_domains"></a>
 ### Nested Schema for `security_domains`

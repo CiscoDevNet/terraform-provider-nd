@@ -4,7 +4,15 @@ resource:
   category: infra
   generate_tf_resource: true
   skip_equality: true
+  description: User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.
   attributes:
+  - model_name: id
+    tf_name: id
+    description: The unique identifier of the local user.
+    type: String
+    computed: true
+    payload_hide: true
+
   - model_name: loginID
     tf_name: login_id
     description: The User ID of the local user.
