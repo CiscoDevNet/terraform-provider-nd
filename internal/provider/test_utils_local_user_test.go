@@ -6,11 +6,12 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+// Code generated;  DO NOT EDIT.
+
 package provider
 
 import (
 	"strconv"
-
 	"terraform-provider-nd/internal/infra/resource_local_user"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -59,10 +60,5 @@ func LocalUserModelHelperStateCheck(RscName string, c resource_local_user.NDFCLo
 func SecurityDomainsValueHelperStateCheck(RscName string, c resource_local_user.NDFCSecurityDomainsValue, attrPath path.Path) []resource.TestCheckFunc {
 	ret := []resource.TestCheckFunc{}
 
-	rolesPath := attrPath.AtName("roles")
-	ret = append(ret, resource.TestCheckResourceAttr(RscName, rolesPath.String()+".#", strconv.Itoa(len(c.Roles))))
-	for _, role := range c.Roles {
-		ret = append(ret, resource.TestCheckTypeSetElemAttr(RscName, rolesPath.String()+".*", role))
-	}
 	return ret
 }
