@@ -6,11 +6,12 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+// Code generated;  DO NOT EDIT.
+
 package provider
 
 import (
 	"strconv"
-
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
