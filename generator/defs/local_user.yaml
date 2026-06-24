@@ -1,10 +1,10 @@
 resource:
   name: local_user
-  doc_category: AAA
+  doc_category: Users and Security
   category: infra
   generate_tf_resource: true
   skip_equality: true
-  description: User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.
+  description: Manages local user for Nexus Dashboard
   attributes:
   - model_name: id
     tf_name: id
@@ -23,7 +23,7 @@ resource:
 
   - model_name: password
     tf_name: user_password
-    description: The password of the local user.
+    description: The password of the local user. User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.
     type: String
     mandatory: true
     sensitive: true
@@ -100,8 +100,15 @@ resource:
     attributes:
     - model_name: roles
       tf_name: roles
-      description: The list of Nexus Dashboard Roles of the local user. Allowed values are "approver", "designer", "fabric-admin", "observer", "super-admin", and "support-engineer".
+      description: The list of Nexus Dashboard Roles of the local user.
       type: List:String
       mandatory: true
+      valid_values:
+      - approver
+      - designer
+      - fabric-admin
+      - observer
+      - super-admin
+      - support-engineer
       validator: 'ValueStringsAre(stringvalidator.OneOf("approver", "designer", "fabric-admin", "observer", "super-admin", "support-engineer"))'
       example: '["approver", "designer"]'

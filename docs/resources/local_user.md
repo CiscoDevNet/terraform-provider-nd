@@ -3,12 +3,12 @@
 page_title: "nd_local_user Resource - terraform-provider-nd"
 subcategory: ""
 description: |-
-  User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.
+  Manages local user for Nexus Dashboard
 ---
 
 # nd_local_user (Resource)
 
-User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.
+Manages local user for Nexus Dashboard
 
 ## Example Usage
 
@@ -38,7 +38,7 @@ resource "nd_local_user" "test_resource_local_user_1" {
 
 - `login_id` (String) The User ID of the local user.
 - `security_domains` (Attributes Map) The security domains of the local user. At least one security domain must be provided when creating the user. (see [below for nested schema](#nestedatt--security_domains))
-- `user_password` (String, Sensitive) The password of the local user.
+- `user_password` (String, Sensitive) The password of the local user. User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.
 
 ### Optional
 
@@ -58,4 +58,4 @@ resource "nd_local_user" "test_resource_local_user_1" {
 
 Required:
 
-- `roles` (Set of String) The list of Nexus Dashboard Roles of the local user. Allowed values are "approver", "designer", "fabric-admin", "observer", "super-admin", and "support-engineer".
+- `roles` (Set of String) The list of Nexus Dashboard Roles of the local user.

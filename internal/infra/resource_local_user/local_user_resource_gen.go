@@ -90,8 +90,8 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 						"roles": schema.SetAttribute{
 							ElementType:         types.StringType,
 							Required:            true,
-							Description:         "The list of Nexus Dashboard Roles of the local user. Allowed values are \"approver\", \"designer\", \"fabric-admin\", \"observer\", \"super-admin\", and \"support-engineer\".",
-							MarkdownDescription: "The list of Nexus Dashboard Roles of the local user. Allowed values are \"approver\", \"designer\", \"fabric-admin\", \"observer\", \"super-admin\", and \"support-engineer\".",
+							Description:         "The list of Nexus Dashboard Roles of the local user.",
+							MarkdownDescription: "The list of Nexus Dashboard Roles of the local user.",
 							Validators: []validator.Set{
 								setvalidator.ValueStringsAre(stringvalidator.OneOf("approver", "designer", "fabric-admin", "observer", "super-admin", "support-engineer")),
 							},
@@ -119,12 +119,12 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 			"user_password": schema.StringAttribute{
 				Required:            true,
 				Sensitive:           true,
-				Description:         "The password of the local user.",
-				MarkdownDescription: "The password of the local user.",
+				Description:         "The password of the local user. User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.",
+				MarkdownDescription: "The password of the local user. User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.",
 			},
 		},
-		Description:         "User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.",
-		MarkdownDescription: "User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.",
+		Description:         "Manages local user for Nexus Dashboard",
+		MarkdownDescription: "Manages local user for Nexus Dashboard",
 	}
 }
 
