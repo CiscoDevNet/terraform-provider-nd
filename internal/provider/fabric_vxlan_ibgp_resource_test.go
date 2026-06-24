@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"testing"
 
+	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	helper "terraform-provider-nd/internal/provider/testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -32,7 +33,7 @@ func TestAccFabricVxlanIbgpResourceCRUD(t *testing.T) {
 	stepCount := new(int)
 	*stepCount = 0
 
-	fabricRsc := new(helper.NDFCFabricIbgpTestData)
+	fabricRsc := new(resource_fabric_common.NDFCFabricCommonModel)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
@@ -52,7 +53,7 @@ func TestAccFabricVxlanIbgpResourceCRUD(t *testing.T) {
 
 					(*x)["RscName"] = "fabric_test"
 					helper.GetTFConfigWithSingleResource(tName, *x,
-						[]interface{}{fabricRsc}, &tfConfig)
+						[]interface{}{helper.IbgpResource(fabricRsc)}, &tfConfig)
 
 					return *tfConfig
 				}(),
@@ -76,7 +77,7 @@ func TestAccFabricVxlanIbgpResourceCRUD(t *testing.T) {
 					})
 
 					helper.GetTFConfigWithSingleResource(tName, *x,
-						[]interface{}{fabricRsc}, &tfConfig)
+						[]interface{}{helper.IbgpResource(fabricRsc)}, &tfConfig)
 
 					return *tfConfig
 				}(),
@@ -101,7 +102,7 @@ func TestAccFabricVxlanIbgpResourceCRUD(t *testing.T) {
 					})
 
 					helper.GetTFConfigWithSingleResource(tName, *x,
-						[]interface{}{fabricRsc}, &tfConfig)
+						[]interface{}{helper.IbgpResource(fabricRsc)}, &tfConfig)
 
 					return *tfConfig
 				}(),
