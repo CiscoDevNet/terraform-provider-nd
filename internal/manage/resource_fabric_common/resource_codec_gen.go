@@ -24,9 +24,9 @@ type NDFCFabricCommonModel struct {
 	AlertSuspend               string                             `json:"alertSuspend,omitempty"`
 	Management                 NDFCManagementValue                `json:"management,omitempty"`
 	TelemetrySettings          NDFCTelemetrySettingsValue         `json:"telemetrySettings,omitempty"`
+	Meta                       NDFCMetaValue                      `json:"meta,omitempty"`
 	ExternalStreamingSettings  NDFCExternalStreamingSettingsValue `json:"externalStreamingSettings,omitempty"`
 	FeatureStatus              NDFCFeatureStatusValue             `json:"featureStatus,omitempty"`
-	Meta                       NDFCMetaValue                      `json:"meta,omitempty"`
 }
 
 type NDFCLocationValue struct {
@@ -37,6 +37,7 @@ type NDFCLocationValue struct {
 type NDFCManagementValue struct {
 	FabricType                                 string                              `json:"type,omitempty"`
 	BgpAsn                                     string                              `json:"bgpAsn,omitempty"`
+	CreateBgpConfig                            *bool                               `json:"createBgpConfig,omitempty"`
 	SuperSpineBgpAs                            string                              `json:"superSpineBgpAs,omitempty"`
 	LeafBgpAs                                  string                              `json:"leafBgpAs,omitempty"`
 	BorderBgpAs                                string                              `json:"borderBgpAs,omitempty"`
@@ -68,6 +69,7 @@ type NDFCManagementValue struct {
 	AdvertisePhysicalIp                        *bool                               `json:"advertisePhysicalIp,omitempty"`
 	VpcDomainIdRange                           string                              `json:"vpcDomainIdRange,omitempty"`
 	BgpLoopbackId                              *int64                              `json:"bgpLoopbackId,omitempty"`
+	AllowSameLoopbackIpOnSwitches              *bool                               `json:"allowSameLoopbackIpOnSwitches,omitempty"`
 	NveLoopbackId                              *int64                              `json:"nveLoopbackId,omitempty"`
 	VrfTemplate                                string                              `json:"vrfTemplate,omitempty"`
 	NetworkTemplate                            string                              `json:"networkTemplate,omitempty"`
@@ -109,16 +111,20 @@ type NDFCManagementValue struct {
 	PerVrfLoopbackIpv6Range                    string                              `json:"perVrfLoopbackIpv6Range,omitempty"`
 	Banner                                     string                              `json:"banner,omitempty"`
 	Day0Bootstrap                              *bool                               `json:"day0Bootstrap,omitempty"`
+	Day0PlugAndPlay                            *bool                               `json:"day0PlugAndPlay,omitempty"`
+	InbandDay0Bootstrap                        *bool                               `json:"inbandDay0Bootstrap,omitempty"`
 	LocalDhcpServer                            *bool                               `json:"localDhcpServer,omitempty"`
 	DhcpProtocolVersion                        string                              `json:"dhcpProtocolVersion,omitempty"`
 	DhcpStartAddress                           string                              `json:"dhcpStartAddress,omitempty"`
 	DhcpEndAddress                             string                              `json:"dhcpEndAddress,omitempty"`
+	DomainName                                 string                              `json:"domainName,omitempty"`
 	ManagementGateway                          string                              `json:"managementGateway,omitempty"`
 	ManagementIpv4Prefix                       *int64                              `json:"managementIpv4Prefix,omitempty"`
 	ManagementIpv6Prefix                       *int64                              `json:"managementIpv6Prefix,omitempty"`
 	BootstrapMultiSubnet                       string                              `json:"bootstrapMultiSubnet,omitempty"`
 	BootstrapSubnetCollection                  NDFCBootstrapSubnetCollectionValues `json:"bootstrapSubnetCollection,omitempty"`
 	ExtraConfigNxosBootstrap                   string                              `json:"extraConfigNxosBootstrap,omitempty"`
+	ExtraConfigXeBootstrap                     string                              `json:"extraConfigXeBootstrap,omitempty"`
 	RealTimeBackup                             *bool                               `json:"realTimeBackup,omitempty"`
 	ScheduledBackup                            *bool                               `json:"scheduledBackup,omitempty"`
 	ScheduledBackupTime                        string                              `json:"scheduledBackupTime,omitempty"`
@@ -161,6 +167,7 @@ type NDFCManagementValue struct {
 	MacsecFallbackKeyString                    string                              `json:"macsecFallbackKeyString,omitempty"`
 	MacsecFallbackAlgorithm                    string                              `json:"macsecFallbackAlgorithm,omitempty"`
 	MacsecReportTimer                          *int64                              `json:"macsecReportTimer,omitempty"`
+	MonitoredMode                              *bool                               `json:"monitoredMode,omitempty"`
 	OverlayMode                                string                              `json:"overlayMode,omitempty"`
 	PrivateVlan                                *bool                               `json:"privateVlan,omitempty"`
 	DefaultPrivateVlanSecondaryNetworkTemplate string                              `json:"defaultPrivateVlanSecondaryNetworkTemplate,omitempty"`
@@ -203,6 +210,7 @@ type NDFCManagementValue struct {
 	NveLoopbackIpv6Range                       string                              `json:"nveLoopbackIpv6Range,omitempty"`
 	Ipv6AnycastRendezvousPointIpRange          string                              `json:"ipv6AnycastRendezvousPointIpRange,omitempty"`
 	ExtraConfigAaa                             string                              `json:"extraConfigAaa,omitempty"`
+	ExtraConfigFabric                          string                              `json:"extraConfigFabric,omitempty"`
 	Aaa                                        *bool                               `json:"aaa,omitempty"`
 	Ipv6LinkLocal                              *bool                               `json:"ipv6LinkLocal,omitempty"`
 	FabricInterfaceType                        string                              `json:"fabricInterfaceType,omitempty"`
@@ -529,6 +537,10 @@ type NDFCTelemetrySettingsEnergyManagementValue struct {
 	Cost *float64 `json:"cost,omitempty"`
 }
 
+type NDFCMetaValue struct {
+	AllowedActions []string `json:"allowedActions,omitempty"`
+}
+
 type NDFCExternalStreamingSettingsValue struct {
 	Email      NDFCEmailValues                          `json:"email,omitempty"`
 	MessageBus NDFCMessageBusValues                     `json:"messageBus,omitempty"`
@@ -586,8 +598,4 @@ type NDFCFeatureStatusValue struct {
 	TelemetryStatus     string `json:"telemetry,omitempty"`
 	OrchestrationStatus string `json:"orchestration,omitempty"`
 	TrapForwarderStatus string `json:"trapForwarder,omitempty"`
-}
-
-type NDFCMetaValue struct {
-	AllowedActions []string `json:"allowedActions,omitempty"`
 }

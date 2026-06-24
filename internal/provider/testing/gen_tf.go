@@ -19,14 +19,43 @@ import (
 	"text/template"
 	"time"
 
+	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
 )
+
+// FabricTestResource pairs a fabric model with the template metadata needed
+// by GetTFConfigWithSingleResource to select the correct .gotmpl template.
+type FabricTestResource struct {
+	TemplateName string
+	TemplateKey  string
+	Model        *resource_fabric_common.NDFCFabricCommonModel
+}
+
+// VxlanResource wraps a fabric model for VXLAN template dispatch.
+func VxlanResource(m *resource_fabric_common.NDFCFabricCommonModel) *FabricTestResource {
+	return &FabricTestResource{TemplateName: "ND_FABRIC_VXLAN_RSC", TemplateKey: "FabricVxlan", Model: m}
+}
+
+// EbgpResource wraps a fabric model for eBGP template dispatch.
+func EbgpResource(m *resource_fabric_common.NDFCFabricCommonModel) *FabricTestResource {
+	return &FabricTestResource{TemplateName: "ND_FABRIC_VXLAN_EBGP_RSC", TemplateKey: "FabricEbgp", Model: m}
+}
+
+// IbgpResource wraps a fabric model for iBGP template dispatch.
+func IbgpResource(m *resource_fabric_common.NDFCFabricCommonModel) *FabricTestResource {
+	return &FabricTestResource{TemplateName: "ND_FABRIC_VXLAN_IBGP_RSC", TemplateKey: "FabricIbgp", Model: m}
+}
+
+// ExternalResource wraps a fabric model for External Connectivity template dispatch.
+func ExternalResource(m *resource_fabric_common.NDFCFabricCommonModel) *FabricTestResource {
+	return &FabricTestResource{TemplateName: "ND_FABRIC_EXTERNAL_RSC", TemplateKey: "FabricExternal", Model: m}
+}
 
 var testOutputDir string
 
 func init() {
 	ts := time.Now().Format("2006_01_02_15-04-05")
-	testOutputDir = filepath.Join(os.TempDir(), fmt.Sprintf("tftest_%s", ts))
+	testOutputDir = filepath.Join("/tmp", fmt.Sprintf("tftest_%s", ts))
 }
 
 // GetTFConfigWithSingleResource generates a complete Terraform HCL config string
@@ -117,28 +146,12 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 		}
 
 		switch v := rsc.(type) {
-		case *NDFCFabricVxlanTestData:
-			args["FabricVxlan"] = v
+		case *FabricTestResource:
+			args[v.TemplateKey] = v.Model
 			args["RscName"] = rscName
-			err = t.ExecuteTemplate(&output, "ND_FABRIC_VXLAN_RSC", args)
+			err = t.ExecuteTemplate(&output, v.TemplateName, args)
 			if err != nil {
-				panic(fmt.Sprintf("Failed to execute ND_FABRIC_VXLAN_RSC template: %v", err))
-			}
-
-		case *NDFCFabricIbgpTestData:
-			args["FabricIbgp"] = v
-			args["RscName"] = rscName
-			err = t.ExecuteTemplate(&output, "ND_FABRIC_VXLAN_IBGP_RSC", args)
-			if err != nil {
-				panic(fmt.Sprintf("Failed to execute ND_FABRIC_VXLAN_IBGP_RSC template: %v", err))
-			}
-
-		case *NDFCFabricEbgpTestData:
-			args["FabricEbgp"] = v
-			args["RscName"] = rscName
-			err = t.ExecuteTemplate(&output, "ND_FABRIC_VXLAN_EBGP_RSC", args)
-			if err != nil {
-				panic(fmt.Sprintf("Failed to execute ND_FABRIC_VXLAN_EBGP_RSC template: %v", err))
+				panic(fmt.Sprintf("Failed to execute %s template: %v", v.TemplateName, err))
 			}
 
 		case *resource_inventory_switch.NDFCInventorySwitchModel:

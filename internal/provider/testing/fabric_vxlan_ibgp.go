@@ -12,11 +12,6 @@ import (
 	"terraform-provider-nd/internal/manage/resource_fabric_common"
 )
 
-// NDFCFabricIbgpTestData wraps NDFCFabricCommonModel for iBGP test template selection.
-type NDFCFabricIbgpTestData struct {
-	resource_fabric_common.NDFCFabricCommonModel
-}
-
 // defaultFabricIbgpValues returns sensible defaults for an iBGP VXLAN fabric.
 func defaultFabricIbgpValues() map[string]interface{} {
 	return map[string]interface{}{
@@ -52,11 +47,11 @@ func defaultFabricIbgpValues() map[string]interface{} {
 }
 
 // GenerateFabricIbgpObject creates an iBGP VXLAN fabric model object for testing.
-func GenerateFabricIbgpObject(obj **NDFCFabricIbgpTestData,
+func GenerateFabricIbgpObject(obj **resource_fabric_common.NDFCFabricCommonModel,
 	fabricName string, bgpAsn string,
 	overrides map[string]interface{}) {
 
-	fabric := new(NDFCFabricIbgpTestData)
+	fabric := new(resource_fabric_common.NDFCFabricCommonModel)
 
 	fabric.FabricName = fabricName
 	fabric.Management.BgpAsn = bgpAsn
@@ -67,14 +62,14 @@ func GenerateFabricIbgpObject(obj **NDFCFabricIbgpTestData,
 		merged[k] = v
 	}
 
-	applyFabricCommonValues(&fabric.NDFCFabricCommonModel, merged)
+	applyFabricCommonValues(fabric, merged)
 
 	*obj = fabric
 }
 
 // ModifyFabricIbgpObject modifies fields on an existing iBGP fabric model.
 func ModifyFabricIbgpObject(
-	obj **NDFCFabricIbgpTestData,
+	obj **resource_fabric_common.NDFCFabricCommonModel,
 	values map[string]interface{},
 ) {
 	fabric := *obj
@@ -82,7 +77,7 @@ func ModifyFabricIbgpObject(
 		return
 	}
 
-	applyFabricCommonValues(&fabric.NDFCFabricCommonModel, values)
+	applyFabricCommonValues(fabric, values)
 
 	*obj = fabric
 }

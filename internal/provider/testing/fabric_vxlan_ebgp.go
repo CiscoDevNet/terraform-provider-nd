@@ -12,11 +12,6 @@ import (
 	"terraform-provider-nd/internal/manage/resource_fabric_common"
 )
 
-// NDFCFabricEbgpTestData wraps NDFCFabricCommonModel for eBGP test template selection.
-type NDFCFabricEbgpTestData struct {
-	resource_fabric_common.NDFCFabricCommonModel
-}
-
 // defaultFabricEbgpValues returns sensible defaults for an eBGP VXLAN fabric.
 func defaultFabricEbgpValues() map[string]interface{} {
 	return map[string]interface{}{
@@ -52,11 +47,11 @@ func defaultFabricEbgpValues() map[string]interface{} {
 }
 
 // GenerateFabricEbgpObject creates an eBGP VXLAN fabric model object for testing.
-func GenerateFabricEbgpObject(obj **NDFCFabricEbgpTestData,
+func GenerateFabricEbgpObject(obj **resource_fabric_common.NDFCFabricCommonModel,
 	fabricName string, bgpAsn string,
 	overrides map[string]interface{}) {
 
-	fabric := new(NDFCFabricEbgpTestData)
+	fabric := new(resource_fabric_common.NDFCFabricCommonModel)
 
 	fabric.FabricName = fabricName
 	fabric.Management.BgpAsn = bgpAsn
@@ -67,14 +62,14 @@ func GenerateFabricEbgpObject(obj **NDFCFabricEbgpTestData,
 		merged[k] = v
 	}
 
-	applyFabricCommonValues(&fabric.NDFCFabricCommonModel, merged)
+	applyFabricCommonValues(fabric, merged)
 
 	*obj = fabric
 }
 
 // ModifyFabricEbgpObject modifies fields on an existing eBGP fabric model.
 func ModifyFabricEbgpObject(
-	obj **NDFCFabricEbgpTestData,
+	obj **resource_fabric_common.NDFCFabricCommonModel,
 	values map[string]interface{},
 ) {
 	fabric := *obj
@@ -82,7 +77,7 @@ func ModifyFabricEbgpObject(
 		return
 	}
 
-	applyFabricCommonValues(&fabric.NDFCFabricCommonModel, values)
+	applyFabricCommonValues(fabric, values)
 
 	*obj = fabric
 }

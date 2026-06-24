@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"testing"
 
+	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
 	helper "terraform-provider-nd/internal/provider/testing"
 
@@ -47,7 +48,7 @@ func TestAccInventorySwitchMultiResource(t *testing.T) {
 	stepCount := new(int)
 	*stepCount = 0
 
-	fabricRsc := new(helper.NDFCFabricVxlanTestData)
+	fabricRsc := new(resource_fabric_common.NDFCFabricCommonModel)
 	switchRsc1 := new(resource_inventory_switch.NDFCInventorySwitchModel)
 	switchRsc2 := new(resource_inventory_switch.NDFCInventorySwitchModel)
 
@@ -94,7 +95,7 @@ func TestAccInventorySwitchMultiResource(t *testing.T) {
 					)
 
 					helper.GetTFConfigWithSingleResource(tName, *x,
-						[]interface{}{fabricRsc, switchRsc1, switchRsc2}, &tfConfig)
+						[]interface{}{helper.VxlanResource(fabricRsc), switchRsc1, switchRsc2}, &tfConfig)
 
 					return *tfConfig
 				}(),
@@ -135,7 +136,7 @@ func TestAccInventorySwitchResourceCRUD(t *testing.T) {
 	stepCount := new(int)
 	*stepCount = 0
 
-	fabricRsc := new(helper.NDFCFabricVxlanTestData)
+	fabricRsc := new(resource_fabric_common.NDFCFabricCommonModel)
 	switchRsc := new(resource_inventory_switch.NDFCInventorySwitchModel)
 
 	// Build initial switch map from testbed config (first 2 switches)
@@ -175,7 +176,7 @@ func TestAccInventorySwitchResourceCRUD(t *testing.T) {
 
 					(*x)["RscName"] = "fabric_test,switch_test"
 					helper.GetTFConfigWithSingleResource(tName, *x,
-						[]interface{}{fabricRsc, switchRsc}, &tfConfig)
+						[]interface{}{helper.VxlanResource(fabricRsc), switchRsc}, &tfConfig)
 
 					return *tfConfig
 				}(),
@@ -201,7 +202,7 @@ func TestAccInventorySwitchResourceCRUD(t *testing.T) {
 					}
 
 					helper.GetTFConfigWithSingleResource(tName, *x,
-						[]interface{}{fabricRsc, switchRsc}, &tfConfig)
+						[]interface{}{helper.VxlanResource(fabricRsc), switchRsc}, &tfConfig)
 
 					return *tfConfig
 				}(),
@@ -225,7 +226,7 @@ func TestAccInventorySwitchResourceCRUD(t *testing.T) {
 					})
 
 					helper.GetTFConfigWithSingleResource(tName, *x,
-						[]interface{}{fabricRsc, switchRsc}, &tfConfig)
+						[]interface{}{helper.VxlanResource(fabricRsc), switchRsc}, &tfConfig)
 
 					return *tfConfig
 				}(),
@@ -248,7 +249,7 @@ func TestAccInventorySwitchResourceCRUD(t *testing.T) {
 					}
 
 					helper.GetTFConfigWithSingleResource(tName, *x,
-						[]interface{}{fabricRsc, switchRsc}, &tfConfig)
+						[]interface{}{helper.VxlanResource(fabricRsc), switchRsc}, &tfConfig)
 
 					return *tfConfig
 				}(),

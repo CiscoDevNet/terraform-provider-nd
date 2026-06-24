@@ -7,4 +7,5 @@ files:
   - multi_cluster_connectivity.yaml
   - fabric_vxlan_ibgp.yaml
   - fabric_vxlan_ebgp.yaml
+  - fabric_external.yaml
   #- sample.yaml
