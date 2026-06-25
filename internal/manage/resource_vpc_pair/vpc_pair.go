@@ -87,6 +87,7 @@ func (r *vpcPairResource) Create(ctx context.Context, req resource.CreateRequest
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &in)...)
 
 	if resp.Diagnostics.HasError() {
+		tflog.Error(ctx, "Failed to decode vPC pair create plan")
 		return
 	}
 
@@ -111,6 +112,7 @@ func (r *vpcPairResource) Read(ctx context.Context, req resource.ReadRequest, re
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
 	if resp.Diagnostics.HasError() {
+		tflog.Error(ctx, "Failed to decode vPC pair read state")
 		return
 	}
 
@@ -135,6 +137,7 @@ func (r *vpcPairResource) Update(ctx context.Context, req resource.UpdateRequest
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 
 	if resp.Diagnostics.HasError() {
+		tflog.Error(ctx, "Failed to decode vPC pair update plan")
 		return
 	}
 
@@ -158,6 +161,7 @@ func (r *vpcPairResource) Delete(ctx context.Context, req resource.DeleteRequest
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
 	if resp.Diagnostics.HasError() {
+		tflog.Error(ctx, "Failed to decode vPC pair delete state")
 		return
 	}
 
@@ -176,6 +180,9 @@ func (r *vpcPairResource) ImportState(ctx context.Context, req resource.ImportSt
 
 	parts := strings.SplitN(req.ID, "/", 2)
 	if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
+		tflog.Error(ctx, "Invalid vPC pair import ID format", map[string]interface{}{
+			"id": req.ID,
+		})
 		resp.Diagnostics.AddError(
 			"Invalid Import ID",
 			"Expected format: fabric_name/switch_id_1:switch_id_2",
@@ -185,6 +192,9 @@ func (r *vpcPairResource) ImportState(ctx context.Context, req resource.ImportSt
 
 	switchParts := strings.SplitN(parts[1], ":", 2)
 	if len(switchParts) != 2 || strings.TrimSpace(switchParts[0]) == "" || strings.TrimSpace(switchParts[1]) == "" {
+		tflog.Error(ctx, "Invalid vPC pair import switch tuple", map[string]interface{}{
+			"id": req.ID,
+		})
 		resp.Diagnostics.AddError(
 			"Invalid Import ID",
 			"Expected format: fabric_name/switch_id_1:switch_id_2",
@@ -202,6 +212,12 @@ func (r *vpcPairResource) ImportState(ctx context.Context, req resource.ImportSt
 
 	outData, err := r.readVpcPairState(ctx, state.GetModelData())
 	if err != nil {
+		tflog.Error(ctx, "Failed to import vPC pair using provided switch order", map[string]interface{}{
+			"fabric_name": state.FabricName.ValueString(),
+			"switch_id_1": state.SwitchId1.ValueString(),
+			"switch_id_2": state.SwitchId2.ValueString(),
+			"error":       err.Error(),
+		})
 		resp.Diagnostics.AddError(
 			"Error Importing vPC Pair",
 			fmt.Sprintf("Could not read imported vPC pair: %v", err),
@@ -210,6 +226,11 @@ func (r *vpcPairResource) ImportState(ctx context.Context, req resource.ImportSt
 	}
 
 	if !matchesImportedVpcPair(state.GetModelData(), outData) {
+		tflog.Debug(ctx, "Imported vPC pair did not match provided switch order, retrying with swapped switch IDs", map[string]interface{}{
+			"fabric_name": state.FabricName.ValueString(),
+			"switch_id_1": state.SwitchId1.ValueString(),
+			"switch_id_2": state.SwitchId2.ValueString(),
+		})
 		swappedInData := &NDFCVpcPairModel{
 			FabricName:         state.FabricName.ValueString(),
 			SwitchId1:          state.SwitchId2.ValueString(),
@@ -220,6 +241,12 @@ func (r *vpcPairResource) ImportState(ctx context.Context, req resource.ImportSt
 
 		outData, err = r.readVpcPairState(ctx, swappedInData)
 		if err != nil {
+			tflog.Error(ctx, "Failed to import vPC pair in either switch order", map[string]interface{}{
+				"fabric_name": state.FabricName.ValueString(),
+				"switch_id_1": state.SwitchId1.ValueString(),
+				"switch_id_2": state.SwitchId2.ValueString(),
+				"error":       err.Error(),
+			})
 			resp.Diagnostics.AddError(
 				"Error Importing vPC Pair",
 				fmt.Sprintf("Could not read imported vPC pair in either switch order: %v", err),
