@@ -9,16 +9,24 @@
 package provider
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
+	"terraform-provider-nd/internal/manage/api"
+	"terraform-provider-nd/internal/manage/deployment"
 	"terraform-provider-nd/internal/manage/resource_vpc_pair"
 	helper "terraform-provider-nd/internal/provider/testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	nd "github.com/netascode/go-nd"
 )
 
 type vpcPairTestContext struct {
@@ -72,6 +80,53 @@ func vpcPairConfigForStep(t *testing.T, testName string, stepCount *int, cfg map
 	stepName := fmt.Sprintf("%s_%d", testName, *stepCount)
 	helper.GetTFConfigWithSingleResource(stepName, cfg, []interface{}{model}, &tfConfig)
 	return *tfConfig
+}
+
+func newVpcPairTestClient(t *testing.T) *nd.Client {
+	t.Helper()
+
+	cfg := helper.GetConfig("global")
+	insecure, err := strconv.ParseBool(cfg.ND.Insecure)
+	if err != nil {
+		t.Fatalf("failed to parse nd.insecure test setting %q: %v", cfg.ND.Insecure, err)
+	}
+
+	client, err := nd.NewClient(cfg.ND.URL, "/api/v1", cfg.ND.User, cfg.ND.Password, "", insecure)
+	if err != nil {
+		t.Fatalf("failed to create ND client for vPC pair acceptance helper: %v", err)
+	}
+
+	return &client
+}
+
+func deleteVpcPairOutsideTerraform(t *testing.T, model *resource_vpc_pair.NDFCVpcPairModel) {
+	t.Helper()
+
+	client := newVpcPairTestClient(t)
+	vpcPairAPI := api.NewVpcPairAPI(nil, client)
+	vpcPairAPI.FabricName = model.FabricName
+	vpcPairAPI.SwitchID = model.SwitchId2
+
+	deleteRequest := *model
+	deleteRequest.VpcAction = "unPair"
+
+	payload, err := json.Marshal(deleteRequest)
+	if err != nil {
+		t.Fatalf("failed to marshal out-of-band vPC pair delete payload: %v", err)
+	}
+
+	res, err := vpcPairAPI.Put(payload, nil)
+	if err != nil {
+		t.Fatalf("failed to delete vPC pair outside Terraform: %v %v", err, res.Raw)
+	}
+
+	var diagnostics diag.Diagnostics
+	deployment.ConfigSaveAndDeploy(context.Background(), client, model.FabricName, true, model.Deploy, &diagnostics)
+	if diagnostics.HasError() {
+		t.Fatalf("failed to save/deploy config after out-of-band vPC pair delete: %v", diagnostics)
+	}
+
+	time.Sleep(2 * time.Second)
 }
 
 func TestAccVpcPairResourceCreateRead(t *testing.T) {
@@ -164,6 +219,59 @@ func TestAccVpcPairResourceUpdateDeploy(t *testing.T) {
 					})
 					return vpcPairConfigForStep(t, t.Name(), &stepCount, ctx.configMap, vpcPairRsc)
 				}(),
+				Check: resource.ComposeTestCheckFunc(
+					VpcPairModelHelperStateCheck(
+						"nd_vpc_pair.vpc_pair_test",
+						*vpcPairRsc,
+						path.Empty(),
+					)...,
+				),
+			},
+		},
+	})
+}
+
+func TestAccVpcPairResourceRecreateAfterOutOfBandDelete(t *testing.T) {
+	ctx := loadVpcPairTestContext(t)
+	requireLeafPair(t, ctx)
+
+	stepCount := 0
+	vpcPairRsc := new(resource_vpc_pair.NDFCVpcPairModel)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1 creates a valid leaf-to-leaf vPC pair so the next step can
+			// simulate a deletion that happened outside Terraform.
+			{
+				Config: func() string {
+					helper.GenerateVpcPairObject(
+						&vpcPairRsc,
+						ctx.fabricName,
+						ctx.leafSwitches[0],
+						ctx.leafSwitches[1],
+						false,
+						false,
+					)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, ctx.configMap, vpcPairRsc)
+				}(),
+				Check: resource.ComposeTestCheckFunc(
+					VpcPairModelHelperStateCheck(
+						"nd_vpc_pair.vpc_pair_test",
+						*vpcPairRsc,
+						path.Empty(),
+					)...,
+				),
+			},
+			// Step 2 deletes the pair directly in ND before Terraform refreshes
+			// state, proving the provider removes stale state on Read and plans
+			// the same configuration as a recreation instead of failing.
+			{
+				PreConfig: func() {
+					deleteVpcPairOutsideTerraform(t, vpcPairRsc)
+				},
+				Config: vpcPairConfigForStep(t, t.Name(), &stepCount, ctx.configMap, vpcPairRsc),
 				Check: resource.ComposeTestCheckFunc(
 					VpcPairModelHelperStateCheck(
 						"nd_vpc_pair.vpc_pair_test",

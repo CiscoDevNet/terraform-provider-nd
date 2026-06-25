@@ -120,6 +120,57 @@ func (r *vpcPairResource) Read(ctx context.Context, req resource.ReadRequest, re
 		"vpc pair": state.FabricName.ValueString(),
 	})
 
+	outData, err := r.readVpcPairState(ctx, state.GetModelData())
+	if err != nil {
+		if isVpcPairNotFoundError(err) {
+			tflog.Warn(ctx, "vPC pair no longer exists in ND, removing from Terraform state", map[string]interface{}{
+				"fabric_name": state.FabricName.ValueString(),
+				"switch_id_1": state.SwitchId1.ValueString(),
+				"switch_id_2": state.SwitchId2.ValueString(),
+				"error":       err.Error(),
+			})
+			resp.State.RemoveResource(ctx)
+			return
+		}
+
+		tflog.Error(ctx, "Failed to read vPC pair state", map[string]interface{}{
+			"fabric_name": state.FabricName.ValueString(),
+			"switch_id_1": state.SwitchId1.ValueString(),
+			"switch_id_2": state.SwitchId2.ValueString(),
+			"error":       err.Error(),
+		})
+		resp.Diagnostics.AddError(
+			"Error Reading vPC Pair",
+			fmt.Sprintf("Could not read vPC pair, unexpected error: %v", err),
+		)
+		return
+	}
+
+	if outData.UseVirtualPeerlink == nil {
+		outData.UseVirtualPeerlink = state.GetModelData().UseVirtualPeerlink
+	}
+	state.SetModelData(outData)
+	setVpcPairID(&state)
+
+	tflog.Debug(ctx, "Read vPC pair", map[string]interface{}{
+		"fabric_name": outData.FabricName,
+		"switch_id":   outData.SwitchId2,
+	})
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func isVpcPairNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	msg := err.Error()
+	return strings.Contains(msg, "StatusCode 404")
+}
+
+/*
 	r.rscGetVpcPair(ctx, &resp.Diagnostics, &state)
 	if resp.Diagnostics.HasError() {
 		return
@@ -128,6 +179,7 @@ func (r *vpcPairResource) Read(ctx context.Context, req resource.ReadRequest, re
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
+*/
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *vpcPairResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
