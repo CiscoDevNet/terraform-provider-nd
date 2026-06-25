@@ -131,6 +131,7 @@ func readDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, m
 		)
 		return false
 	}
+	outData.Id = fabricName
 	if pu, ok := model.(FabricPostUnmarshal); ok {
 		pu.PostUnmarshal(ctx, &outData)
 	}

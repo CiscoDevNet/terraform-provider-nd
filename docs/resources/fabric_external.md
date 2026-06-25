@@ -158,6 +158,10 @@ resource "nd_fabric_external" "test_resource_fabric_external_1" {
 - `udp_categorization_support` (String) Configuration status of Traffic Analytics UDP Categorization in a fabric
 - `vrf_flow_rules` (Attributes List) VRF flow rules (see [below for nested schema](#nestedatt--vrf_flow_rules))
 
+### Read-Only
+
+- `id` (String) The unique identifier of the fabric_external resource
+
 <a id="nestedatt--bootstrap_subnet_collection"></a>
 ### Nested Schema for `bootstrap_subnet_collection`
 
