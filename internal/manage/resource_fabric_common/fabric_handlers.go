@@ -20,7 +20,7 @@ import (
 // Embed DefaultFabricHandler and override only the methods you need.
 type FabricHandler interface {
 	Create(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel)
-	Read(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel)
+	Read(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) bool
 	Update(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel)
 	Delete(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel)
 }
@@ -32,8 +32,8 @@ type DefaultFabricHandler struct{}
 func (DefaultFabricHandler) Create(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
 	createDefault(ctx, client, dg, model)
 }
-func (DefaultFabricHandler) Read(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
-	readDefault(ctx, client, dg, model)
+func (DefaultFabricHandler) Read(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) bool {
+	return readDefault(ctx, client, dg, model)
 }
 func (DefaultFabricHandler) Update(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
 	updateDefault(ctx, client, dg, model)
