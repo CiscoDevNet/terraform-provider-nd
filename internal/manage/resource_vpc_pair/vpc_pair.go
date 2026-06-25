@@ -11,11 +11,13 @@ package resource_vpc_pair
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"terraform-provider-nd/internal/manage"
 	"terraform-provider-nd/internal/registry"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -24,9 +26,9 @@ const ModuleKey = "manage"
 
 // Ensure the implementation satisfies the expected interfaces
 var (
-	_ resource.Resource              = &vpcPairResource{}
-	_ resource.ResourceWithConfigure = &vpcPairResource{}
-	//_ resource.ResourceWithImportState = &vpcPairResource{}
+	_ resource.Resource                = &vpcPairResource{}
+	_ resource.ResourceWithConfigure   = &vpcPairResource{}
+	_ resource.ResourceWithImportState = &vpcPairResource{}
 )
 
 // NewVpcPairResource is a helper function to simplify the provider implementation.
@@ -167,14 +169,80 @@ func (r *vpcPairResource) Delete(ctx context.Context, req resource.DeleteRequest
 	r.rscDeleteVpcPair(ctx, &resp.Diagnostics, &state)
 }
 
-// ImportState reports that import is not implemented for this resource yet.
 func (r *vpcPairResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	tflog.Debug(ctx, "Importing VPC Pair", map[string]interface{}{
 		"id": req.ID,
 	})
 
-	resp.Diagnostics.AddError(
-		"Import Not Implemented",
-		"Import for nd_vpc_pair is not implemented yet.",
-	)
+	parts := strings.SplitN(req.ID, "/", 2)
+	if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
+		resp.Diagnostics.AddError(
+			"Invalid Import ID",
+			"Expected format: fabric_name/switch_id_1:switch_id_2",
+		)
+		return
+	}
+
+	switchParts := strings.SplitN(parts[1], ":", 2)
+	if len(switchParts) != 2 || strings.TrimSpace(switchParts[0]) == "" || strings.TrimSpace(switchParts[1]) == "" {
+		resp.Diagnostics.AddError(
+			"Invalid Import ID",
+			"Expected format: fabric_name/switch_id_1:switch_id_2",
+		)
+		return
+	}
+
+	state := VpcPairModel{
+		FabricName:         types.StringValue(strings.TrimSpace(parts[0])),
+		SwitchId1:          types.StringValue(strings.TrimSpace(switchParts[0])),
+		SwitchId2:          types.StringValue(strings.TrimSpace(switchParts[1])),
+		Deploy:             types.BoolValue(false),
+		UseVirtualPeerlink: types.BoolNull(),
+	}
+
+	outData, err := r.readVpcPairState(ctx, state.GetModelData())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Importing vPC Pair",
+			fmt.Sprintf("Could not read imported vPC pair: %v", err),
+		)
+		return
+	}
+
+	if !matchesImportedVpcPair(state.GetModelData(), outData) {
+		swappedInData := &NDFCVpcPairModel{
+			FabricName:         state.FabricName.ValueString(),
+			SwitchId1:          state.SwitchId2.ValueString(),
+			SwitchId2:          state.SwitchId1.ValueString(),
+			UseVirtualPeerlink: nil,
+			Deploy:             false,
+		}
+
+		outData, err = r.readVpcPairState(ctx, swappedInData)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Importing vPC Pair",
+				fmt.Sprintf("Could not read imported vPC pair in either switch order: %v", err),
+			)
+			return
+		}
+	}
+
+	if diag := state.SetModelData(outData); diag.HasError() {
+		resp.Diagnostics.Append(diag...)
+		return
+	}
+
+	setVpcPairID(&state)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func matchesImportedVpcPair(inData *NDFCVpcPairModel, outData *NDFCVpcPairModel) bool {
+	if inData == nil || outData == nil {
+		return false
+	}
+
+	return inData.FabricName == outData.FabricName &&
+		inData.SwitchId1 == outData.SwitchId1 &&
+		inData.SwitchId2 == outData.SwitchId2
 }

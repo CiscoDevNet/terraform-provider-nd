@@ -52,7 +52,7 @@ resource:
       tf_name: vpc_action
       type: String
       tf_hide: true
-      description: Template name for the vPC pair request
+      description: pair and unpair vPC request
       default_value: vpc_pair
       example: vpc_pair
 # Required - deploy or not 

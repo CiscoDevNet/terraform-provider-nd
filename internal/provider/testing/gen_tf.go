@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
+	"terraform-provider-nd/internal/manage/resource_vpc_pair"
 )
 
 var testOutputDir string
@@ -158,6 +159,14 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 			err = t.ExecuteTemplate(&output, "ND_INVENTORY_SWITCH_RSC", args)
 			if err != nil {
 				panic(fmt.Sprintf("Failed to execute ND_INVENTORY_SWITCH_RSC template: %v", err))
+			}
+
+		case *resource_vpc_pair.NDFCVpcPairModel:
+			args["VpcPair"] = v
+			args["RscName"] = rscName
+			err = t.ExecuteTemplate(&output, "ND_VPC_PAIR_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_VPC_PAIR_RSC template: %v", err))
 			}
 
 		default:
