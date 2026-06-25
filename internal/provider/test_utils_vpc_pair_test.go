@@ -6,12 +6,13 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+// Code generated;  DO NOT EDIT.
+
 package provider
 
 import (
 	"strconv"
-
-	"terraform-provider-nd/internal/manage/resource_vpc_pair"
+	"terraform-provider-nd/internal/resource_vpc_pair"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -32,11 +33,11 @@ func VpcPairModelHelperStateCheck(RscName string, c resource_vpc_pair.NDFCVpcPai
 	if c.UseVirtualPeerlink != nil {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("use_virtual_peerlink").String(), strconv.FormatBool(*c.UseVirtualPeerlink)))
 	}
+
 	if c.Deploy {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("deploy").String(), "true"))
 	} else {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("deploy").String(), "false"))
 	}
-
 	return ret
 }

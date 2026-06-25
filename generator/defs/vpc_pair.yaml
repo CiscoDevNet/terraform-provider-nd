@@ -4,6 +4,8 @@ resource:
   rest_endpoint: /manage/fabrics/{fabricName}/switches/{switchId}/vpcPair
   doc_category: Fabric
   generate_tf_resource: true
+  skip_equality: false
+  category: manage
   description: "Resource to configure vPC pair on a switch. Note only VXLAN EVPN fabric is supported"
   attributes:
   # Required - Unique Identifier for the vPC pair resource
