@@ -336,6 +336,11 @@ func FabricExternalResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "Loopback interface on smart switch for communication with Hypershield",
 				MarkdownDescription: "Loopback interface on smart switch for communication with Hypershield",
 			},
+			"id": schema.StringAttribute{
+				Computed:            true,
+				Description:         "The unique identifier of the fabric_external resource",
+				MarkdownDescription: "The unique identifier of the fabric_external resource",
+			},
 			"inband_day0_bootstrap": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -1319,6 +1324,7 @@ type FabricExternalModel struct {
 	HypershieldConnectivityProxyServer     types.String  `tfsdk:"hypershield_connectivity_proxy_server"`
 	HypershieldConnectivityProxyServerPort types.Int64   `tfsdk:"hypershield_connectivity_proxy_server_port"`
 	HypershieldConnectivitySourceIntf      types.String  `tfsdk:"hypershield_connectivity_source_intf"`
+	Id                                     types.String  `tfsdk:"id"`
 	InbandDay0Bootstrap                    types.Bool    `tfsdk:"inband_day0_bootstrap"`
 	InbandManagement                       types.Bool    `tfsdk:"inband_management"`
 	InterfaceFlowRules                     types.List    `tfsdk:"interface_flow_rules"`

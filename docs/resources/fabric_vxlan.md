@@ -568,6 +568,7 @@ resource "nd_fabric_vxlan" "test_resource_fabric_vxlan_1" {
 
 ### Read-Only
 
+- `id` (String) The unique identifier of the fabric_vxlan resource
 - `ipv6_anycast_rendezvous_point_ip_range` (String) Anycast RP IPv6 Address Range
 
 <a id="nestedatt--email"></a>

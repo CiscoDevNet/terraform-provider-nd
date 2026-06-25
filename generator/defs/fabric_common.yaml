@@ -5,6 +5,12 @@ resource:
   skip_equality: true
   category: manage
   attributes:
+  - model_name: id
+    tf_name: id
+    description: The unique identifier of the fabric_external resource
+    type: String
+    computed: true
+    payload_hide: true
   - model_name: name
     tf_name: fabric_name
     description: The name of the fabric_vxlan resource
