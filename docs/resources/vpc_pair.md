@@ -36,3 +36,15 @@ resource "nd_vpc_pair" "test_resource_vpc_pair_1" {
 ### Read-Only
 
 - `id` (String) The Terraform Unique Identifier for the vPC pair resource
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Format of ID used for import:
+# fabric_name/switch_id_1:switch_id_2
+terraform import nd_vpc_pair.test_resource_vpc_pair_1 new_nd4_fabric_vxlan/9FRGGCZT8LR:96E0DGXYPV2
+```
