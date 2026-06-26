@@ -25,7 +25,7 @@ resource:
       example: my_fabric
       payload_hide: true
  # Required - peer switch identifier
-    - &peerSwitchId
+    -
       model_name: peerSwitchId
       tf_name: switch_id_1
       description: Serial number of the peer switch in the vPC pair. 
@@ -33,7 +33,7 @@ resource:
       mandatory: true
       example: 9FRGGCZT8LR
  # Required - switch identifier
-    - &switchId
+    -
       model_name: switchId
       tf_name: switch_id_2
       description: Serial number of the switch where the vPC pair is being configured.
@@ -41,7 +41,7 @@ resource:
       mandatory: true
       example: 96E0DGXYPV2
  # Required - use virtual peer link or not
-    - &use_virtual_peer_link
+    -
       model_name: useVirtualPeerLink
       tf_name: use_virtual_peerlink
       description: Set to true to use virtual peer link
@@ -58,7 +58,7 @@ resource:
       default_value: vpc_pair
       example: vpc_pair
 # Required - deploy or not 
-    - &deploy
+    -
       model_name: deploy
       tf_name: deploy
       type: Bool
