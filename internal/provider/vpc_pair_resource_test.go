@@ -29,18 +29,18 @@ import (
 	nd "github.com/netascode/go-nd"
 )
 
-type vpcPairTestContext struct {
+type vpcPairTestctx struct {
 	configMap    map[string]string
 	fabricName   string
 	leafSwitches []string
 	spineSwitch  string
 }
 
-func loadVpcPairTestContext(t *testing.T) *vpcPairTestContext {
+func loadVpcPairTestctx(t *testing.T) *vpcPairTestctx {
 	t.Helper()
 
 	cfg := helper.GetConfig("global")
-	ctx := &vpcPairTestContext{
+	vpcPairTestctx := &vpcPairTestctx{
 		configMap: map[string]string{
 			"RscType":  "nd_vpc_pair",
 			"RscName":  "vpc_pair_test",
@@ -55,19 +55,19 @@ func loadVpcPairTestContext(t *testing.T) *vpcPairTestContext {
 	for _, sw := range cfg.ND.Inventory.Switches {
 		switch {
 		case strings.EqualFold(sw.Role, "leaf"):
-			ctx.leafSwitches = append(ctx.leafSwitches, sw.Serial)
-		case strings.EqualFold(sw.Role, "spine") && ctx.spineSwitch == "":
-			ctx.spineSwitch = sw.Serial
+			vpcPairTestctx.leafSwitches = append(vpcPairTestctx.leafSwitches, sw.Serial)
+		case strings.EqualFold(sw.Role, "spine") && vpcPairTestctx.spineSwitch == "":
+			vpcPairTestctx.spineSwitch = sw.Serial
 		}
 	}
 
-	return ctx
+	return vpcPairTestctx
 }
 
-func requireLeafPair(t *testing.T, ctx *vpcPairTestContext) {
+func requireLeafPair(t *testing.T, vpcPairTestctx *vpcPairTestctx) {
 	t.Helper()
 
-	if len(ctx.leafSwitches) < 2 {
+	if len(vpcPairTestctx.leafSwitches) < 2 {
 		t.Skip("Need at least 2 leaf switches in nd.inventory.switches for vPC pair acceptance tests")
 	}
 }
@@ -130,8 +130,8 @@ func deleteVpcPairOutsideTerraform(t *testing.T, model *resource_vpc_pair.NDFCVp
 }
 
 func TestAccVpcPairResourceCreateRead(t *testing.T) {
-	ctx := loadVpcPairTestContext(t)
-	requireLeafPair(t, ctx)
+	vpcPairTestctx := loadVpcPairTestctx(t)
+	requireLeafPair(t, vpcPairTestctx)
 
 	stepCount := 0
 	vpcPairRsc := new(resource_vpc_pair.NDFCVpcPairModel)
@@ -145,13 +145,13 @@ func TestAccVpcPairResourceCreateRead(t *testing.T) {
 				Config: func() string {
 					helper.GenerateVpcPairObject(
 						&vpcPairRsc,
-						ctx.fabricName,
-						ctx.leafSwitches[0],
-						ctx.leafSwitches[1],
+						vpcPairTestctx.fabricName,
+						vpcPairTestctx.leafSwitches[0],
+						vpcPairTestctx.leafSwitches[1],
 						false,
 						false,
 					)
-					return vpcPairConfigForStep(t, t.Name(), &stepCount, ctx.configMap, vpcPairRsc)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
 				}(),
 				Check: resource.ComposeTestCheckFunc(
 					VpcPairModelHelperStateCheck(
@@ -164,7 +164,7 @@ func TestAccVpcPairResourceCreateRead(t *testing.T) {
 			// Step 2 reapplies the same config to force a refresh/read cycle and
 			// confirm that state remains stable after the provider reads from ND.
 			{
-				Config: vpcPairConfigForStep(t, t.Name(), &stepCount, ctx.configMap, vpcPairRsc),
+				Config: vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc),
 				Check: resource.ComposeTestCheckFunc(
 					VpcPairModelHelperStateCheck(
 						"nd_vpc_pair.vpc_pair_test",
@@ -178,8 +178,8 @@ func TestAccVpcPairResourceCreateRead(t *testing.T) {
 }
 
 func TestAccVpcPairResourceUpdateDeploy(t *testing.T) {
-	ctx := loadVpcPairTestContext(t)
-	requireLeafPair(t, ctx)
+	vpcPairTestctx := loadVpcPairTestctx(t)
+	requireLeafPair(t, vpcPairTestctx)
 
 	stepCount := 0
 	vpcPairRsc := new(resource_vpc_pair.NDFCVpcPairModel)
@@ -194,13 +194,13 @@ func TestAccVpcPairResourceUpdateDeploy(t *testing.T) {
 				Config: func() string {
 					helper.GenerateVpcPairObject(
 						&vpcPairRsc,
-						ctx.fabricName,
-						ctx.leafSwitches[0],
-						ctx.leafSwitches[1],
+						vpcPairTestctx.fabricName,
+						vpcPairTestctx.leafSwitches[0],
+						vpcPairTestctx.leafSwitches[1],
 						false,
 						false,
 					)
-					return vpcPairConfigForStep(t, t.Name(), &stepCount, ctx.configMap, vpcPairRsc)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
 				}(),
 				Check: resource.ComposeTestCheckFunc(
 					VpcPairModelHelperStateCheck(
@@ -217,7 +217,7 @@ func TestAccVpcPairResourceUpdateDeploy(t *testing.T) {
 					helper.ModifyVpcPairObject(&vpcPairRsc, map[string]interface{}{
 						"deploy": true,
 					})
-					return vpcPairConfigForStep(t, t.Name(), &stepCount, ctx.configMap, vpcPairRsc)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
 				}(),
 				Check: resource.ComposeTestCheckFunc(
 					VpcPairModelHelperStateCheck(
@@ -232,8 +232,8 @@ func TestAccVpcPairResourceUpdateDeploy(t *testing.T) {
 }
 
 func TestAccVpcPairResourceRecreateAfterOutOfBandDelete(t *testing.T) {
-	ctx := loadVpcPairTestContext(t)
-	requireLeafPair(t, ctx)
+	vpcPairTestctx := loadVpcPairTestctx(t)
+	requireLeafPair(t, vpcPairTestctx)
 
 	stepCount := 0
 	vpcPairRsc := new(resource_vpc_pair.NDFCVpcPairModel)
@@ -248,13 +248,13 @@ func TestAccVpcPairResourceRecreateAfterOutOfBandDelete(t *testing.T) {
 				Config: func() string {
 					helper.GenerateVpcPairObject(
 						&vpcPairRsc,
-						ctx.fabricName,
-						ctx.leafSwitches[0],
-						ctx.leafSwitches[1],
+						vpcPairTestctx.fabricName,
+						vpcPairTestctx.leafSwitches[0],
+						vpcPairTestctx.leafSwitches[1],
 						false,
 						false,
 					)
-					return vpcPairConfigForStep(t, t.Name(), &stepCount, ctx.configMap, vpcPairRsc)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
 				}(),
 				Check: resource.ComposeTestCheckFunc(
 					VpcPairModelHelperStateCheck(
@@ -271,7 +271,7 @@ func TestAccVpcPairResourceRecreateAfterOutOfBandDelete(t *testing.T) {
 				PreConfig: func() {
 					deleteVpcPairOutsideTerraform(t, vpcPairRsc)
 				},
-				Config: vpcPairConfigForStep(t, t.Name(), &stepCount, ctx.configMap, vpcPairRsc),
+				Config: vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc),
 				Check: resource.ComposeTestCheckFunc(
 					VpcPairModelHelperStateCheck(
 						"nd_vpc_pair.vpc_pair_test",
@@ -285,8 +285,8 @@ func TestAccVpcPairResourceRecreateAfterOutOfBandDelete(t *testing.T) {
 }
 
 func TestAccVpcPairResourceDelete(t *testing.T) {
-	ctx := loadVpcPairTestContext(t)
-	requireLeafPair(t, ctx)
+	vpcPairTestctx := loadVpcPairTestctx(t)
+	requireLeafPair(t, vpcPairTestctx)
 
 	stepCount := 0
 	vpcPairRsc := new(resource_vpc_pair.NDFCVpcPairModel)
@@ -302,13 +302,13 @@ func TestAccVpcPairResourceDelete(t *testing.T) {
 				Config: func() string {
 					helper.GenerateVpcPairObject(
 						&vpcPairRsc,
-						ctx.fabricName,
-						ctx.leafSwitches[0],
-						ctx.leafSwitches[1],
+						vpcPairTestctx.fabricName,
+						vpcPairTestctx.leafSwitches[0],
+						vpcPairTestctx.leafSwitches[1],
 						false,
 						false,
 					)
-					return vpcPairConfigForStep(t, t.Name(), &stepCount, ctx.configMap, vpcPairRsc)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
 				}(),
 				Check: resource.ComposeTestCheckFunc(
 					VpcPairModelHelperStateCheck(
@@ -323,8 +323,8 @@ func TestAccVpcPairResourceDelete(t *testing.T) {
 }
 
 func TestAccVpcPairResourceImport(t *testing.T) {
-	ctx := loadVpcPairTestContext(t)
-	requireLeafPair(t, ctx)
+	vpcPairTestctx := loadVpcPairTestctx(t)
+	requireLeafPair(t, vpcPairTestctx)
 
 	stepCount := 0
 	vpcPairRsc := new(resource_vpc_pair.NDFCVpcPairModel)
@@ -339,13 +339,13 @@ func TestAccVpcPairResourceImport(t *testing.T) {
 				Config: func() string {
 					helper.GenerateVpcPairObject(
 						&vpcPairRsc,
-						ctx.fabricName,
-						ctx.leafSwitches[0],
-						ctx.leafSwitches[1],
+						vpcPairTestctx.fabricName,
+						vpcPairTestctx.leafSwitches[0],
+						vpcPairTestctx.leafSwitches[1],
 						false,
 						false,
 					)
-					return vpcPairConfigForStep(t, t.Name(), &stepCount, ctx.configMap, vpcPairRsc)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
 				}(),
 				Check: resource.ComposeTestCheckFunc(
 					VpcPairModelHelperStateCheck(
@@ -363,9 +363,9 @@ func TestAccVpcPairResourceImport(t *testing.T) {
 				ImportStateVerify: true,
 				ImportStateId: fmt.Sprintf(
 					"%s/%s:%s",
-					ctx.fabricName,
-					ctx.leafSwitches[0],
-					ctx.leafSwitches[1],
+					vpcPairTestctx.fabricName,
+					vpcPairTestctx.leafSwitches[0],
+					vpcPairTestctx.leafSwitches[1],
 				),
 			},
 		},
@@ -373,10 +373,10 @@ func TestAccVpcPairResourceImport(t *testing.T) {
 }
 
 func TestAccVpcPairResourceInvalidSwitchRole(t *testing.T) {
-	ctx := loadVpcPairTestContext(t)
-	requireLeafPair(t, ctx)
+	vpcPairTestctx := loadVpcPairTestctx(t)
+	requireLeafPair(t, vpcPairTestctx)
 
-	if ctx.spineSwitch == "" {
+	if vpcPairTestctx.spineSwitch == "" {
 		t.Skip("Need at least 1 spine switch in nd.inventory.switches for invalid-role vPC pair acceptance test")
 	}
 
@@ -393,13 +393,13 @@ func TestAccVpcPairResourceInvalidSwitchRole(t *testing.T) {
 				Config: func() string {
 					helper.GenerateVpcPairObject(
 						&vpcPairRsc,
-						ctx.fabricName,
-						ctx.spineSwitch,
-						ctx.leafSwitches[0],
+						vpcPairTestctx.fabricName,
+						vpcPairTestctx.spineSwitch,
+						vpcPairTestctx.leafSwitches[0],
 						false,
 						false,
 					)
-					return vpcPairConfigForStep(t, t.Name(), &stepCount, ctx.configMap, vpcPairRsc)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
 				}(),
 				ExpectError: regexp.MustCompile(`(?i)(not vpc capable|spines is not supported)`),
 			},
