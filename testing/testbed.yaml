@@ -34,23 +34,29 @@ nd:
       - device: "10.0.0.12"
         role: "leaf"
 
-# Inventory-specific test configuration
-inventory:
-  fabric: test_fabric_vxlan
-  user: admin
-  pwd: "password"
-  mode: discovery
-  max_hop: 0
-  preserve_config: false
-  deploy: true
-  recalculate: true
-  switches:
-    - serial: "SERIAL001"
-      ip: "10.0.0.1"
-      role: "spine"
-    - serial: "SERIAL002"
-      ip: "10.0.0.2"
-      role: "leaf"
-    - serial: "SERIAL003"
-      ip: "10.0.0.3"
-      role: "leaf"
+  # Switches used by vPC pair acceptance tests. If omitted, those tests skip.
+  vpc_pair:
+    switches:
+      - "SERIAL002"
+      - "SERIAL003"
+
+  # Inventory-specific test configuration
+  inventory:
+    fabric: test_fabric_vxlan
+    user: admin
+    pwd: "password"
+    mode: discovery
+    max_hop: 0
+    preserve_config: false
+    deploy: true
+    recalculate: true
+    switches:
+      - serial: "SERIAL001"
+        ip: "10.0.0.1"
+        role: "spine"
+      - serial: "SERIAL002"
+        ip: "10.0.0.2"
+        role: "leaf"
+      - serial: "SERIAL003"
+        ip: "10.0.0.3"
+        role: "leaf"

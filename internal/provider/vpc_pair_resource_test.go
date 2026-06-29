@@ -52,12 +52,21 @@ func loadVpcPairTestctx(t *testing.T) *vpcPairTestctx {
 		fabricName: cfg.ND.Fabric,
 	}
 
+	if cfg.ND.VpcPair == nil {
+		return vpcPairTestctx
+	}
+
+	inventoryBySerial := make(map[string]string, len(cfg.ND.Inventory.Switches))
 	for _, sw := range cfg.ND.Inventory.Switches {
-		switch {
-		case strings.EqualFold(sw.Role, "leaf"):
-			vpcPairTestctx.leafSwitches = append(vpcPairTestctx.leafSwitches, sw.Serial)
-		case strings.EqualFold(sw.Role, "spine") && vpcPairTestctx.spineSwitch == "":
+		inventoryBySerial[sw.Serial] = sw.Role
+		if strings.EqualFold(sw.Role, "spine") && vpcPairTestctx.spineSwitch == "" {
 			vpcPairTestctx.spineSwitch = sw.Serial
+		}
+	}
+
+	for _, serial := range cfg.ND.VpcPair.Switches {
+		if strings.EqualFold(inventoryBySerial[serial], "leaf") {
+			vpcPairTestctx.leafSwitches = append(vpcPairTestctx.leafSwitches, serial)
 		}
 	}
 
@@ -68,7 +77,7 @@ func requireLeafPair(t *testing.T, vpcPairTestctx *vpcPairTestctx) {
 	t.Helper()
 
 	if len(vpcPairTestctx.leafSwitches) < 2 {
-		t.Skip("Need at least 2 leaf switches in nd.inventory.switches for vPC pair acceptance tests")
+		t.Skip("Need nd.vpc_pair.switches with at least 2 inventory leaf switches for vPC pair acceptance tests")
 	}
 }
 
