@@ -19,9 +19,9 @@ resource:
   # Required - Fabric identifier
     - model_name: fabricName
       tf_name: fabric_name
-      description: Name of the fabric to add switches to
+      description: Name of the fabric resolved from the switch inventory
       type: String
-      mandatory: true
+      computed: true
       example: my_fabric
       payload_hide: true
  # Required - peer switch identifier
@@ -47,7 +47,7 @@ resource:
       description: Set to true to use virtual peer link
       ndfc_type: bool
       type: Bool
-      mandatory: true
+      mandatory: false
       example: false
  # Optional - vPC action
     - model_name: vpcAction
@@ -63,7 +63,7 @@ resource:
       tf_name: deploy
       type: Bool
       description: "Deploy vPC pair"
-      mandatory: true
+      mandatory: false
       ndfc_type: bool
       payload_hide: true
       example: true

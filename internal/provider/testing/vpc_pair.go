@@ -42,8 +42,6 @@ func ModifyVpcPairObject(
 
 	for key, val := range values {
 		switch key {
-		case "fabric_name":
-			vpcPair.FabricName = val.(string)
 		case "switch_id_1":
 			vpcPair.SwitchId1 = val.(string)
 		case "switch_id_2":

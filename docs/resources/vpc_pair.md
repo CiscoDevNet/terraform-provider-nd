@@ -14,7 +14,6 @@ Resource to configure vPC pair on a switch. Note only VXLAN EVPN fabric is suppo
 
 ```terraform
 resource "nd_vpc_pair" "test_resource_vpc_pair_1" {
-  fabric_name          = "my_fabric"
   switch_id_1          = "9FRGGCZT8LR"
   switch_id_2          = "96E0DGXYPV2"
   use_virtual_peerlink = false
@@ -27,14 +26,17 @@ resource "nd_vpc_pair" "test_resource_vpc_pair_1" {
 
 ### Required
 
-- `deploy` (Boolean) Deploy vPC pair
-- `fabric_name` (String) Name of the fabric to add switches to
 - `switch_id_1` (String) Serial number of the peer switch in the vPC pair.
 - `switch_id_2` (String) Serial number of the switch where the vPC pair is being configured.
+
+### Optional
+
+- `deploy` (Boolean) Deploy vPC pair
 - `use_virtual_peerlink` (Boolean) Set to true to use virtual peer link
 
 ### Read-Only
 
+- `fabric_name` (String) Name of the fabric resolved from the switch inventory
 - `id` (String) The Terraform Unique Identifier for the vPC pair resource
 
 ## Import

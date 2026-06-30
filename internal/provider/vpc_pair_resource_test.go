@@ -371,8 +371,7 @@ func TestAccVpcPairResourceImport(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateId: fmt.Sprintf(
-					"%s/%s:%s",
-					vpcPairTestctx.fabricName,
+					"%s:%s",
 					vpcPairTestctx.leafSwitches[0],
 					vpcPairTestctx.leafSwitches[1],
 				),

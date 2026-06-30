@@ -13,14 +13,14 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"deploy": schema.BoolAttribute{
-				Required:            true,
+				Optional:            true,
 				Description:         "Deploy vPC pair",
 				MarkdownDescription: "Deploy vPC pair",
 			},
 			"fabric_name": schema.StringAttribute{
-				Required:            true,
-				Description:         "Name of the fabric to add switches to",
-				MarkdownDescription: "Name of the fabric to add switches to",
+				Computed:            true,
+				Description:         "Name of the fabric resolved from the switch inventory",
+				MarkdownDescription: "Name of the fabric resolved from the switch inventory",
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -38,7 +38,7 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "Serial number of the switch where the vPC pair is being configured.",
 			},
 			"use_virtual_peerlink": schema.BoolAttribute{
-				Required:            true,
+				Optional:            true,
 				Description:         "Set to true to use virtual peer link",
 				MarkdownDescription: "Set to true to use virtual peer link",
 			},
