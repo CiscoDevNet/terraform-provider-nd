@@ -10,7 +10,6 @@ package api
 
 import (
 	"fmt"
-	"sync"
 	"terraform-provider-nd/internal/common/ndapi"
 
 	"github.com/netascode/go-nd"
@@ -24,15 +23,10 @@ const urlVpcPairRecmd = "/manage/fabrics/%s/switches/%s/vpcPairRecommendation?us
 
 type VpcPairAPI struct {
 	ndapi.NexusDashboardAPICommon
-	mutex              *sync.Mutex
 	GetRecommendations bool
 	FabricName         string
 	SwitchID           string
 	VirtualPeerLink    bool
-}
-
-func (c *VpcPairAPI) GetLock() *sync.Mutex {
-	return c.mutex
 }
 
 func (c *VpcPairAPI) GetUrl() string {
@@ -62,9 +56,8 @@ func (c *VpcPairAPI) RscName() string {
 	return "vpc-pair"
 }
 
-func NewVpcPairAPI(lock *sync.Mutex, client *nd.Client) *VpcPairAPI {
+func NewVpcPairAPI(client *nd.Client) *VpcPairAPI {
 	papi := new(VpcPairAPI)
-	papi.mutex = lock
 	papi.Client = client
 	papi.NexusDashboardAPI = papi
 	return papi
