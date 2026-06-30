@@ -54,9 +54,7 @@ resource:
       tf_name: vpc_action
       type: String
       tf_hide: true
-      description: pair and unpair vPC request
-      default_value: vpc_pair
-      example: vpc_pair
+      description: Internal vPC action sent by the provider runtime as pair or unPair
 # Required - deploy or not 
     -
       model_name: deploy
