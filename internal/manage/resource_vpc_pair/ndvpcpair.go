@@ -60,7 +60,7 @@ func (r *vpcPairResource) rscCreateVpcPair(ctx context.Context, dg *diag.Diagnos
 		"deploy":               inData.Deploy,
 	})
 
-	vpcPairAPI := api.NewVpcPairAPI(nil, r.manageClient.ApiClient)
+	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient)
 	vpcPairAPI.FabricName = inData.FabricName
 	vpcPairAPI.SwitchID = inData.SwitchId2
 	// set action to pair for create operation and use PUT method .
@@ -154,7 +154,7 @@ func (r *vpcPairResource) rscUpdateVpcPair(ctx context.Context, dg *diag.Diagnos
 		"deploy":               inData.Deploy,
 	})
 
-	vpcPairAPI := api.NewVpcPairAPI(nil, r.manageClient.ApiClient)
+	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient)
 	vpcPairAPI.FabricName = inData.FabricName
 	vpcPairAPI.SwitchID = inData.SwitchId2
 	inData.VpcAction = "pair"
@@ -210,7 +210,7 @@ func (r *vpcPairResource) rscUpdateVpcPair(ctx context.Context, dg *diag.Diagnos
 }
 
 func (r *vpcPairResource) readVpcPairState(ctx context.Context, inData *NDFCVpcPairModel) (*NDFCVpcPairModel, error) {
-	vpcPairAPI := api.NewVpcPairAPI(nil, r.manageClient.ApiClient)
+	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient)
 	vpcPairAPI.FabricName = inData.FabricName
 	vpcPairAPI.SwitchID = inData.SwitchId2
 
@@ -257,13 +257,33 @@ func (r *vpcPairResource) getVpcPairDeployState(ctx context.Context, fabricName,
 	invAPI.FabricName = fabricName
 	invAPI.SetOperation(api.OpGetAllSwitches)
 
+	tflog.Debug(ctx, "Fetching switches inventory to derive vPC pair deploy state", map[string]interface{}{
+		"fabric_name": fabricName,
+		"switch_id_1": switchID1,
+		"switch_id_2": switchID2,
+		"url":         invAPI.GetUrl(),
+	})
+
 	respData, err := invAPI.Get()
 	if err != nil {
+		tflog.Error(ctx, "Failed to fetch switches inventory for vPC pair deploy state", map[string]interface{}{
+			"fabric_name": fabricName,
+			"switch_id_1": switchID1,
+			"switch_id_2": switchID2,
+			"url":         invAPI.GetUrl(),
+			"error":       err.Error(),
+		})
 		return false, fmt.Errorf("could not read switches for fabric %s: %w", fabricName, err)
 	}
 
-	deployState, err := parseVpcPairDeployState(respData, switchID1, switchID2)
+	deployState, err := parseVpcPairDeployState(ctx, respData, switchID1, switchID2)
 	if err != nil {
+		tflog.Error(ctx, "Failed to parse switches inventory for vPC pair deploy state", map[string]interface{}{
+			"fabric_name": fabricName,
+			"switch_id_1": switchID1,
+			"switch_id_2": switchID2,
+			"error":       err.Error(),
+		})
 		return false, err
 	}
 
@@ -277,7 +297,7 @@ func (r *vpcPairResource) getVpcPairDeployState(ctx context.Context, fabricName,
 	return deployState, nil
 }
 
-func parseVpcPairDeployState(respData []byte, switchID1, switchID2 string) (bool, error) {
+func parseVpcPairDeployState(ctx context.Context, respData []byte, switchID1, switchID2 string) (bool, error) {
 	var resp fabricSwitchesResponse
 	if err := json.Unmarshal(respData, &resp); err != nil {
 		return false, fmt.Errorf("could not decode switches response: %w", err)
@@ -299,17 +319,39 @@ func parseVpcPairDeployState(respData []byte, switchID1, switchID2 string) (bool
 	}
 
 	if !sw1.VpcConfigured || !sw2.VpcConfigured {
+		tflog.Debug(ctx, "vPC pair deploy state is false because switches are not yet marked vPC-configured", map[string]interface{}{
+			"switch_id_1":         switchID1,
+			"switch_id_2":         switchID2,
+			"switch_1_configured": sw1.VpcConfigured,
+			"switch_2_configured": sw2.VpcConfigured,
+		})
 		return false, nil
 	}
 
 	if !strings.EqualFold(sw1.AdditionalData.ConfigSyncStatus, "inSync") || !strings.EqualFold(sw2.AdditionalData.ConfigSyncStatus, "inSync") {
+		tflog.Debug(ctx, "vPC pair deploy state is false because config sync is not inSync on both switches", map[string]interface{}{
+			"switch_id_1":          switchID1,
+			"switch_id_2":          switchID2,
+			"switch_1_sync_status": sw1.AdditionalData.ConfigSyncStatus,
+			"switch_2_sync_status": sw2.AdditionalData.ConfigSyncStatus,
+		})
 		return false, nil
 	}
 
 	if sw1.VpcData.PeerSwitchID != switchID2 || sw2.VpcData.PeerSwitchID != switchID1 {
+		tflog.Debug(ctx, "vPC pair deploy state is false because peer switch IDs do not match the requested pair", map[string]interface{}{
+			"switch_id_1":             switchID1,
+			"switch_id_2":             switchID2,
+			"switch_1_peer_switch_id": sw1.VpcData.PeerSwitchID,
+			"switch_2_peer_switch_id": sw2.VpcData.PeerSwitchID,
+		})
 		return false, nil
 	}
 
+	tflog.Debug(ctx, "vPC pair deploy state matched requested switches", map[string]interface{}{
+		"switch_id_1": switchID1,
+		"switch_id_2": switchID2,
+	})
 	return true, nil
 }
 
@@ -331,7 +373,7 @@ func (r *vpcPairResource) rscDeleteVpcPair(ctx context.Context, dg *diag.Diagnos
 		"deploy":      inData.Deploy,
 	})
 
-	vpcPairAPI := api.NewVpcPairAPI(nil, r.manageClient.ApiClient)
+	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient)
 	vpcPairAPI.FabricName = inData.FabricName
 	vpcPairAPI.SwitchID = inData.SwitchId2
 
