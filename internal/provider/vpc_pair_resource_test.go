@@ -409,7 +409,7 @@ func TestAccVpcPairResourceInvalidSwitchRole(t *testing.T) {
 					)
 					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
 				}(),
-				ExpectError: regexp.MustCompile(`(?i)(not vpc capable|spines is not supported)`),
+				ExpectError: regexp.MustCompile(`(?i)(not vpc capable|spines is not supported|different roles)`),
 			},
 		},
 	})
