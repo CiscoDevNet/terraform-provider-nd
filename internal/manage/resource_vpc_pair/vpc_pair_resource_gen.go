@@ -4,6 +4,8 @@ package resource_vpc_pair
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -24,18 +26,24 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
-				Description:         "The Terraform Unique Identifier for the vPC pair resource",
-				MarkdownDescription: "The Terraform Unique Identifier for the vPC pair resource",
+				Description:         "The Terraform Unique Identifier for the vPC pair resource `<fabric_name>/<switch1_serial_number>:<switch2_serial_number>`",
+				MarkdownDescription: "The Terraform Unique Identifier for the vPC pair resource `<fabric_name>/<switch1_serial_number>:<switch2_serial_number>`",
 			},
 			"switch_id_1": schema.StringAttribute{
 				Required:            true,
 				Description:         "Serial number of the peer switch in the vPC pair.",
 				MarkdownDescription: "Serial number of the peer switch in the vPC pair.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"switch_id_2": schema.StringAttribute{
 				Required:            true,
 				Description:         "Serial number of the switch where the vPC pair is being configured.",
 				MarkdownDescription: "Serial number of the switch where the vPC pair is being configured.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"use_virtual_peerlink": schema.BoolAttribute{
 				Optional:            true,

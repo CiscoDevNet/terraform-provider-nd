@@ -37,7 +37,7 @@ resource "nd_vpc_pair" "test_resource_vpc_pair_1" {
 ### Read-Only
 
 - `fabric_name` (String) Name of the fabric resolved from the switch inventory
-- `id` (String) The Terraform Unique Identifier for the vPC pair resource
+- `id` (String) The Terraform Unique Identifier for the vPC pair resource `<fabric_name>/<switch1_serial_number>:<switch2_serial_number>`
 
 ## Import
 
