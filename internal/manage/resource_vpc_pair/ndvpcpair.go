@@ -103,7 +103,7 @@ func (r *vpcPairResource) rscCreateVpcPair(ctx context.Context, dg *diag.Diagnos
 		"deploy":               inData.Deploy,
 	})
 
-	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient)
+	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
 	vpcPairAPI.SwitchID = inData.SwitchId2
 	// set action to pair for create operation and use PUT method .
@@ -226,7 +226,7 @@ func (r *vpcPairResource) rscUpdateVpcPair(ctx context.Context, dg *diag.Diagnos
 		"deploy":               inData.Deploy,
 	})
 
-	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient)
+	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
 	vpcPairAPI.SwitchID = inData.SwitchId2
 	inData.VpcAction = "pair"
@@ -286,7 +286,7 @@ func (r *vpcPairResource) readVpcPairState(ctx context.Context, inData *NDFCVpcP
 		return nil, fmt.Errorf("resolve vpc pair fabric: %w", err)
 	}
 
-	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient)
+	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
 	vpcPairAPI.SwitchID = inData.SwitchId2
 
@@ -309,7 +309,7 @@ func (r *vpcPairResource) fetchVpcPairState(ctx context.Context, inData *NDFCVpc
 		return nil, fmt.Errorf("resolve vpc pair fabric: %w", err)
 	}
 
-	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient)
+	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
 	vpcPairAPI.SwitchID = inData.SwitchId2
 
@@ -527,7 +527,7 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 		useVirtualPeerLink = *inData.UseVirtualPeerlink
 	}
 
-	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient)
+	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
 	vpcPairAPI.SwitchID = inData.SwitchId1
 	vpcPairAPI.GetRecommendations = true
@@ -718,7 +718,7 @@ func (r *vpcPairResource) rscDeleteVpcPair(ctx context.Context, dg *diag.Diagnos
 		"deploy":      inData.Deploy,
 	})
 
-	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient)
+	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
 	vpcPairAPI.SwitchID = inData.SwitchId2
 

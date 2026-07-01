@@ -56,9 +56,10 @@ func (c *VpcPairAPI) RscName() string {
 	return "vpc-pair"
 }
 
-func NewVpcPairAPI(client *nd.Client) *VpcPairAPI {
+func NewVpcPairAPI(client *nd.Client, fabric string) *VpcPairAPI {
 	papi := new(VpcPairAPI)
 	papi.Client = client
+	papi.Fabric = fabric
 	papi.NexusDashboardAPI = papi
 	return papi
 }
