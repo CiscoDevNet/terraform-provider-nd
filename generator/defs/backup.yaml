@@ -1,0 +1,59 @@
+resource:
+  name: backup
+  doc_category: Backup and Restore
+  category: infra
+  generate_tf_resource: true
+  skip_equality: true
+  attributes:
+  - model_name: name
+    tf_name: name
+    description: The name of the backup. Start with a lowercase letter or digit (a-z, 0-9), end with a lowercase letter or digit, may contain lowercase letters, digits, or hyphens in between, and must be at least 1 character long (a single letter/digit is OK).
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    validator: 'LengthBetween(1, 63), stringvalidator.RegexMatches(regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$`), "must start and end with an alphanumeric character and may contain lowercase letters, digits, hyphens, and dots")'
+    example: tf-backup-123
+
+  - model_name: type
+    tf_name: type
+    description: The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data.
+    type: String
+    optional: true
+    computed: true
+    use_state: true
+    tf_requires_replace: true
+    default_value: configOnly
+    enum_values:
+    - configOnly
+    - full
+    example: configOnly
+
+  - model_name: destination
+    tf_name: destination
+    description: The name of the remote location where the backup file will be saved. An empty string indicates a Nexus Dashboard local backup.
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    example: "sftp-server"
+
+  - model_name: encryptionKey
+    tf_name: encryption_key
+    description: The encryption key used to encrypt the backup file. Must be at least 8 characters long and contain at least one letter and one number.
+    type: String
+    mandatory: true
+    sensitive: true
+    write_only: true
+    tf_requires_replace: true
+    validator: 'LengthBetween(8, 256)'
+    example: backupKey123
+
+  - model_name: includeTelemetryOperationalData
+    tf_name: telemetry_data
+    description: When set to true, telemetry operational data will be collected. Telemetry operational data can only be collected when `type` is `full` and `destination` is a NAS remote storage location.
+    type: Bool
+    optional: true
+    computed: true
+    use_state: true
+    ndfc_type: bool
+    tf_requires_replace: true
+    example: false

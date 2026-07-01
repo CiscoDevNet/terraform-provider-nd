@@ -18,6 +18,7 @@ import (
 	"terraform-provider-nd/internal/registry"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -32,6 +33,7 @@ var (
 	_ provider.Provider = &NexusDashboardProvider{
 		version: "",
 	}
+	_ provider.ProviderWithActions = &NexusDashboardProvider{}
 )
 
 // NexusDashboardProvider is the provider implementation.
@@ -228,6 +230,7 @@ func (p *NexusDashboardProvider) Configure(ctx context.Context, req provider.Con
 	// type Configure methods.
 	resp.DataSourceData = ndClient
 	resp.ResourceData = ndClient
+	resp.ActionData = ndClient
 
 	tflog.Info(ctx, "Configured Nexus Dashboard client", map[string]any{"success": true})
 }
@@ -250,4 +253,13 @@ func (p *NexusDashboardProvider) Resources(_ context.Context) []func() resource.
 	resources = append(resources, registry.GetAllResources()...)
 
 	return resources
+}
+
+// Actions defines the actions implemented in the provider.
+func (p *NexusDashboardProvider) Actions(_ context.Context) []func() action.Action {
+	actions := []func() action.Action{}
+
+	actions = append(actions, registry.GetAllActions()...)
+
+	return actions
 }

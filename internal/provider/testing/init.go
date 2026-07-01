@@ -34,6 +34,7 @@ type NDConfig struct {
 	FabricPrefix    string           `yaml:"fabric_prefix"`
 	IntegrationTest IntegratedConfig `yaml:"integration_test"`
 	Inventory       InventoryConfig  `yaml:"inventory"`
+	Backup          BackupConfig     `yaml:"backup"`
 }
 
 // InventoryConfig represents the inventory-specific test configuration
@@ -69,6 +70,15 @@ type IntegratedConfig struct {
 type InventoryDevice struct {
 	Device string `yaml:"device"`
 	Role   string `yaml:"role"`
+}
+
+// BackupConfig represents the nd_backup-specific test configuration
+type BackupConfig struct {
+	Name          string `yaml:"name"`
+	Type          string `yaml:"type"`
+	Destination   string `yaml:"destination"`
+	EncryptionKey string `yaml:"encryption_key"`
+	TelemetryData bool   `yaml:"telemetry_data"`
 }
 
 var (

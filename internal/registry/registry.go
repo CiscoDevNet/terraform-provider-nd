@@ -9,6 +9,7 @@
 package registry
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
@@ -21,14 +22,18 @@ type ResourceFactory = func() resource.Resource
 
 type DataSourceFactory = func() datasource.DataSource
 
+type ActionFactory = func() action.Action
+
 type ModuleRegistry struct {
 	resources   map[string][]ResourceFactory
 	dataSources map[string][]DataSourceFactory
+	actions     map[string][]ActionFactory
 }
 
 var globalRegistry = &ModuleRegistry{
 	resources:   make(map[string][]ResourceFactory),
 	dataSources: make(map[string][]DataSourceFactory),
+	actions:     make(map[string][]ActionFactory),
 }
 
 func RegisterResource(moduleName string, factory ResourceFactory) {
@@ -45,12 +50,23 @@ func RegisterDataSource(moduleName string, factory DataSourceFactory) {
 	)
 }
 
+func RegisterAction(moduleName string, factory ActionFactory) {
+	globalRegistry.actions[moduleName] = append(
+		globalRegistry.actions[moduleName],
+		factory,
+	)
+}
+
 func GetResources(moduleName string) []ResourceFactory {
 	return globalRegistry.resources[moduleName]
 }
 
 func GetDataSources(moduleName string) []DataSourceFactory {
 	return globalRegistry.dataSources[moduleName]
+}
+
+func GetActions(moduleName string) []ActionFactory {
+	return globalRegistry.actions[moduleName]
 }
 
 func GetAllResources() []ResourceFactory {
@@ -64,6 +80,14 @@ func GetAllResources() []ResourceFactory {
 func GetAllDataSources() []DataSourceFactory {
 	var all []DataSourceFactory
 	for _, factories := range globalRegistry.dataSources {
+		all = append(all, factories...)
+	}
+	return all
+}
+
+func GetAllActions() []ActionFactory {
+	var all []ActionFactory
+	for _, factories := range globalRegistry.actions {
 		all = append(all, factories...)
 	}
 	return all
