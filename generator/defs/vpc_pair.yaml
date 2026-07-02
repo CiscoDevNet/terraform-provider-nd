@@ -47,21 +47,18 @@ resource:
       description: Set to true to use virtual peer link
       ndfc_type: bool
       type: Bool
-      mandatory: false
       example: false
     # Optional - vPC action
     - model_name: vpcAction
       tf_name: vpc_action
       type: String
       tf_hide: true
-      description: Internal vPC action sent by the provider runtime as pair or unPair
+      description: Internal vPC action sent by the provider runtime as (create/update) pair or (delete) unPair
     # Required - deploy or not
     - model_name: deploy
       tf_name: deploy
       type: Bool
       description: "Deploy vPC pair"
-      mandatory: false
-      default: false
       ndfc_type: bool
       payload_hide: true
       example: true
