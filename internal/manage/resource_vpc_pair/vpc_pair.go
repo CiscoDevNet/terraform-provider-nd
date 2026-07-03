@@ -301,6 +301,22 @@ func (r *vpcPairResource) ImportState(ctx context.Context, req resource.ImportSt
 		}
 	}
 
+	deployState, err := r.getVpcPairDeployState(ctx, outData.FabricName, outData.Switch1SerialNumber, outData.Switch2SerialNumber)
+	if err != nil {
+		tflog.Error(ctx, "Failed to resolve vPC pair deploy state during import", map[string]interface{}{
+			"fabric_name":            outData.FabricName,
+			"switch_1_serial_number": outData.Switch1SerialNumber,
+			"switch_2_serial_number": outData.Switch2SerialNumber,
+			"error":                  err.Error(),
+		})
+		resp.Diagnostics.AddError(
+			"Error Importing vPC Pair",
+			fmt.Sprintf("Could not determine imported vPC pair deploy state from fabric switches: %v", err),
+		)
+		return
+	}
+	outData.Deploy = deployState
+
 	if diag := state.SetModelData(outData); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return

@@ -22,25 +22,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-type fabricSwitchesResponse struct {
-	Switches []fabricSwitchEntry `json:"switches,omitempty"`
-}
-
-type fabricSwitchEntry struct {
-	SerialNumber   string                     `json:"serialNumber,omitempty"`
-	VpcConfigured  bool                       `json:"vpcConfigured,omitempty"`
-	AdditionalData fabricSwitchAdditionalData `json:"additionalData,omitempty"`
-	VpcData        fabricSwitchVpcData        `json:"vpcData,omitempty"`
-}
-
-type fabricSwitchAdditionalData struct {
-	ConfigSyncStatus string `json:"configSyncStatus,omitempty"`
-}
-
-type fabricSwitchVpcData struct {
-	PeerSwitchID string `json:"peerSwitchId,omitempty"`
-}
-
 type inventorySwitchesResponse struct {
 	Switches []inventorySwitchEntry `json:"switches,omitempty"`
 }
@@ -60,6 +41,20 @@ type vpcPairRecommendation struct {
 	Hostname             string `json:"hostname,omitempty"`
 	Recommended          bool   `json:"isRecommended,omitempty"`
 	RecommendationReason string `json:"recommendationReason,omitempty"`
+}
+
+type fabricVpcPairSwitchesResponse struct {
+	Switches []fabricVpcPairSwitchEntry `json:"switches,omitempty"`
+}
+
+type fabricVpcPairSwitchEntry struct {
+	SerialNumber  string                 `json:"serialNumber,omitempty"`
+	VpcConfigured bool                   `json:"vpcConfigured,omitempty"`
+	VpcData       fabricVpcPairSwitchVPC `json:"vpcData,omitempty"`
+}
+
+type fabricVpcPairSwitchVPC struct {
+	PeerSwitchID string `json:"peerSwitchId,omitempty"`
 }
 
 const (
@@ -346,13 +341,77 @@ func normalizeVpcPairState(inData, outData *NDFCVpcPairModel) *NDFCVpcPairModel 
 		if outData.Switch2SerialNumber == "" {
 			outData.Switch2SerialNumber = inData.Switch2SerialNumber
 		}
-
-		// Deploy is an operation flag in this resource, not durable remote state.
-		// Preserve the caller's value to avoid apply/read drift after update.
+		// Deploy is an operation flag for normal CRUD flows. Preserve the caller's
+		// value so apply/read cycles do not drift when the box already has the vPC
+		// configured from an earlier deployment.
 		outData.Deploy = inData.Deploy
 	}
 
 	return outData
+}
+
+func (r *vpcPairResource) getVpcPairDeployState(ctx context.Context, fabricName, switchID1, switchID2 string) (bool, error) {
+	inventoryAPI := api.NewInventoryAPI(r.manageClient.ApiClient, fabricName)
+	inventoryAPI.FabricName = fabricName
+	inventoryAPI.SetOperation(api.OpGetAllSwitches)
+
+	tflog.Debug(ctx, "Fetching fabric switches to resolve vPC pair deploy state", map[string]interface{}{
+		"fabric_name": fabricName,
+		"switch_id_1": switchID1,
+		"switch_id_2": switchID2,
+		"url":         inventoryAPI.GetUrl(),
+	})
+
+	respData, err := inventoryAPI.Get()
+	if err != nil {
+		return false, fmt.Errorf("GET %s: %w", inventoryAPI.GetUrl(), err)
+	}
+
+	var resp fabricVpcPairSwitchesResponse
+	if err := json.Unmarshal(respData, &resp); err != nil {
+		return false, fmt.Errorf("decode fabric switches response: %w", err)
+	}
+
+	switchesBySerial := make(map[string]fabricVpcPairSwitchEntry, len(resp.Switches))
+	for _, sw := range resp.Switches {
+		switchesBySerial[sw.SerialNumber] = sw
+	}
+
+	switch1, ok := switchesBySerial[switchID1]
+	if !ok {
+		tflog.Debug(ctx, "Switch missing from fabric switches response while resolving vPC deploy state", map[string]interface{}{
+			"fabric_name": fabricName,
+			"switch_id":   switchID1,
+		})
+		return false, nil
+	}
+
+	switch2, ok := switchesBySerial[switchID2]
+	if !ok {
+		tflog.Debug(ctx, "Switch missing from fabric switches response while resolving vPC deploy state", map[string]interface{}{
+			"fabric_name": fabricName,
+			"switch_id":   switchID2,
+		})
+		return false, nil
+	}
+
+	deployed := switch1.VpcConfigured &&
+		switch2.VpcConfigured &&
+		switch1.VpcData.PeerSwitchID == switchID2 &&
+		switch2.VpcData.PeerSwitchID == switchID1
+
+	tflog.Debug(ctx, "Resolved vPC pair deploy state from fabric switches", map[string]interface{}{
+		"fabric_name":         fabricName,
+		"switch_id_1":         switchID1,
+		"switch_id_2":         switchID2,
+		"switch_1_configured": switch1.VpcConfigured,
+		"switch_2_configured": switch2.VpcConfigured,
+		"switch_1_peer_id":    switch1.VpcData.PeerSwitchID,
+		"switch_2_peer_id":    switch2.VpcData.PeerSwitchID,
+		"deploy":              deployed,
+	})
+
+	return deployed, nil
 }
 
 func (r *vpcPairResource) waitForVpcPairReadable(ctx context.Context, inData *NDFCVpcPairModel) error {
@@ -399,51 +458,6 @@ func (r *vpcPairResource) waitForVpcPairReadable(ctx context.Context, inData *ND
 		case <-time.After(vpcPairReadPollInterval):
 		}
 	}
-}
-
-func (r *vpcPairResource) getVpcPairDeployState(ctx context.Context, fabricName, switchID1, switchID2 string) (bool, error) {
-	invAPI := api.NewInventoryAPI(r.manageClient.ApiClient, fabricName)
-	invAPI.FabricName = fabricName
-	invAPI.SetOperation(api.OpGetAllSwitches)
-
-	tflog.Debug(ctx, "Fetching switches inventory to derive vPC pair deploy state", map[string]interface{}{
-		"fabric_name": fabricName,
-		"switch_id_1": switchID1,
-		"switch_id_2": switchID2,
-		"url":         invAPI.GetUrl(),
-	})
-
-	respData, err := invAPI.Get()
-	if err != nil {
-		tflog.Error(ctx, "Failed to fetch switches inventory for vPC pair deploy state", map[string]interface{}{
-			"fabric_name": fabricName,
-			"switch_id_1": switchID1,
-			"switch_id_2": switchID2,
-			"url":         invAPI.GetUrl(),
-			"error":       err.Error(),
-		})
-		return false, fmt.Errorf("could not read switches for fabric %s: %w", fabricName, err)
-	}
-
-	deployState, err := parseVpcPairDeployState(ctx, respData, switchID1, switchID2)
-	if err != nil {
-		tflog.Error(ctx, "Failed to parse switches inventory for vPC pair deploy state", map[string]interface{}{
-			"fabric_name": fabricName,
-			"switch_id_1": switchID1,
-			"switch_id_2": switchID2,
-			"error":       err.Error(),
-		})
-		return false, err
-	}
-
-	tflog.Debug(ctx, "Derived vPC pair deploy state from switches API", map[string]interface{}{
-		"fabric_name": fabricName,
-		"switch_id_1": switchID1,
-		"switch_id_2": switchID2,
-		"deploy":      deployState,
-	})
-
-	return deployState, nil
 }
 
 func (r *vpcPairResource) ensureVpcPairFabricName(ctx context.Context, inData *NDFCVpcPairModel) error {
@@ -632,64 +646,6 @@ func (s inventorySwitchEntry) resolvedFabricName() string {
 		return s.FabricName
 	}
 	return strings.TrimSpace(s.Fabric)
-}
-
-func parseVpcPairDeployState(ctx context.Context, respData []byte, switchID1, switchID2 string) (bool, error) {
-	var resp fabricSwitchesResponse
-	if err := json.Unmarshal(respData, &resp); err != nil {
-		return false, fmt.Errorf("could not decode switches response: %w", err)
-	}
-
-	switchesBySerial := make(map[string]fabricSwitchEntry, len(resp.Switches))
-	for _, sw := range resp.Switches {
-		switchesBySerial[sw.SerialNumber] = sw
-	}
-
-	sw1, ok := switchesBySerial[switchID1]
-	if !ok {
-		return false, fmt.Errorf("switch %s not found in switches response", switchID1)
-	}
-
-	sw2, ok := switchesBySerial[switchID2]
-	if !ok {
-		return false, fmt.Errorf("switch %s not found in switches response", switchID2)
-	}
-
-	if !sw1.VpcConfigured || !sw2.VpcConfigured {
-		tflog.Debug(ctx, "vPC pair deploy state is false because switches are not yet marked vPC-configured", map[string]interface{}{
-			"switch_id_1":         switchID1,
-			"switch_id_2":         switchID2,
-			"switch_1_configured": sw1.VpcConfigured,
-			"switch_2_configured": sw2.VpcConfigured,
-		})
-		return false, nil
-	}
-
-	if !strings.EqualFold(sw1.AdditionalData.ConfigSyncStatus, "inSync") || !strings.EqualFold(sw2.AdditionalData.ConfigSyncStatus, "inSync") {
-		tflog.Debug(ctx, "vPC pair deploy state is false because config sync is not inSync on both switches", map[string]interface{}{
-			"switch_id_1":          switchID1,
-			"switch_id_2":          switchID2,
-			"switch_1_sync_status": sw1.AdditionalData.ConfigSyncStatus,
-			"switch_2_sync_status": sw2.AdditionalData.ConfigSyncStatus,
-		})
-		return false, nil
-	}
-
-	if sw1.VpcData.PeerSwitchID != switchID2 || sw2.VpcData.PeerSwitchID != switchID1 {
-		tflog.Debug(ctx, "vPC pair deploy state is false because peer switch IDs do not match the requested pair", map[string]interface{}{
-			"switch_id_1":             switchID1,
-			"switch_id_2":             switchID2,
-			"switch_1_peer_switch_id": sw1.VpcData.PeerSwitchID,
-			"switch_2_peer_switch_id": sw2.VpcData.PeerSwitchID,
-		})
-		return false, nil
-	}
-
-	tflog.Debug(ctx, "vPC pair deploy state matched requested switches", map[string]interface{}{
-		"switch_id_1": switchID1,
-		"switch_id_2": switchID2,
-	})
-	return true, nil
 }
 
 // DeleteVpcPair deletes a vPC pair by fabric and switch identifier.

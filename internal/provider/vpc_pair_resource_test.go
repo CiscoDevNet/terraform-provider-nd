@@ -207,7 +207,7 @@ func TestAccVpcPairResourceUpdateDeploy(t *testing.T) {
 						vpcPairTestctx.leafSwitches[0],
 						vpcPairTestctx.leafSwitches[1],
 						false,
-						false,
+						true,
 					)
 					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
 				}(),
@@ -374,6 +374,85 @@ func TestAccVpcPairResourceImport(t *testing.T) {
 					"%s:%s",
 					vpcPairTestctx.leafSwitches[0],
 					vpcPairTestctx.leafSwitches[1],
+				),
+			},
+		},
+	})
+}
+
+func TestAccVpcPairResourceImportThenUpdateDeploy(t *testing.T) {
+	vpcPairTestctx := loadVpcPairTestctx(t)
+	requireLeafPair(t, vpcPairTestctx)
+
+	stepCount := 0
+	vpcPairRsc := new(resource_vpc_pair.NDFCVpcPairModel)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1 creates the vPC pair without deployment so the imported
+			// state starts with deploy=false, matching the manual workflow.
+			{
+				Config: func() string {
+					helper.GenerateVpcPairObject(
+						&vpcPairRsc,
+						vpcPairTestctx.fabricName,
+						vpcPairTestctx.leafSwitches[0],
+						vpcPairTestctx.leafSwitches[1],
+						false,
+						false,
+					)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
+				}(),
+				Check: resource.ComposeTestCheckFunc(
+					VpcPairModelHelperStateCheck(
+						"nd_vpc_pair.vpc_pair_test",
+						*vpcPairRsc,
+						path.Empty(),
+					)...,
+				),
+			},
+			// Step 2 imports the same pair back into empty state using the
+			// compound identifier, reproducing the manual import flow.
+			{
+				ResourceName:      "nd_vpc_pair.vpc_pair_test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId: fmt.Sprintf(
+					"%s/%s:%s",
+					vpcPairTestctx.fabricName,
+					vpcPairTestctx.leafSwitches[0],
+					vpcPairTestctx.leafSwitches[1],
+				),
+			},
+			// Step 3 reapplies the unchanged config and expects no behavioral
+			// drift after import, matching the "terraform plan" no-op check.
+			{
+				Config: vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc),
+				Check: resource.ComposeTestCheckFunc(
+					VpcPairModelHelperStateCheck(
+						"nd_vpc_pair.vpc_pair_test",
+						*vpcPairRsc,
+						path.Empty(),
+					)...,
+				),
+			},
+			// Step 4 changes only deploy from false to true and verifies the
+			// provider performs an in-place update after import.
+			{
+				Config: func() string {
+					helper.ModifyVpcPairObject(&vpcPairRsc, map[string]interface{}{
+						"deploy": true,
+					})
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
+				}(),
+				Check: resource.ComposeTestCheckFunc(
+					VpcPairModelHelperStateCheck(
+						"nd_vpc_pair.vpc_pair_test",
+						*vpcPairRsc,
+						path.Empty(),
+					)...,
 				),
 			},
 		},
