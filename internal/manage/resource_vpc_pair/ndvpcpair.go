@@ -237,7 +237,6 @@ func (r *vpcPairResource) rscUpdateVpcPair(ctx context.Context, dg *diag.Diagnos
 			"Error Updating vPC Pair",
 			fmt.Sprintf("Could not update vPC pair, data marshal error: %v", err),
 		)
-		tflog.Error(ctx, "Error Updating vPC Pair", map[string]interface{}{"error": err.Error()})
 		return
 	}
 
@@ -254,7 +253,6 @@ func (r *vpcPairResource) rscUpdateVpcPair(ctx context.Context, dg *diag.Diagnos
 			"Error Updating vPC Pair",
 			fmt.Sprintf("Could not update vPC pair, unexpected error: %v %v", err, res),
 		)
-		tflog.Error(ctx, "Error Updating vPC Pair", map[string]interface{}{"error": err.Error()})
 		return
 	}
 
@@ -692,7 +690,6 @@ func (r *vpcPairResource) rscDeleteVpcPair(ctx context.Context, dg *diag.Diagnos
 			"Error Deleting vPC Pair",
 			fmt.Sprintf("Could not delete vPC pair, data marshal error: %v", err),
 		)
-		tflog.Error(ctx, "Error Deleting vPC Pair", map[string]interface{}{"error": err.Error()})
 		return
 	}
 
@@ -709,7 +706,6 @@ func (r *vpcPairResource) rscDeleteVpcPair(ctx context.Context, dg *diag.Diagnos
 			"Error Deleting vPC Pair",
 			fmt.Sprintf("Could not delete vPC pair, unexpected error: %v %v", err, res),
 		)
-		tflog.Error(ctx, "Error Deleting vPC Pair", map[string]interface{}{"error": err.Error()})
 		return
 	}
 
