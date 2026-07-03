@@ -173,17 +173,6 @@ func isVpcPairNotFoundError(err error) bool {
 	return strings.Contains(msg, "StatusCode 404")
 }
 
-/*
-	r.rscGetVpcPair(ctx, &resp.Diagnostics, &state)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-}
-*/
-
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *vpcPairResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan VpcPairModel
