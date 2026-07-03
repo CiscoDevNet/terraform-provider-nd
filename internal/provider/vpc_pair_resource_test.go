@@ -114,7 +114,7 @@ func deleteVpcPairOutsideTerraform(t *testing.T, model *resource_vpc_pair.NDFCVp
 	client := newVpcPairTestClient(t)
 	vpcPairAPI := api.NewVpcPairAPI(client, model.FabricName)
 	vpcPairAPI.FabricName = model.FabricName
-	vpcPairAPI.SwitchID = model.SwitchId2
+	vpcPairAPI.SwitchID = model.Switch2SerialNumber
 
 	deleteRequest := *model
 	deleteRequest.VpcAction = "unPair"

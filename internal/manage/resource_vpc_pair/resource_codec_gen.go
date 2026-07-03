@@ -16,12 +16,12 @@ import (
 )
 
 type NDFCVpcPairModel struct {
-	FabricName         string `json:"-"`
-	SwitchId1          string `json:"peerSwitchId,omitempty"`
-	SwitchId2          string `json:"switchId,omitempty"`
-	UseVirtualPeerlink *bool  `json:"useVirtualPeerLink,omitempty"`
-	VpcAction          string `json:"vpcAction,omitempty"`
-	Deploy             bool   `json:"-"`
+	FabricName          string `json:"-"`
+	Switch1SerialNumber string `json:"peerSwitchId,omitempty"`
+	Switch2SerialNumber string `json:"switchId,omitempty"`
+	UseVirtualPeerlink  *bool  `json:"useVirtualPeerLink,omitempty"`
+	VpcAction           string `json:"vpcAction,omitempty"`
+	Deploy              bool   `json:"-"`
 }
 
 func (v *VpcPairModel) SetModelData(jsonData *NDFCVpcPairModel) diag.Diagnostics {
@@ -34,16 +34,16 @@ func (v *VpcPairModel) SetModelData(jsonData *NDFCVpcPairModel) diag.Diagnostics
 		v.FabricName = types.StringNull()
 	}
 
-	if jsonData.SwitchId1 != "" {
-		v.SwitchId1 = types.StringValue(jsonData.SwitchId1)
+	if jsonData.Switch1SerialNumber != "" {
+		v.Switch1SerialNumber = types.StringValue(jsonData.Switch1SerialNumber)
 	} else {
-		v.SwitchId1 = types.StringNull()
+		v.Switch1SerialNumber = types.StringNull()
 	}
 
-	if jsonData.SwitchId2 != "" {
-		v.SwitchId2 = types.StringValue(jsonData.SwitchId2)
+	if jsonData.Switch2SerialNumber != "" {
+		v.Switch2SerialNumber = types.StringValue(jsonData.Switch2SerialNumber)
 	} else {
-		v.SwitchId2 = types.StringNull()
+		v.Switch2SerialNumber = types.StringNull()
 	}
 
 	if jsonData.UseVirtualPeerlink != nil {
@@ -63,16 +63,16 @@ func (v VpcPairModel) GetModelData() *NDFCVpcPairModel {
 
 	//MARSHAL_BODY
 
-	if !v.SwitchId1.IsNull() && !v.SwitchId1.IsUnknown() {
-		data.SwitchId1 = v.SwitchId1.ValueString()
+	if !v.Switch1SerialNumber.IsNull() && !v.Switch1SerialNumber.IsUnknown() {
+		data.Switch1SerialNumber = v.Switch1SerialNumber.ValueString()
 	} else {
-		data.SwitchId1 = ""
+		data.Switch1SerialNumber = ""
 	}
 
-	if !v.SwitchId2.IsNull() && !v.SwitchId2.IsUnknown() {
-		data.SwitchId2 = v.SwitchId2.ValueString()
+	if !v.Switch2SerialNumber.IsNull() && !v.Switch2SerialNumber.IsUnknown() {
+		data.Switch2SerialNumber = v.Switch2SerialNumber.ValueString()
 	} else {
-		data.SwitchId2 = ""
+		data.Switch2SerialNumber = ""
 	}
 
 	if !v.UseVirtualPeerlink.IsNull() && !v.UseVirtualPeerlink.IsUnknown() {

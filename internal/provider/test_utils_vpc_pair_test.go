@@ -24,11 +24,11 @@ func VpcPairModelHelperStateCheck(RscName string, c resource_vpc_pair.NDFCVpcPai
 	if c.FabricName != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("fabric_name").String(), c.FabricName))
 	}
-	if c.SwitchId1 != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("switch_id_1").String(), c.SwitchId1))
+	if c.Switch1SerialNumber != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("switch_1_serial_number").String(), c.Switch1SerialNumber))
 	}
-	if c.SwitchId2 != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("switch_id_2").String(), c.SwitchId2))
+	if c.Switch2SerialNumber != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("switch_2_serial_number").String(), c.Switch2SerialNumber))
 	}
 	if c.UseVirtualPeerlink != nil {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("use_virtual_peerlink").String(), strconv.FormatBool(*c.UseVirtualPeerlink)))

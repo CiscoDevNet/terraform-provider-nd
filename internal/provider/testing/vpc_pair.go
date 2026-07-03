@@ -23,8 +23,8 @@ func GenerateVpcPairObject(
 	vpcPair := new(resource_vpc_pair.NDFCVpcPairModel)
 
 	vpcPair.FabricName = fabricName
-	vpcPair.SwitchId1 = switchID1
-	vpcPair.SwitchId2 = switchID2
+	vpcPair.Switch1SerialNumber = switchID1
+	vpcPair.Switch2SerialNumber = switchID2
 	vpcPair.UseVirtualPeerlink = &useVirtualPeerLink
 	vpcPair.Deploy = deploy
 
@@ -42,10 +42,10 @@ func ModifyVpcPairObject(
 
 	for key, val := range values {
 		switch key {
-		case "switch_id_1":
-			vpcPair.SwitchId1 = val.(string)
-		case "switch_id_2":
-			vpcPair.SwitchId2 = val.(string)
+		case "switch_1_serial_number":
+			vpcPair.Switch1SerialNumber = val.(string)
+		case "switch_2_serial_number":
+			vpcPair.Switch2SerialNumber = val.(string)
 		case "use_virtual_peerlink":
 			v := val.(bool)
 			vpcPair.UseVirtualPeerlink = &v

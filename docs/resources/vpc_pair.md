@@ -14,10 +14,10 @@ Resource to configure vPC pair on a switch. Note only VXLAN EVPN fabric is suppo
 
 ```terraform
 resource "nd_vpc_pair" "test_resource_vpc_pair_1" {
-  switch_id_1          = "9FRGGCZT8LR"
-  switch_id_2          = "96E0DGXYPV2"
-  use_virtual_peerlink = false
-  deploy               = true
+  switch_1_serial_number = "9FRGGCZT8LR"
+  switch_2_serial_number = "96E0DGXYPV2"
+  use_virtual_peerlink   = false
+  deploy                 = true
 }
 ```
 
@@ -26,8 +26,8 @@ resource "nd_vpc_pair" "test_resource_vpc_pair_1" {
 
 ### Required
 
-- `switch_id_1` (String) Serial number of the peer switch in the vPC pair.
-- `switch_id_2` (String) Serial number of the switch where the vPC pair is being configured.
+- `switch_1_serial_number` (String) Serial number of the peer switch in the vPC pair.
+- `switch_2_serial_number` (String) Serial number of the switch where the vPC pair is being configured.
 
 ### Optional
 
@@ -47,6 +47,6 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 # Format of ID used for import:
-# fabric_name/switch_id_1:switch_id_2
+# fabric_name/switch_1_serial_number:switch_2_serial_number
 terraform import nd_vpc_pair.test_resource_vpc_pair_1 new_nd4_fabric_vxlan/9FRGGCZT8LR:96E0DGXYPV2
 ```

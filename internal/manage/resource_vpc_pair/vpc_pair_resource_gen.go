@@ -29,7 +29,7 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "The Terraform Unique Identifier for the vPC pair resource `<fabric_name>/<switch1_serial_number>:<switch2_serial_number>`",
 				MarkdownDescription: "The Terraform Unique Identifier for the vPC pair resource `<fabric_name>/<switch1_serial_number>:<switch2_serial_number>`",
 			},
-			"switch_id_1": schema.StringAttribute{
+			"switch_1_serial_number": schema.StringAttribute{
 				Required:            true,
 				Description:         "Serial number of the peer switch in the vPC pair.",
 				MarkdownDescription: "Serial number of the peer switch in the vPC pair.",
@@ -37,7 +37,7 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"switch_id_2": schema.StringAttribute{
+			"switch_2_serial_number": schema.StringAttribute{
 				Required:            true,
 				Description:         "Serial number of the switch where the vPC pair is being configured.",
 				MarkdownDescription: "Serial number of the switch where the vPC pair is being configured.",
@@ -57,10 +57,10 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 }
 
 type VpcPairModel struct {
-	Deploy             types.Bool   `tfsdk:"deploy"`
-	FabricName         types.String `tfsdk:"fabric_name"`
-	Id                 types.String `tfsdk:"id"`
-	SwitchId1          types.String `tfsdk:"switch_id_1"`
-	SwitchId2          types.String `tfsdk:"switch_id_2"`
-	UseVirtualPeerlink types.Bool   `tfsdk:"use_virtual_peerlink"`
+	Deploy              types.Bool   `tfsdk:"deploy"`
+	FabricName          types.String `tfsdk:"fabric_name"`
+	Id                  types.String `tfsdk:"id"`
+	Switch1SerialNumber types.String `tfsdk:"switch_1_serial_number"`
+	Switch2SerialNumber types.String `tfsdk:"switch_2_serial_number"`
+	UseVirtualPeerlink  types.Bool   `tfsdk:"use_virtual_peerlink"`
 }

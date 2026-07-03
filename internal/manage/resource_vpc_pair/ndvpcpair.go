@@ -97,15 +97,15 @@ func (r *vpcPairResource) rscCreateVpcPair(ctx context.Context, dg *diag.Diagnos
 
 	tflog.Debug(ctx, "Preparing vPC pair create request", map[string]interface{}{
 		"fabric_name":          inData.FabricName,
-		"switch_id_1":          inData.SwitchId1,
-		"switch_id_2":          inData.SwitchId2,
+		"switch_id_1":          inData.Switch1SerialNumber,
+		"switch_id_2":          inData.Switch2SerialNumber,
 		"use_virtual_peerlink": inData.UseVirtualPeerlink,
 		"deploy":               inData.Deploy,
 	})
 
 	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
-	vpcPairAPI.SwitchID = inData.SwitchId2
+	vpcPairAPI.SwitchID = inData.Switch2SerialNumber
 	// set action to pair for create operation and use PUT method .
 	inData.VpcAction = "pair"
 
@@ -113,7 +113,7 @@ func (r *vpcPairResource) rscCreateVpcPair(ctx context.Context, dg *diag.Diagnos
 	if err != nil {
 		tflog.Error(ctx, "Failed to marshal vPC pair create payload", map[string]interface{}{
 			"fabric_name": inData.FabricName,
-			"switch_id_2": inData.SwitchId2,
+			"switch_id_2": inData.Switch2SerialNumber,
 			"error":       err.Error(),
 		})
 		dg.AddError(
@@ -127,7 +127,7 @@ func (r *vpcPairResource) rscCreateVpcPair(ctx context.Context, dg *diag.Diagnos
 	if err != nil {
 		tflog.Error(ctx, "vPC pair create API call failed", map[string]interface{}{
 			"fabric_name": inData.FabricName,
-			"switch_id_2": inData.SwitchId2,
+			"switch_id_2": inData.Switch2SerialNumber,
 			"url":         vpcPairAPI.PutUrl(),
 			"error":       err.Error(),
 			"response":    res.Raw,
@@ -144,7 +144,7 @@ func (r *vpcPairResource) rscCreateVpcPair(ctx context.Context, dg *diag.Diagnos
 	if dg.HasError() {
 		tflog.Error(ctx, "Config save and deploy failed during vPC pair create", map[string]interface{}{
 			"fabric_name": inData.FabricName,
-			"switch_id_2": inData.SwitchId2,
+			"switch_id_2": inData.Switch2SerialNumber,
 			"deploy":      inData.Deploy,
 		})
 		return
@@ -152,14 +152,14 @@ func (r *vpcPairResource) rscCreateVpcPair(ctx context.Context, dg *diag.Diagnos
 
 	tflog.Debug(ctx, "vPC pair create request completed, refreshing state", map[string]interface{}{
 		"fabric_name": inData.FabricName,
-		"switch_id_2": inData.SwitchId2,
+		"switch_id_2": inData.Switch2SerialNumber,
 	})
 
 	if err := r.waitForVpcPairReadable(ctx, inData); err != nil {
 		tflog.Error(ctx, "Timed out waiting for vPC pair to become readable after create", map[string]interface{}{
 			"fabric_name": inData.FabricName,
-			"switch_id_1": inData.SwitchId1,
-			"switch_id_2": inData.SwitchId2,
+			"switch_id_1": inData.Switch1SerialNumber,
+			"switch_id_2": inData.Switch2SerialNumber,
 			"error":       err.Error(),
 		})
 		dg.AddError(
@@ -178,7 +178,7 @@ func (r *vpcPairResource) rscGetVpcPair(ctx context.Context, dg *diag.Diagnostic
 	if err != nil {
 		tflog.Error(ctx, "Failed to read vPC pair state", map[string]interface{}{
 			"fabric_name": in.GetModelData().FabricName,
-			"switch_id_2": in.GetModelData().SwitchId2,
+			"switch_id_2": in.GetModelData().Switch2SerialNumber,
 			"error":       err.Error(),
 		})
 		dg.AddError(
@@ -195,7 +195,7 @@ func (r *vpcPairResource) rscGetVpcPair(ctx context.Context, dg *diag.Diagnostic
 
 	tflog.Debug(ctx, "Read vPC pair", map[string]interface{}{
 		"fabric_name": outData.FabricName,
-		"switch_id":   outData.SwitchId2,
+		"switch_id":   outData.Switch2SerialNumber,
 	})
 }
 
@@ -220,22 +220,22 @@ func (r *vpcPairResource) rscUpdateVpcPair(ctx context.Context, dg *diag.Diagnos
 
 	tflog.Debug(ctx, "Preparing vPC pair update request", map[string]interface{}{
 		"fabric_name":          inData.FabricName,
-		"switch_id_1":          inData.SwitchId1,
-		"switch_id_2":          inData.SwitchId2,
+		"switch_id_1":          inData.Switch1SerialNumber,
+		"switch_id_2":          inData.Switch2SerialNumber,
 		"use_virtual_peerlink": inData.UseVirtualPeerlink,
 		"deploy":               inData.Deploy,
 	})
 
 	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
-	vpcPairAPI.SwitchID = inData.SwitchId2
+	vpcPairAPI.SwitchID = inData.Switch2SerialNumber
 	inData.VpcAction = "pair"
 
 	payload, err := json.Marshal(inData)
 	if err != nil {
 		tflog.Error(ctx, "Failed to marshal vPC pair update payload", map[string]interface{}{
 			"fabric_name": inData.FabricName,
-			"switch_id_2": inData.SwitchId2,
+			"switch_id_2": inData.Switch2SerialNumber,
 			"error":       err.Error(),
 		})
 		dg.AddError(
@@ -250,7 +250,7 @@ func (r *vpcPairResource) rscUpdateVpcPair(ctx context.Context, dg *diag.Diagnos
 	if err != nil {
 		tflog.Error(ctx, "vPC pair update API call failed", map[string]interface{}{
 			"fabric_name": inData.FabricName,
-			"switch_id_2": inData.SwitchId2,
+			"switch_id_2": inData.Switch2SerialNumber,
 			"url":         vpcPairAPI.PutUrl(),
 			"error":       err.Error(),
 			"response":    res.Raw,
@@ -268,7 +268,7 @@ func (r *vpcPairResource) rscUpdateVpcPair(ctx context.Context, dg *diag.Diagnos
 	if dg.HasError() {
 		tflog.Error(ctx, "Config save and deploy failed during vPC pair update", map[string]interface{}{
 			"fabric_name": inData.FabricName,
-			"switch_id_2": inData.SwitchId2,
+			"switch_id_2": inData.Switch2SerialNumber,
 			"deploy":      inData.Deploy,
 		})
 		return
@@ -277,7 +277,7 @@ func (r *vpcPairResource) rscUpdateVpcPair(ctx context.Context, dg *diag.Diagnos
 	r.rscGetVpcPair(ctx, dg, vpcPairModel)
 	tflog.Debug(ctx, "vPC pair update completed", map[string]interface{}{
 		"fabric_name": inData.FabricName,
-		"switch_id_2": inData.SwitchId2,
+		"switch_id_2": inData.Switch2SerialNumber,
 	})
 }
 
@@ -288,11 +288,11 @@ func (r *vpcPairResource) readVpcPairState(ctx context.Context, inData *NDFCVpcP
 
 	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
-	vpcPairAPI.SwitchID = inData.SwitchId2
+	vpcPairAPI.SwitchID = inData.Switch2SerialNumber
 
 	tflog.Debug(ctx, "Fetching vPC pair state from ND", map[string]interface{}{
 		"fabric_name": inData.FabricName,
-		"switch_id_2": inData.SwitchId2,
+		"switch_id_2": inData.Switch2SerialNumber,
 		"url":         vpcPairAPI.GetUrl(),
 	})
 
@@ -311,7 +311,7 @@ func (r *vpcPairResource) fetchVpcPairState(ctx context.Context, inData *NDFCVpc
 
 	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
-	vpcPairAPI.SwitchID = inData.SwitchId2
+	vpcPairAPI.SwitchID = inData.Switch2SerialNumber
 
 	respData, err := vpcPairAPI.Get()
 	if err != nil {
@@ -322,7 +322,7 @@ func (r *vpcPairResource) fetchVpcPairState(ctx context.Context, inData *NDFCVpc
 	if err := json.Unmarshal(respData, &outData); err != nil {
 		tflog.Error(ctx, "Failed to decode vPC pair state response", map[string]interface{}{
 			"fabric_name": inData.FabricName,
-			"switch_id_2": inData.SwitchId2,
+			"switch_id_2": inData.Switch2SerialNumber,
 			"error":       err.Error(),
 		})
 		return nil, fmt.Errorf("decode vpc pair response: %w", err)
@@ -340,11 +340,11 @@ func normalizeVpcPairState(inData, outData *NDFCVpcPairModel) *NDFCVpcPairModel 
 		if outData.FabricName == "" {
 			outData.FabricName = inData.FabricName
 		}
-		if outData.SwitchId1 == "" {
-			outData.SwitchId1 = inData.SwitchId1
+		if outData.Switch1SerialNumber == "" {
+			outData.Switch1SerialNumber = inData.Switch1SerialNumber
 		}
-		if outData.SwitchId2 == "" {
-			outData.SwitchId2 = inData.SwitchId2
+		if outData.Switch2SerialNumber == "" {
+			outData.Switch2SerialNumber = inData.Switch2SerialNumber
 		}
 
 		// Deploy is an operation flag in this resource, not durable remote state.
@@ -361,11 +361,11 @@ func (r *vpcPairResource) waitForVpcPairReadable(ctx context.Context, inData *ND
 	for attempt := 1; ; attempt++ {
 		outData, err := r.fetchVpcPairState(ctx, inData)
 		if err == nil {
-			if outData.SwitchId1 == inData.SwitchId1 && outData.SwitchId2 == inData.SwitchId2 {
+			if outData.Switch1SerialNumber == inData.Switch1SerialNumber && outData.Switch2SerialNumber == inData.Switch2SerialNumber {
 				tflog.Debug(ctx, "vPC pair became readable after create", map[string]interface{}{
 					"fabric_name": inData.FabricName,
-					"switch_id_1": inData.SwitchId1,
-					"switch_id_2": inData.SwitchId2,
+					"switch_id_1": inData.Switch1SerialNumber,
+					"switch_id_2": inData.Switch2SerialNumber,
 					"attempt":     attempt,
 				})
 				return nil
@@ -373,29 +373,29 @@ func (r *vpcPairResource) waitForVpcPairReadable(ctx context.Context, inData *ND
 
 			tflog.Debug(ctx, "vPC pair read succeeded but returned unexpected switch IDs, will retry", map[string]interface{}{
 				"fabric_name":          inData.FabricName,
-				"expected_switch_id_1": inData.SwitchId1,
-				"expected_switch_id_2": inData.SwitchId2,
-				"actual_switch_id_1":   outData.SwitchId1,
-				"actual_switch_id_2":   outData.SwitchId2,
+				"expected_switch_id_1": inData.Switch1SerialNumber,
+				"expected_switch_id_2": inData.Switch2SerialNumber,
+				"actual_switch_id_1":   outData.Switch1SerialNumber,
+				"actual_switch_id_2":   outData.Switch2SerialNumber,
 				"attempt":              attempt,
 			})
 		} else {
 			tflog.Debug(ctx, "vPC pair not readable yet after create, will retry", map[string]interface{}{
 				"fabric_name": inData.FabricName,
-				"switch_id_1": inData.SwitchId1,
-				"switch_id_2": inData.SwitchId2,
+				"switch_id_1": inData.Switch1SerialNumber,
+				"switch_id_2": inData.Switch2SerialNumber,
 				"attempt":     attempt,
 				"error":       err.Error(),
 			})
 		}
 
 		if time.Now().After(deadline) {
-			return fmt.Errorf("timed out after %s waiting for vPC pair %s/%s:%s to become readable", vpcPairReadPollTimeout, inData.FabricName, inData.SwitchId1, inData.SwitchId2)
+			return fmt.Errorf("timed out after %s waiting for vPC pair %s/%s:%s to become readable", vpcPairReadPollTimeout, inData.FabricName, inData.Switch1SerialNumber, inData.Switch2SerialNumber)
 		}
 
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("context cancelled while waiting for vPC pair %s/%s:%s to become readable: %w", inData.FabricName, inData.SwitchId1, inData.SwitchId2, ctx.Err())
+			return fmt.Errorf("context cancelled while waiting for vPC pair %s/%s:%s to become readable: %w", inData.FabricName, inData.Switch1SerialNumber, inData.Switch2SerialNumber, ctx.Err())
 		case <-time.After(vpcPairReadPollInterval):
 		}
 	}
@@ -455,7 +455,7 @@ func (r *vpcPairResource) ensureVpcPairFabricName(ctx context.Context, inData *N
 		return nil
 	}
 
-	fabricName, err := r.resolveVpcPairFabricName(ctx, inData.SwitchId1, inData.SwitchId2)
+	fabricName, err := r.resolveVpcPairFabricName(ctx, inData.Switch1SerialNumber, inData.Switch2SerialNumber)
 	if err != nil {
 		return err
 	}
@@ -529,14 +529,14 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 
 	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
-	vpcPairAPI.SwitchID = inData.SwitchId1
+	vpcPairAPI.SwitchID = inData.Switch1SerialNumber
 	vpcPairAPI.GetRecommendations = true
 	vpcPairAPI.VirtualPeerLink = useVirtualPeerLink
 
 	tflog.Debug(ctx, "Fetching vPC pair recommendations", map[string]interface{}{
 		"fabric_name":          inData.FabricName,
-		"switch_id_1":          inData.SwitchId1,
-		"switch_id_2":          inData.SwitchId2,
+		"switch_id_1":          inData.Switch1SerialNumber,
+		"switch_id_2":          inData.Switch2SerialNumber,
 		"use_virtual_peerlink": useVirtualPeerLink,
 		"url":                  vpcPairAPI.GetUrl(),
 	})
@@ -545,8 +545,8 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 	if err != nil {
 		tflog.Error(ctx, "Failed to get vPC pair recommendations", map[string]interface{}{
 			"fabric_name":          inData.FabricName,
-			"switch_id_1":          inData.SwitchId1,
-			"switch_id_2":          inData.SwitchId2,
+			"switch_id_1":          inData.Switch1SerialNumber,
+			"switch_id_2":          inData.Switch2SerialNumber,
 			"use_virtual_peerlink": useVirtualPeerLink,
 			"url":                  vpcPairAPI.GetUrl(),
 			"error":                err.Error(),
@@ -556,8 +556,8 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 
 	tflog.Debug(ctx, "Received vPC pair recommendations payload", map[string]interface{}{
 		"fabric_name": inData.FabricName,
-		"switch_id_1": inData.SwitchId1,
-		"switch_id_2": inData.SwitchId2,
+		"switch_id_1": inData.Switch1SerialNumber,
+		"switch_id_2": inData.Switch2SerialNumber,
 		"payload":     string(payload),
 	})
 
@@ -565,8 +565,8 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 	if err := json.Unmarshal(payload, &recommendationsResp); err != nil {
 		tflog.Error(ctx, "Failed to decode vPC pair recommendations response", map[string]interface{}{
 			"fabric_name": inData.FabricName,
-			"switch_id_1": inData.SwitchId1,
-			"switch_id_2": inData.SwitchId2,
+			"switch_id_1": inData.Switch1SerialNumber,
+			"switch_id_2": inData.Switch2SerialNumber,
 			"error":       err.Error(),
 		})
 		return fmt.Errorf("decode recommendations response: %w", err)
@@ -575,23 +575,23 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 	for _, recommendation := range recommendationsResp.Switches {
 		tflog.Debug(ctx, "Evaluating vPC pair recommendation entry", map[string]interface{}{
 			"fabric_name":           inData.FabricName,
-			"switch_id_1":           inData.SwitchId1,
-			"switch_id_2":           inData.SwitchId2,
+			"switch_id_1":           inData.Switch1SerialNumber,
+			"switch_id_2":           inData.Switch2SerialNumber,
 			"recommended_switch_id": recommendation.SwitchID,
 			"hostname":              recommendation.Hostname,
 			"recommended":           recommendation.Recommended,
 			"recommendation_reason": recommendation.RecommendationReason,
 		})
 
-		if recommendation.SwitchID != inData.SwitchId2 {
+		if recommendation.SwitchID != inData.Switch2SerialNumber {
 			continue
 		}
 
 		if recommendation.Recommended {
 			tflog.Debug(ctx, "vPC pair recommendation check passed", map[string]interface{}{
 				"fabric_name": inData.FabricName,
-				"switch_id_1": inData.SwitchId1,
-				"switch_id_2": inData.SwitchId2,
+				"switch_id_1": inData.Switch1SerialNumber,
+				"switch_id_2": inData.Switch2SerialNumber,
 				"hostname":    recommendation.Hostname,
 				"recommended": recommendation.Recommended,
 			})
@@ -601,8 +601,8 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 		if recommendation.RecommendationReason == "Switches are not connected" {
 			tflog.Debug(ctx, "vPC pair recommendation returned transient not-connected status; continuing", map[string]interface{}{
 				"fabric_name":           inData.FabricName,
-				"switch_id_1":           inData.SwitchId1,
-				"switch_id_2":           inData.SwitchId2,
+				"switch_id_1":           inData.Switch1SerialNumber,
+				"switch_id_2":           inData.Switch2SerialNumber,
 				"recommendation_reason": recommendation.RecommendationReason,
 			})
 			return nil
@@ -610,18 +610,18 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 
 		tflog.Error(ctx, "vPC pair recommendation check failed", map[string]interface{}{
 			"fabric_name":           inData.FabricName,
-			"switch_id_1":           inData.SwitchId1,
-			"switch_id_2":           inData.SwitchId2,
+			"switch_id_1":           inData.Switch1SerialNumber,
+			"switch_id_2":           inData.Switch2SerialNumber,
 			"hostname":              recommendation.Hostname,
 			"recommendation_reason": recommendation.RecommendationReason,
 		})
-		return fmt.Errorf("%s (%s): %s", inData.SwitchId2, recommendation.Hostname, recommendation.RecommendationReason)
+		return fmt.Errorf("%s (%s): %s", inData.Switch2SerialNumber, recommendation.Hostname, recommendation.RecommendationReason)
 	}
 
 	tflog.Debug(ctx, "No matching vPC pair recommendation entry found for peer switch; continuing", map[string]interface{}{
 		"fabric_name": inData.FabricName,
-		"switch_id_1": inData.SwitchId1,
-		"switch_id_2": inData.SwitchId2,
+		"switch_id_1": inData.Switch1SerialNumber,
+		"switch_id_2": inData.Switch2SerialNumber,
 	})
 
 	return nil
@@ -713,14 +713,14 @@ func (r *vpcPairResource) rscDeleteVpcPair(ctx context.Context, dg *diag.Diagnos
 
 	tflog.Debug(ctx, "Preparing vPC pair delete request", map[string]interface{}{
 		"fabric_name": inData.FabricName,
-		"switch_id_1": inData.SwitchId1,
-		"switch_id_2": inData.SwitchId2,
+		"switch_id_1": inData.Switch1SerialNumber,
+		"switch_id_2": inData.Switch2SerialNumber,
 		"deploy":      inData.Deploy,
 	})
 
 	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
-	vpcPairAPI.SwitchID = inData.SwitchId2
+	vpcPairAPI.SwitchID = inData.Switch2SerialNumber
 
 	// The ND API removes a pair through the same PUT endpoint with the unPair action.
 	inData.VpcAction = "unPair"
@@ -729,7 +729,7 @@ func (r *vpcPairResource) rscDeleteVpcPair(ctx context.Context, dg *diag.Diagnos
 	if err != nil {
 		tflog.Error(ctx, "Failed to marshal vPC pair delete payload", map[string]interface{}{
 			"fabric_name": inData.FabricName,
-			"switch_id_2": inData.SwitchId2,
+			"switch_id_2": inData.Switch2SerialNumber,
 			"error":       err.Error(),
 		})
 		dg.AddError(
@@ -744,7 +744,7 @@ func (r *vpcPairResource) rscDeleteVpcPair(ctx context.Context, dg *diag.Diagnos
 	if err != nil {
 		tflog.Error(ctx, "vPC pair delete API call failed", map[string]interface{}{
 			"fabric_name": inData.FabricName,
-			"switch_id_2": inData.SwitchId2,
+			"switch_id_2": inData.Switch2SerialNumber,
 			"url":         vpcPairAPI.PutUrl(),
 			"error":       err.Error(),
 			"response":    res.Raw,
@@ -762,7 +762,7 @@ func (r *vpcPairResource) rscDeleteVpcPair(ctx context.Context, dg *diag.Diagnos
 	if dg.HasError() {
 		tflog.Error(ctx, "Config save and deploy failed during vPC pair delete", map[string]interface{}{
 			"fabric_name": inData.FabricName,
-			"switch_id_2": inData.SwitchId2,
+			"switch_id_2": inData.Switch2SerialNumber,
 			"deploy":      inData.Deploy,
 		})
 		return
@@ -770,7 +770,7 @@ func (r *vpcPairResource) rscDeleteVpcPair(ctx context.Context, dg *diag.Diagnos
 
 	tflog.Debug(ctx, "vPC pair delete completed", map[string]interface{}{
 		"fabric_name": inData.FabricName,
-		"switch_id_2": inData.SwitchId2,
+		"switch_id_2": inData.Switch2SerialNumber,
 	})
 }
 
@@ -780,15 +780,15 @@ func setVpcPairID(model *VpcPairModel) {
 	}
 
 	if model.FabricName.IsNull() || model.FabricName.IsUnknown() ||
-		model.SwitchId1.IsNull() || model.SwitchId1.IsUnknown() ||
-		model.SwitchId2.IsNull() || model.SwitchId2.IsUnknown() {
+		model.Switch1SerialNumber.IsNull() || model.Switch1SerialNumber.IsUnknown() ||
+		model.Switch2SerialNumber.IsNull() || model.Switch2SerialNumber.IsUnknown() {
 		return
 	}
 
 	model.Id = types.StringValue(fmt.Sprintf(
 		"%s/%s:%s",
 		model.FabricName.ValueString(),
-		model.SwitchId1.ValueString(),
-		model.SwitchId2.ValueString(),
+		model.Switch1SerialNumber.ValueString(),
+		model.Switch2SerialNumber.ValueString(),
 	))
 }

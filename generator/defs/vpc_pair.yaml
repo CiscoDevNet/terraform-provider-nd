@@ -8,7 +8,7 @@ resource:
   category: manage
   description: "Resource to configure vPC pair on a switch. Note only VXLAN EVPN fabric is supported"
   attributes:
-    # Required - Unique Identifier for the vPC pair resource
+    # Computed - Unique identifier for the vPC pair resource
     - model_name: id
       tf_name: id
       description: The Terraform Unique Identifier for the vPC pair resource `<fabric_name>/<switch1_serial_number>:<switch2_serial_number>`
@@ -17,7 +17,7 @@ resource:
       computed: true
       payload_hide: true
       example: "test_fabric_vxlan/9FRGGCZT8LR:96E0DGXYPV2"
-    # Required - Fabric identifier
+    # Computed - Fabric identifier resolved from switch inventory
     - model_name: fabricName
       tf_name: fabric_name
       description: Name of the fabric resolved from the switch inventory
@@ -25,17 +25,17 @@ resource:
       computed: true
       example: my_fabric
       payload_hide: true
-    # Required - peer switch identifier
+    # Required - peer switch serial number
     - model_name: peerSwitchId
-      tf_name: switch_id_1
+      tf_name: switch_1_serial_number
       description: Serial number of the peer switch in the vPC pair.
       type: String
       mandatory: true
       tf_requires_replace: true
       example: 9FRGGCZT8LR
-    # Required - switch identifier
+    # Required - switch serial number
     - model_name: switchId
-      tf_name: switch_id_2
+      tf_name: switch_2_serial_number
       description: Serial number of the switch where the vPC pair is being configured.
       type: String
       mandatory: true
