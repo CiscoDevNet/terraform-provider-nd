@@ -534,6 +534,8 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 		return fmt.Errorf("input model is nil")
 	}
 
+	const expectedRecommendationReason = "Switches are connected and have same role"
+
 	useVirtualPeerLink := false
 	if inData.UseVirtualPeerlink != nil {
 		useVirtualPeerLink = *inData.UseVirtualPeerlink
@@ -541,7 +543,7 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 
 	vpcPairAPI := api.NewVpcPairAPI(r.manageClient.ApiClient, inData.FabricName)
 	vpcPairAPI.FabricName = inData.FabricName
-	vpcPairAPI.SwitchID = inData.SwitchId1
+	vpcPairAPI.SwitchID = inData.SwitchId2
 	vpcPairAPI.GetRecommendations = true
 	vpcPairAPI.VirtualPeerLink = useVirtualPeerLink
 
@@ -566,13 +568,6 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 		return fmt.Errorf("get recommendations from %s: %w", vpcPairAPI.GetUrl(), err)
 	}
 
-	tflog.Debug(ctx, "Received vPC pair recommendations payload", map[string]interface{}{
-		"fabric_name": inData.FabricName,
-		"switch_id_1": inData.SwitchId1,
-		"switch_id_2": inData.SwitchId2,
-		"payload":     string(payload),
-	})
-
 	var recommendationsResp vpcPairRecommendationsResponse
 	if err := json.Unmarshal(payload, &recommendationsResp); err != nil {
 		tflog.Error(ctx, "Failed to decode vPC pair recommendations response", map[string]interface{}{
@@ -595,27 +590,18 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 			"recommendation_reason": recommendation.RecommendationReason,
 		})
 
-		if recommendation.SwitchID != inData.SwitchId2 {
+		if recommendation.SwitchID != inData.SwitchId1 {
 			continue
 		}
 
-		if recommendation.Recommended {
+		if recommendation.RecommendationReason == expectedRecommendationReason {
 			tflog.Debug(ctx, "vPC pair recommendation check passed", map[string]interface{}{
 				"fabric_name": inData.FabricName,
 				"switch_id_1": inData.SwitchId1,
 				"switch_id_2": inData.SwitchId2,
 				"hostname":    recommendation.Hostname,
 				"recommended": recommendation.Recommended,
-			})
-			return nil
-		}
-
-		if recommendation.RecommendationReason == "Switches are not connected" {
-			tflog.Debug(ctx, "vPC pair recommendation returned transient not-connected status; continuing", map[string]interface{}{
-				"fabric_name":           inData.FabricName,
-				"switch_id_1":           inData.SwitchId1,
-				"switch_id_2":           inData.SwitchId2,
-				"recommendation_reason": recommendation.RecommendationReason,
+				"reason":      recommendation.RecommendationReason,
 			})
 			return nil
 		}
@@ -625,18 +611,13 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 			"switch_id_1":           inData.SwitchId1,
 			"switch_id_2":           inData.SwitchId2,
 			"hostname":              recommendation.Hostname,
+			"recommended_switch_id": recommendation.SwitchID,
 			"recommendation_reason": recommendation.RecommendationReason,
 		})
-		return fmt.Errorf("%s (%s): %s", inData.SwitchId2, recommendation.Hostname, recommendation.RecommendationReason)
+		return fmt.Errorf("%s (%s): %s", inData.SwitchId1, recommendation.Hostname, recommendation.RecommendationReason)
 	}
 
-	tflog.Debug(ctx, "No matching vPC pair recommendation entry found for peer switch; continuing", map[string]interface{}{
-		"fabric_name": inData.FabricName,
-		"switch_id_1": inData.SwitchId1,
-		"switch_id_2": inData.SwitchId2,
-	})
-
-	return nil
+	return fmt.Errorf("no matching recommendation entry for switch %s in response for switch %s", inData.SwitchId1, inData.SwitchId2)
 }
 
 func (s inventorySwitchEntry) resolvedFabricName() string {
