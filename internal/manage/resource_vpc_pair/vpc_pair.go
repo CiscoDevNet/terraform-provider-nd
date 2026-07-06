@@ -92,8 +92,8 @@ func (r *vpcPairResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	tflog.Debug(ctx, "Creating VPC Pair", map[string]interface{}{
-		"switch_1_serial_number": in.Switch1SerialNumber.ValueString(),
-		"switch_2_serial_number": in.Switch2SerialNumber.ValueString(),
+		"switch_1_serial_number": in.SwitchId1.ValueString(),
+		"switch_2_serial_number": in.SwitchId2.ValueString(),
 	})
 
 	r.rscCreateVpcPair(ctx, &resp.Diagnostics, &in)
@@ -119,8 +119,8 @@ func (r *vpcPairResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	tflog.Debug(ctx, "Reading VPC Pair", map[string]interface{}{
 		"fabric_name":            state.FabricName.ValueString(),
-		"switch_1_serial_number": state.Switch1SerialNumber.ValueString(),
-		"switch_2_serial_number": state.Switch2SerialNumber.ValueString(),
+		"switch_1_serial_number": state.SwitchId1.ValueString(),
+		"switch_2_serial_number": state.SwitchId2.ValueString(),
 	})
 
 	outData, err := r.readVpcPairState(ctx, state.GetModelData())
@@ -128,8 +128,8 @@ func (r *vpcPairResource) Read(ctx context.Context, req resource.ReadRequest, re
 		if isVpcPairNotFoundError(err) {
 			tflog.Warn(ctx, "vPC pair no longer exists in ND, removing from Terraform state", map[string]interface{}{
 				"fabric_name":            state.FabricName.ValueString(),
-				"switch_1_serial_number": state.Switch1SerialNumber.ValueString(),
-				"switch_2_serial_number": state.Switch2SerialNumber.ValueString(),
+				"switch_1_serial_number": state.SwitchId1.ValueString(),
+				"switch_2_serial_number": state.SwitchId2.ValueString(),
 				"error":                  err.Error(),
 			})
 			resp.State.RemoveResource(ctx)
@@ -138,8 +138,8 @@ func (r *vpcPairResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 		tflog.Error(ctx, "Failed to read vPC pair state", map[string]interface{}{
 			"fabric_name":            state.FabricName.ValueString(),
-			"switch_1_serial_number": state.Switch1SerialNumber.ValueString(),
-			"switch_2_serial_number": state.Switch2SerialNumber.ValueString(),
+			"switch_1_serial_number": state.SwitchId1.ValueString(),
+			"switch_2_serial_number": state.SwitchId2.ValueString(),
 			"error":                  err.Error(),
 		})
 		resp.Diagnostics.AddError(
@@ -157,7 +157,7 @@ func (r *vpcPairResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	tflog.Debug(ctx, "Read vPC pair", map[string]interface{}{
 		"fabric_name": outData.FabricName,
-		"switch_id":   outData.Switch2SerialNumber,
+		"switch_id":   outData.SwitchId2,
 	})
 
 	// Save updated data into Terraform state
@@ -187,8 +187,8 @@ func (r *vpcPairResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	tflog.Debug(ctx, "Updating VPC Pair", map[string]interface{}{
 		"fabric_name":            plan.FabricName.ValueString(),
-		"switch_1_serial_number": plan.Switch1SerialNumber.ValueString(),
-		"switch_2_serial_number": plan.Switch2SerialNumber.ValueString(),
+		"switch_1_serial_number": plan.SwitchId1.ValueString(),
+		"switch_2_serial_number": plan.SwitchId2.ValueString(),
 	})
 
 	r.rscUpdateVpcPair(ctx, &resp.Diagnostics, &plan)
@@ -213,7 +213,7 @@ func (r *vpcPairResource) Delete(ctx context.Context, req resource.DeleteRequest
 
 	tflog.Debug(ctx, "Deleting VPC Pair", map[string]interface{}{
 		"fabric_name": state.FabricName.ValueString(),
-		"switch_id":   state.Switch2SerialNumber.ValueString(),
+		"switch_id":   state.SwitchId2.ValueString(),
 	})
 
 	r.rscDeleteVpcPair(ctx, &resp.Diagnostics, &state)
@@ -249,19 +249,19 @@ func (r *vpcPairResource) ImportState(ctx context.Context, req resource.ImportSt
 	}
 
 	state := VpcPairModel{
-		FabricName:          fabricValue,
-		Switch1SerialNumber: types.StringValue(strings.TrimSpace(switchParts[0])),
-		Switch2SerialNumber: types.StringValue(strings.TrimSpace(switchParts[1])),
-		Deploy:              types.BoolValue(false),
-		UseVirtualPeerlink:  types.BoolNull(),
+		FabricName:         fabricValue,
+		SwitchId1:          types.StringValue(strings.TrimSpace(switchParts[0])),
+		SwitchId2:          types.StringValue(strings.TrimSpace(switchParts[1])),
+		Deploy:             types.BoolValue(false),
+		UseVirtualPeerlink: types.BoolNull(),
 	}
 
 	outData, err := r.readVpcPairState(ctx, state.GetModelData())
 	if err != nil {
 		tflog.Error(ctx, "Failed to import vPC pair using provided switch order", map[string]interface{}{
 			"fabric_name":            state.FabricName.ValueString(),
-			"switch_1_serial_number": state.Switch1SerialNumber.ValueString(),
-			"switch_2_serial_number": state.Switch2SerialNumber.ValueString(),
+			"switch_1_serial_number": state.SwitchId1.ValueString(),
+			"switch_2_serial_number": state.SwitchId2.ValueString(),
 			"error":                  err.Error(),
 		})
 		resp.Diagnostics.AddError(
@@ -274,23 +274,23 @@ func (r *vpcPairResource) ImportState(ctx context.Context, req resource.ImportSt
 	if !matchesImportedVpcPair(state.GetModelData(), outData) {
 		tflog.Debug(ctx, "Imported vPC pair did not match provided switch order, retrying with swapped switch IDs", map[string]interface{}{
 			"fabric_name":            state.FabricName.ValueString(),
-			"switch_1_serial_number": state.Switch1SerialNumber.ValueString(),
-			"switch_2_serial_number": state.Switch2SerialNumber.ValueString(),
+			"switch_1_serial_number": state.SwitchId1.ValueString(),
+			"switch_2_serial_number": state.SwitchId2.ValueString(),
 		})
 		swappedInData := &NDFCVpcPairModel{
-			FabricName:          state.FabricName.ValueString(),
-			Switch1SerialNumber: state.Switch2SerialNumber.ValueString(),
-			Switch2SerialNumber: state.Switch1SerialNumber.ValueString(),
-			UseVirtualPeerlink:  nil,
-			Deploy:              false,
+			FabricName:         state.FabricName.ValueString(),
+			SwitchId1:          state.SwitchId2.ValueString(),
+			SwitchId2:          state.SwitchId1.ValueString(),
+			UseVirtualPeerlink: nil,
+			Deploy:             false,
 		}
 
 		outData, err = r.readVpcPairState(ctx, swappedInData)
 		if err != nil {
 			tflog.Error(ctx, "Failed to import vPC pair in either switch order", map[string]interface{}{
 				"fabric_name":            state.FabricName.ValueString(),
-				"switch_1_serial_number": state.Switch1SerialNumber.ValueString(),
-				"switch_2_serial_number": state.Switch2SerialNumber.ValueString(),
+				"switch_1_serial_number": state.SwitchId1.ValueString(),
+				"switch_2_serial_number": state.SwitchId2.ValueString(),
 				"error":                  err.Error(),
 			})
 			resp.Diagnostics.AddError(
@@ -301,12 +301,12 @@ func (r *vpcPairResource) ImportState(ctx context.Context, req resource.ImportSt
 		}
 	}
 
-	deployState, err := r.getVpcPairDeployState(ctx, outData.FabricName, outData.Switch1SerialNumber, outData.Switch2SerialNumber)
+	deployState, err := r.getVpcPairDeployState(ctx, outData.FabricName, outData.SwitchId1, outData.SwitchId2)
 	if err != nil {
 		tflog.Error(ctx, "Failed to resolve vPC pair deploy state during import", map[string]interface{}{
 			"fabric_name":            outData.FabricName,
-			"switch_1_serial_number": outData.Switch1SerialNumber,
-			"switch_2_serial_number": outData.Switch2SerialNumber,
+			"switch_1_serial_number": outData.SwitchId1,
+			"switch_2_serial_number": outData.SwitchId2,
 			"error":                  err.Error(),
 		})
 		resp.Diagnostics.AddError(
@@ -335,6 +335,6 @@ func matchesImportedVpcPair(inData *NDFCVpcPairModel, outData *NDFCVpcPairModel)
 		return false
 	}
 
-	return inData.Switch1SerialNumber == outData.Switch1SerialNumber &&
-		inData.Switch2SerialNumber == outData.Switch2SerialNumber
+	return inData.SwitchId1 == outData.SwitchId1 &&
+		inData.SwitchId2 == outData.SwitchId2
 }

@@ -27,7 +27,7 @@ resource:
       payload_hide: true
     # Required - peer switch serial number
     - model_name: peerSwitchId
-      tf_name: switch_1_serial_number
+      tf_name: switch_id_1
       description: Serial number of the peer switch in the vPC pair.
       type: String
       mandatory: true
@@ -35,7 +35,7 @@ resource:
       example: 9FRGGCZT8LR
     # Required - switch serial number
     - model_name: switchId
-      tf_name: switch_2_serial_number
+      tf_name: switch_id_2
       description: Serial number of the switch where the vPC pair is being configured.
       type: String
       mandatory: true
