@@ -10,6 +10,7 @@ package provider
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"terraform-provider-nd/internal/infra/resource_local_user"
@@ -157,6 +158,19 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 					"user_password",
 					"tenant_domain",
 				},
+			},
+			// Step 4: ImportState with a missing login_id. This exercises the
+			// local-user 404 handling without creating and deleting another user.
+			{
+				PreConfig: func() {
+					t.Logf("===== STEP 4: %s_4_import_missing_user =====", t.Name())
+				},
+				ResourceName:  "nd_local_user.user_one",
+				ImportState:   true,
+				ImportStateId: loginIDA + "_missing",
+				ExpectError: regexp.MustCompile(
+					fmt.Sprintf(`Could not import nd local user with id %q:\s+resource not found`, loginIDA+"_missing"),
+				),
 			},
 		},
 	})

@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 
+	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/infra/api"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -40,7 +41,7 @@ func (r *localUserNdResource) rscCreateLocalUser(ctx context.Context, dg *diag.D
 	}
 
 	// Call the API to create the nd local user
-	res, err := localUserAPI.Post(localUserPayload, nil)
+	res, err := localUserAPI.Post(localUserPayload, &ndapi.APIOptions{DisablePayloadLog: true})
 	if err != nil {
 		dg.AddError(
 			"Error Creating ND Local User",
@@ -68,8 +69,7 @@ func (r *localUserNdResource) rscGetLocalUser(ctx context.Context, dg *diag.Diag
 	respData, err := localUserAPI.Get()
 
 	if err != nil {
-		if strings.Contains(err.Error(), "StatusCode 404") &&
-			strings.Contains(string(respData), "not found") {
+		if strings.Contains(err.Error(), "StatusCode 404") {
 			return true
 		}
 		dg.AddError(
@@ -133,7 +133,7 @@ func (r *localUserNdResource) rscUpdateLocalUser(ctx context.Context, dg *diag.D
 		log.Printf("[ERROR] Error Updating ND Local User: error=%s", err.Error())
 		return
 	}
-	res, err := localUserAPI.Put(inDataBytes, nil)
+	res, err := localUserAPI.Put(inDataBytes, &ndapi.APIOptions{DisablePayloadLog: true})
 
 	if err != nil {
 		dg.AddError(
@@ -161,8 +161,7 @@ func (r *localUserNdResource) rscDeleteLocalUser(ctx context.Context, dg *diag.D
 
 	res, err := localUserAPI.Delete(nil)
 	if err != nil {
-		if strings.Contains(err.Error(), "StatusCode 404") &&
-			strings.Contains(res.String(), "not found") {
+		if strings.Contains(err.Error(), "StatusCode 404") {
 			log.Printf("[DEBUG] ND Local User already absent during delete: id=%s", id)
 			return
 		}
