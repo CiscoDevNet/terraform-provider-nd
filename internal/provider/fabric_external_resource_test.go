@@ -20,12 +20,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/netascode/go-nd"
+	nd "github.com/netascode/go-nd"
 )
 
-func TestAccFabricVxlanEbgpResourceCRUD(t *testing.T) {
+func TestAccFabricExternalResourceCRUD(t *testing.T) {
 	x := &map[string]string{
-		"RscType":  "nd_fabric_vxlan_ebgp",
+		"RscType":  "nd_fabric_external",
 		"RscName":  "fabric_test",
 		"User":     helper.GetConfig("global").ND.User,
 		"Password": helper.GetConfig("global").ND.Password,
@@ -43,76 +43,50 @@ func TestAccFabricVxlanEbgpResourceCRUD(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Step 1: Create a basic eBGP VXLAN fabric
+			// Step 1: Create a basic External Connectivity fabric
 			{
 				Config: func() string {
 					*stepCount++
 					tName := fmt.Sprintf("%s_%d", t.Name(), *stepCount)
 
-					helper.GenerateFabricEbgpObject(&fabricRsc,
-						helper.GetConfig("global").ND.Fabric,
-						"55000",
+					helper.GenerateFabricExternalObject(&fabricRsc,
+						helper.GetConfig("global").ND.Fabric+"_external",
+						"65001",
 						nil,
 					)
 
 					(*x)["RscName"] = "fabric_test"
 					helper.GetTFConfigWithSingleResource(tName, *x,
-						[]interface{}{helper.EbgpResource(fabricRsc)}, &tfConfig)
+						[]interface{}{helper.ExternalResource(fabricRsc)}, &tfConfig)
 
 					return *tfConfig
 				}(),
 				Check: resource.ComposeTestCheckFunc(
-					FabricVxlanEbgpModelHelperStateCheck(
-						"nd_fabric_vxlan_ebgp.fabric_test",
+					FabricExternalModelHelperStateCheck(
+						"nd_fabric_external.fabric_test",
 						*fabricRsc,
 						path.Empty(),
 					)...,
 				),
 			},
-			// Step 2: Modify fabric parameters (MTU)
+			// Step 2: Modify fabric parameters (sub_interface_dot1q_range)
 			{
 				Config: func() string {
 					*stepCount++
 					tName := fmt.Sprintf("%s_%d", t.Name(), *stepCount)
 
-					helper.ModifyFabricEbgpObject(&fabricRsc, map[string]interface{}{
-						"fabric_mtu":            9000,
-						"l2_host_interface_mtu": 9000,
+					helper.ModifyFabricExternalObject(&fabricRsc, map[string]interface{}{
+						"sub_interface_dot1q_range": "2-1000",
 					})
 
 					helper.GetTFConfigWithSingleResource(tName, *x,
-						[]interface{}{helper.EbgpResource(fabricRsc)}, &tfConfig)
+						[]interface{}{helper.ExternalResource(fabricRsc)}, &tfConfig)
 
 					return *tfConfig
 				}(),
 				Check: resource.ComposeTestCheckFunc(
-					FabricVxlanEbgpModelHelperStateCheck(
-						"nd_fabric_vxlan_ebgp.fabric_test",
-						*fabricRsc,
-						path.Empty(),
-					)...,
-				),
-			},
-			// Step 3: Modify more parameters (VPC, VNI ranges)
-			{
-				Config: func() string {
-					*stepCount++
-					tName := fmt.Sprintf("%s_%d", t.Name(), *stepCount)
-
-					helper.ModifyFabricEbgpObject(&fabricRsc, map[string]interface{}{
-						"vpc_peer_link_vlan": "3601",
-						"l2_vni_range":       "30000-48000",
-						"l3_vni_range":       "50000-58000",
-					})
-
-					helper.GetTFConfigWithSingleResource(tName, *x,
-						[]interface{}{helper.EbgpResource(fabricRsc)}, &tfConfig)
-
-					return *tfConfig
-				}(),
-				Check: resource.ComposeTestCheckFunc(
-					FabricVxlanEbgpModelHelperStateCheck(
-						"nd_fabric_vxlan_ebgp.fabric_test",
+					FabricExternalModelHelperStateCheck(
+						"nd_fabric_external.fabric_test",
 						*fabricRsc,
 						path.Empty(),
 					)...,
@@ -122,15 +96,15 @@ func TestAccFabricVxlanEbgpResourceCRUD(t *testing.T) {
 	})
 }
 
-// TestAccFabricVxlanEbgpResourceDrift verifies that when a fabric is deleted
+// TestAccFabricExternalResourceDrift verifies that when a fabric is deleted
 // out-of-band, the provider detects the drift (Read returns 404 → state is
 // removed) and Terraform plans a re-create on the next apply.
-func TestAccFabricVxlanEbgpResourceDrift(t *testing.T) {
+func TestAccFabricExternalResourceDrift(t *testing.T) {
 	cfg := helper.GetConfig("global")
-	fabricName := cfg.ND.Fabric + "_ebgp_drift"
+	fabricName := cfg.ND.Fabric + "_ext_drift"
 
 	x := &map[string]string{
-		"RscType":  "nd_fabric_vxlan_ebgp",
+		"RscType":  "nd_fabric_external",
 		"RscName":  "fabric_drift",
 		"User":     cfg.ND.User,
 		"Password": cfg.ND.Password,
@@ -154,19 +128,19 @@ func TestAccFabricVxlanEbgpResourceDrift(t *testing.T) {
 					*stepCount++
 					tName := fmt.Sprintf("%s_%d", t.Name(), *stepCount)
 
-					helper.GenerateFabricEbgpObject(&fabricRsc,
-						fabricName, "55000", nil,
+					helper.GenerateFabricExternalObject(&fabricRsc,
+						fabricName, "65001", nil,
 					)
 
 					(*x)["RscName"] = "fabric_drift"
 					helper.GetTFConfigWithSingleResource(tName, *x,
-						[]interface{}{helper.EbgpResource(fabricRsc)}, &tfConfig)
+						[]interface{}{helper.ExternalResource(fabricRsc)}, &tfConfig)
 
 					return *tfConfig
 				}(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"nd_fabric_vxlan_ebgp.fabric_drift",
+						"nd_fabric_external.fabric_drift",
 						"fabric_name", fabricName,
 					),
 				),
@@ -175,6 +149,7 @@ func TestAccFabricVxlanEbgpResourceDrift(t *testing.T) {
 			// Read should detect 404, remove from state → non-empty plan.
 			{
 				PreConfig: func() {
+					// Create a raw API client and delete the fabric directly
 					client, err := nd.NewClient(
 						cfg.ND.URL, "/api/v1",
 						cfg.ND.User, cfg.ND.Password,
@@ -200,7 +175,7 @@ func TestAccFabricVxlanEbgpResourceDrift(t *testing.T) {
 				Config: *tfConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"nd_fabric_vxlan_ebgp.fabric_drift",
+						"nd_fabric_external.fabric_drift",
 						"fabric_name", fabricName,
 					),
 				),

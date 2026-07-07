@@ -8,4 +8,5 @@ files:
   - fabric_vxlan_ibgp.yaml
   - fabric_vxlan_ebgp.yaml
   - vpc_pair.yaml
+  - fabric_external.yaml
   #- sample.yaml

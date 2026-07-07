@@ -25,6 +25,12 @@ func (v *FabricVxlanEbgpModel) SetModelData(jsonData *resource_fabric_common.NDF
 	var err diag.Diagnostics
 	err = nil
 
+	if jsonData.Id != "" {
+		v.Id = types.StringValue(jsonData.Id)
+	} else {
+		v.Id = types.StringNull()
+	}
+
 	if jsonData.FabricName != "" {
 		v.FabricName = types.StringValue(jsonData.FabricName)
 	} else {

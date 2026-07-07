@@ -1,0 +1,22 @@
+{{define "ND_FABRIC_EXTERNAL_RSC"}}
+resource "nd_fabric_external" "{{.RscName}}" {
+{{with .FabricExternal}}
+    fabric_name = "{{.FabricName}}"
+    {{- if .Management.BgpAsn}}
+    bgp_asn = "{{.Management.BgpAsn}}"
+    {{- end}}
+    {{- if .LicenseTier}}
+    license_tier = "{{.LicenseTier}}"
+    {{- end}}
+    {{- if .Category}}
+    category = "{{.Category}}"
+    {{- end}}
+    {{- if .SecurityDomain}}
+    security_domain = "{{.SecurityDomain}}"
+    {{- end}}
+    {{- if .Management.SubInterfaceDot1qRange}}
+    sub_interface_dot1q_range = "{{.Management.SubInterfaceDot1qRange}}"
+    {{- end}}
+{{end}}
+}
+{{end}}

@@ -1,0 +1,1384 @@
+resource:
+  name: fabric_external
+  generate_tf_resource: true
+  skip_equality: true
+  parent_package: resource_fabric_common
+  parent_model: fabric_common
+  category: manage
+  attributes:
+  - model_name: id
+    tf_name: id
+    description: The unique identifier of the fabric_external resource
+    type: String
+    computed: true
+    payload_hide: true
+  - model_name: name
+    tf_name: fabric_name
+    description: The name of the fabric_external resource
+    type: String
+    mandatory: true
+    example: my_ext_fabric
+  - model_name: licenseTier
+    tf_name: license_tier
+    description: License Tier value of a fabric
+    type: String
+    computed: true
+    optional: true
+    example: premier
+  - model_name: controller
+    tf_name: controller_status
+    ndfc_nested:
+    - featureStatus
+    description: The controller status of the fabric_external resource
+    type: String
+    optional: true
+    computed: true
+  - model_name: telemetry
+    tf_name: telemetry_status
+    ndfc_nested:
+    - featureStatus
+    description: The telemetry status of the fabric_external resource
+    type: String
+    optional: true
+    computed: true
+  - model_name: orchestration
+    tf_name: orchestration_status
+    ndfc_nested:
+    - featureStatus
+    description: The orchestration status of the fabric_external resource
+    type: String
+    optional: true
+    computed: true
+  - model_name: trapForwarder
+    tf_name: trap_forwarder_status
+    ndfc_nested:
+    - featureStatus
+    description: The trap forwarder status of the fabric_external resource
+    type: String
+    optional: true
+    computed: true
+  - model_name: telemetryCollection
+    tf_name: telemetry_collection
+    type: Bool
+    example: false
+    ndfc_type: bool
+    computed: true
+    optional: true
+    description: Enable telemetry collection
+  - model_name: telemetryCollectionType
+    tf_name: telemetry_collection_type
+    type: String
+    optional: true
+    computed: true
+    description: Telemetry collection method
+  - model_name: telemetryStreamingProtocol
+    tf_name: telemetry_streaming_protocol
+    type: String
+    optional: true
+    computed: true
+    description: Telemetry Streaming Protocol
+  - model_name: telemetrySourceInterface
+    tf_name: telemetry_source_interface
+    type: String
+    optional: true
+    computed: true
+    description: Telemetry Source Interface (VLAN id or Loopback id) only valid if
+      Telemetry Collection is set to inBand
+  - model_name: telemetrySourceVrf
+    tf_name: telemetry_source_vrf
+    type: String
+    optional: true
+    computed: true
+    description: VRF over which telemetry is streamed, valid only if telemetry collection
+      is set to inBand
+  - model_name: securityDomain
+    tf_name: security_domain
+    type: String
+    example: all
+    default_value: all
+    description: Security Domain associated with the fabric
+  - model_name: allowedActions
+    tf_name: allowed_actions
+    type: List:String
+    optional: true
+    ndfc_nested:
+    - meta
+    description: Actions allowed on the listed fabrics
+  - model_name: type
+    tf_name: fabric_type
+    type: String
+    ndfc_nested:
+    - management
+    description: Fabric management type
+    tf_hide: true
+  - model_name: bgpAsn
+    tf_name: bgp_asn
+    type: String
+    mandatory: true
+    ndfc_nested:
+    - management
+    example: '65001'
+    description: Autonomous system number 1-4294967295 | 1-65535[.0-65535]
+  - model_name: category
+    tf_name: category
+    type: String
+    default_value: fabric
+    example: fabric
+    description: Category name
+  - model_name: location
+    tf_name: location
+    type: Struct
+    computed: true
+    optional: true
+    attributes:
+    - model_name: latitude
+      tf_name: latitude
+      type: Float64
+      computed: true
+      optional: true
+      example: 37.77
+      description: Latitude in decimal degrees
+    - model_name: longitude
+      tf_name: longitude
+      computed: true
+      optional: true
+      type: Float64
+      example: -122.41
+      description: Longitude in decimal degrees
+    description: Location to access the resource
+  - model_name: alertSuspend
+    tf_name: alert_suspend
+    type: String
+    default_value: disabled
+    example: disabled
+    description: Alert Suspend state configured on the fabric
+
+  # --- management section: Core Configuration ---
+
+  - model_name: createBgpConfig
+    tf_name: create_bgp_config
+    type: Bool
+    default_value: true
+    example: true
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Generate BGP configuration for core and edge routers
+
+  # --- management section: AAA / SSH ---
+
+  - model_name: aaa
+    tf_name: aaa
+    type: Bool
+    optional: true
+    computed: true
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Include AAA configs from advanced tab during device bootup
+  - model_name: advancedSshOption
+    tf_name: advanced_ssh_option
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Enable only, when IP Authorization is enabled in the AAA Server
+
+  # --- management section: Loopback ---
+
+  - model_name: allowSameLoopbackIpOnSwitches
+    tf_name: allow_same_loopback_ip_on_switches
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Allow the same loopback IP address to be configured on multiple
+      switches (e.g. RP loopback IP)
+
+  # --- management section: Smart Switch / Hypershield ---
+
+  - model_name: allowSmartSwitchOnboarding
+    tf_name: allow_smart_switch_onboarding
+    type: Bool
+    default_value: false
+    ndfc_type: bool
+    example: false
+    ndfc_nested:
+    - management
+    description: Enable onboarding of smart switches to Hypershield for firewall service
+  - model_name: connectivityDomainName
+    tf_name: connectivity_domain_name
+    type: String
+    example: my_domain
+    ndfc_nested:
+    - management
+    description: Domain name to connect to Hypershield
+  - model_name: hypershieldConnectivityProxyServer
+    tf_name: hypershield_connectivity_proxy_server
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: IPv4 address, IPv6 address, or DNS name of the proxy server for
+      Hypershield communication
+  - model_name: hypershieldConnectivityProxyServerPort
+    tf_name: hypershield_connectivity_proxy_server_port
+    type: Int64
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Proxy port number for communication with Hypershield
+  - model_name: hypershieldConnectivitySourceIntf
+    tf_name: hypershield_connectivity_source_intf
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Loopback interface on smart switch for communication with Hypershield
+
+  # --- management section: Bootstrap ---
+
+  - model_name: day0Bootstrap
+    tf_name: day0_bootstrap
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Support day 0 touchless switch bringup
+  - model_name: day0PlugAndPlay
+    tf_name: day0_plug_and_play
+    type: Bool
+    optional: true
+    computed: true
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Enable Plug n Play for Catalyst 9000 switches
+  - model_name: inbandDay0Bootstrap
+    tf_name: inband_day0_bootstrap
+    type: Bool
+    optional: true
+    computed: true
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Support day 0 touchless switch bringup via inband management
+  - model_name: bootstrapSubnetCollection
+    tf_name: bootstrap_subnet_collection
+    type: List
+    ndfc_nested:
+    - management
+    attributes:
+    - model_name: startIp
+      tf_name: start_ip
+      type: String
+      example: 192.168.1.10
+      description: Starting IP address of the bootstrap range
+    - model_name: endIp
+      tf_name: end_ip
+      type: String
+      example: 192.168.1.20
+      description: Ending IP address of the bootstrap range
+    - model_name: defaultGateway
+      tf_name: default_gateway
+      type: String
+      example: 192.168.1.1
+      description: Default gateway for bootstrap subnet
+    - model_name: subnetPrefix
+      tf_name: subnet_prefix
+      type: Int64
+      example: 24
+      description: Subnet prefix length (8-30)
+    description: List of IPv4 or IPv6 subnets to be used for bootstrap
+
+  # --- management section: CDP ---
+
+  - model_name: cdp
+    tf_name: cdp
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Enable CDP on management interface
+
+  # --- management section: CoPP Policy ---
+
+  - model_name: coppPolicy
+    tf_name: copp_policy
+    type: String
+    default_value: manual
+    example: manual
+    ndfc_nested:
+    - management
+    description: "Fabric wide CoPP policy. Customized CoPP policy should be
+      provided when 'manual' is selected"
+
+  # --- management section: DHCP ---
+
+  - model_name: dhcpEndAddress
+    tf_name: dhcp_end_address
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: DHCP Scope End Address for Switch POAP
+  - model_name: dhcpProtocolVersion
+    tf_name: dhcp_protocol_version
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: IP protocol version for Local DHCP Server
+  - model_name: dhcpStartAddress
+    tf_name: dhcp_start_address
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: DHCP Scope Start Address for Switch POAP
+  - model_name: localDhcpServer
+    tf_name: local_dhcp_server
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Automatic IP assignment for POAP from local DHCP server
+
+  # --- management section: DNS ---
+
+  - model_name: dnsCollection
+    tf_name: dns_collection
+    type: List:String
+    optional: true
+    ndfc_nested:
+    - management
+    description: List of IPv4 and IPv6 DNS addresses
+  - model_name: dnsVrfCollection
+    tf_name: dns_vrf_collection
+    type: List:String
+    optional: true
+    ndfc_nested:
+    - management
+    description: DNS Server VRFs. One VRF for all DNS servers or a list of VRFs, one
+      per DNS server
+
+  # --- management section: Domain ---
+
+  - model_name: domainName
+    tf_name: domain_name
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Domain name for DHCP server PnP block
+
+  # --- management section: DPU Pinning ---
+
+  - model_name: enableDpuPinning
+    tf_name: enable_dpu_pinning
+    type: Bool
+    optional: true
+    computed: true
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Enable pinning of VRFs and networks to specific DPUs on smart switches
+
+  # --- management section: Extra Config ---
+
+  - model_name: extraConfigAaa
+    tf_name: extra_config_aaa
+    type: String
+    example: radius-server host 10.1.1.1
+    ndfc_nested:
+    - management
+    description: Additional CLIs for AAA configuration
+  - model_name: extraConfigFabric
+    tf_name: extra_config_fabric
+    type: String
+    example: no shutdown
+    ndfc_nested:
+    - management
+    description: Additional CLIs for all switches
+  - model_name: extraConfigNxosBootstrap
+    tf_name: extra_config_nxos_bootstrap
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Additional CLIs required during device bootup/login e.g. AAA/Radius (NX-OS)
+  - model_name: extraConfigXeBootstrap
+    tf_name: extra_config_xe_bootstrap
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Additional CLIs required during device bootup/login e.g. AAA/Radius (IOS-XE)
+
+  # --- management section: Inband Management ---
+
+  - model_name: inbandManagement
+    tf_name: inband_management
+    type: Bool
+    default_value: false
+    ndfc_type: bool
+    example: false
+    ndfc_nested:
+    - management
+    description: Import switches with reachability over the switch front-panel ports
+
+  # --- management section: Interface Statistics ---
+
+  - model_name: realTimeInterfaceStatisticsCollection
+    tf_name: real_time_interface_statistics_collection
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Enable Real Time Interface Statistics Collection. Valid for NX-OS only
+  - model_name: interfaceStatisticsLoadInterval
+    tf_name: interface_statistics_load_interval
+    type: Int64
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Interface Statistics Load Interval Time in seconds
+
+  # --- management section: Management ---
+
+  - model_name: managementGateway
+    tf_name: management_gateway
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Default gateway for management VRF on the switch
+  - model_name: managementIpv4Prefix
+    tf_name: management_ipv4_prefix
+    type: Int64
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Switch Mgmt IP Subnet Prefix if IPv4
+  - model_name: managementIpv6Prefix
+    tf_name: management_ipv6_prefix
+    type: Int64
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Switch Management IP Subnet Prefix if IPv6
+
+  # --- management section: Monitored Mode ---
+
+  - model_name: monitoredMode
+    tf_name: monitored_mode
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: If enabled, fabric is only monitored. No configuration will be deployed
+
+  # --- management section: MPLS Handoff ---
+
+  - model_name: mplsHandoff
+    tf_name: mpls_handoff
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Enable MPLS Handoff
+  - model_name: mplsLoopbackIdentifier
+    tf_name: mpls_loopback_identifier
+    type: Int64
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Underlay MPLS Loopback Identifier
+  - model_name: mplsLoopbackIpRange
+    tf_name: mpls_loopback_ip_range
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: MPLS Loopback IP Address Range
+
+  # --- management section: Netflow Settings ---
+
+  - model_name: netflow
+    tf_name: netflow_enable
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    example: false
+    ndfc_nested:
+    - management
+    - netflowSettings
+    description: Enable netflow on corresponding interface. Supported only if
+      netflow is enabled on fabric
+  - model_name: netflowExporterCollection
+    tf_name: netflow_exporter_collection
+    type: List
+    ndfc_nested:
+    - management
+    - netflowSettings
+    attributes:
+    - model_name: exporterName
+      tf_name: exporter_name
+      type: String
+      example: exporter1
+    - model_name: exporterIp
+      tf_name: exporter_ip
+      type: String
+      example: 192.168.1.1
+    - model_name: vrf
+      tf_name: vrf
+      type: String
+      example: management
+    - model_name: sourceInterfaceName
+      tf_name: source_interface_name
+      type: String
+      example: loopback0
+    - model_name: udpPort
+      tf_name: udp_port
+      type: Int64
+      example: 1
+      default_value: 1
+      description: UDP port
+    description: One or Multiple Netflow Exporters
+  - model_name: netflowRecordCollection
+    tf_name: netflow_record_collection
+    type: List
+    ndfc_nested:
+    - management
+    - netflowSettings
+    attributes:
+    - model_name: recordName
+      tf_name: record_name
+      type: String
+      example: record1
+    - model_name: recordTemplate
+      tf_name: record_template
+      type: String
+      default_value: netflowIpv4Record
+      example: netflowIpv4Record
+    - model_name: layer2Record
+      tf_name: layer2_record
+      type: Bool
+      default_value: false
+      example: false
+      description: Is Layer2 Record
+  - model_name: netflowMonitorCollection
+    tf_name: netflow_monitor_collection
+    type: List
+    ndfc_nested:
+    - management
+    - netflowSettings
+    attributes:
+    - model_name: monitorName
+      tf_name: monitor_name
+      type: String
+      example: monitor1
+    - model_name: recordName
+      tf_name: monitor_record_name
+      type: String
+      example: record1
+    - model_name: exporter1Name
+      tf_name: exporter1_name
+      type: String
+      example: exporter1
+    - model_name: exporter2Name
+      tf_name: exporter2_name
+      type: String
+      example: exporter2
+      description: Exporter 2 Name
+    description: One or Multiple Netflow Monitors
+
+  # --- management section: NX-API ---
+
+  - model_name: nxapi
+    tf_name: nxapi
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Enable NX-API over HTTPS
+  - model_name: nxapiHttpsPort
+    tf_name: nxapi_https_port
+    type: Int64
+    default_value: 443
+    example: 443
+    ndfc_nested:
+    - management
+    description: HTTPS port for NX-API
+  - model_name: nxapiHttp
+    tf_name: nxapi_http
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Enable NX-API over HTTP
+  - model_name: nxapiHttpPort
+    tf_name: nxapi_http_port
+    type: Int64
+    default_value: 80
+    example: 80
+    ndfc_nested:
+    - management
+    description: HTTP port for NX-API
+
+  # --- management section: Performance Monitoring ---
+
+  - model_name: performanceMonitoring
+    tf_name: performance_monitoring
+    type: Bool
+    default_value: false
+    ndfc_type: bool
+    example: false
+    ndfc_nested:
+    - management
+    description: Switch metrics collected through periodic SNMP polling. Alternative
+      to real-time telemetry
+
+  # --- management section: Power Redundancy ---
+
+  - model_name: powerRedundancyMode
+    tf_name: power_redundancy_mode
+    type: String
+    default_value: redundant
+    example: redundant
+    ndfc_nested:
+    - management
+    description: Default power supply mode for NX-OS switches
+
+  # --- management section: PTP ---
+
+  - model_name: ptp
+    tf_name: ptp
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Enable Precision Time Protocol (PTP)
+  - model_name: ptpLoopbackId
+    tf_name: ptp_loopback_id
+    type: Int64
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Precision Time Protocol Source Loopback Id
+  - model_name: ptpDomainId
+    tf_name: ptp_domain_id
+    type: Int64
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Multiple Independent PTP Clocking Subdomains on a Single Network
+
+  # --- management section: Backup ---
+
+  - model_name: realTimeBackup
+    tf_name: real_time_backup
+    type: Bool
+    example: true
+    ndfc_type: bool
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Hourly Fabric Backup only if there is any config deployment since
+      last backup
+  - model_name: scheduledBackup
+    tf_name: scheduled_backup
+    type: Bool
+    example: false
+    ndfc_type: bool
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: Enable backup at the specified time daily
+  - model_name: scheduledBackupTime
+    tf_name: scheduled_backup_time
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - management
+    description: "Time (UTC) in 24hr format (00:00 to 23:59) to take daily
+      Backup if enabled"
+
+  # --- management section: SNMP ---
+
+  - model_name: snmpTrap
+    tf_name: snmp_trap
+    type: Bool
+    default_value: true
+    example: true
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Configure Nexus Dashboard as a receiver for SNMP traps
+
+  # --- management section: Sub-Interface ---
+
+  - model_name: subInterfaceDot1qRange
+    tf_name: sub_interface_dot1q_range
+    type: String
+    default_value: 2-511
+    example: 2-511
+    ndfc_nested:
+    - management
+    description: "Per aggregation dot1q range (minimum: 2, maximum: 4093) for VRF-Lite
+      connectivity"
+
+  # --- telemetrySettings section ---
+
+  - model_name: dummyField
+    tf_name: dummy_field
+    description: Just here for some auto gen reason
+    type: String
+    tf_hide: true
+    payload_hide: true
+    ndfc_nested:
+    - telemetrySettings
+  - model_name: trafficAnalytics
+    tf_name: traffic_analytics
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    description: Configuration status of a feature in a fabric
+  - model_name: netFlow
+    tf_name: net_flow
+    type: Bool
+    optional: true
+    computed: true
+    ndfc_type: bool
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    - flowCollectionModes
+    description: Enable NetFlow
+  - model_name: sFlow
+    tf_name: s_flow
+    type: Bool
+    optional: true
+    computed: true
+    ndfc_type: bool
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    - flowCollectionModes
+    description: Enable sFlow
+  - model_name: flowTelemetry
+    tf_name: flow_telemetry
+    type: Bool
+    optional: true
+    computed: true
+    ndfc_type: bool
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    - flowCollectionModes
+    description: Enable Flow Telemetry
+  - model_name: vrfFlowRules
+    tf_name: vrf_flow_rules
+    type: List
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    - flowRules
+    attributes:
+    - model_name: name
+      tf_name: vrf_flow_rule_name
+      type: String
+      example: rule1
+    - model_name: uuid
+      tf_name: vrf_flow_rule_uuid
+      type: String
+      example: 67b140d39bbd5b6f18af0af8
+    - model_name: tenant
+      tf_name: vrf_flow_rule_tenant
+      type: String
+      example: tenant1
+    - model_name: vrf
+      tf_name: vrf_flow_rule_vrf
+      type: String
+      example: default
+    - model_name: subnets
+      tf_name: vrf_flow_rule_subnets
+      type: List:String
+      example: '["example_subnets_item"]'
+    - model_name: attributes
+      tf_name: vrf_flow_rule_attributes
+      type: List
+      attributes:
+      - model_name: bidirectional
+        tf_name: vrf_flow_rule_bidirectional
+        type: Bool
+        default_value: false
+        example: false
+        ndfc_type: bool
+      - model_name: dstIp
+        tf_name: vrf_flow_rule_dst_ip
+        type: String
+        example: 192.168.1.1
+      - model_name: srcIp
+        tf_name: vrf_flow_rule_src_ip
+        type: String
+        example: 192.168.1.1
+      - model_name: dstPort
+        tf_name: vrf_flow_rule_dst_port
+        type: String
+        example: www
+      - model_name: srcPort
+        tf_name: vrf_flow_rule_src_port
+        type: String
+        example: www
+      - model_name: protocol
+        tf_name: vrf_flow_rule_protocol
+        type: String
+        example: tcp
+      - model_name: attributeId
+        tf_name: vrf_flow_rule_attribute_id
+        type: String
+        example: "1"
+    description: VRF flow rules
+  - model_name: interfaceFlowRules
+    tf_name: interface_flow_rules
+    type: List
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    - flowRules
+    attributes:
+    - model_name: name
+      tf_name: interface_flow_rule_name
+      type: String
+      example: rule1
+    - model_name: uuid
+      tf_name: interface_flow_rule_uuid
+      type: String
+      example: 67b140d39bbd5b6f18af0af8
+    - model_name: type
+      tf_name: interface_flow_rule_type
+      type: String
+      default_value: physical
+      example: physical
+    - model_name: interfaceCollection
+      tf_name: interface_flow_rule_interface_collection
+      type: List
+      attributes:
+      - model_name: switchId
+        tf_name: interface_flow_rule_switch_id
+        type: String
+        example: 10.0.0.1
+      - model_name: switchName
+        tf_name: interface_flow_rule_switch_name
+        type: String
+        example: N9K-1
+      - model_name: interfaces
+        tf_name: interface_flow_rule_interfaces
+        type: List:String
+        example: '["example_interfaces_item"]'
+    - model_name: subnets
+      tf_name: interface_flow_rule_subnets
+      type: List:String
+      example: '["example_subnets_item"]'
+    - model_name: attributes
+      tf_name: interface_flow_rule_attributes
+      type: List
+      attributes:
+      - model_name: bidirectional
+        tf_name: interface_flow_rule_bidirectional
+        type: Bool
+        default_value: false
+        example: false
+        ndfc_type: bool
+      - model_name: dstIp
+        tf_name: interface_flow_rule_dst_ip
+        type: String
+        example: 192.168.1.1
+      - model_name: srcIp
+        tf_name: interface_flow_rule_src_ip
+        type: String
+        example: 192.168.1.1
+      - model_name: dstPort
+        tf_name: interface_flow_rule_dst_port
+        type: String
+        example: www
+      - model_name: srcPort
+        tf_name: interface_flow_rule_src_port
+        type: String
+        example: www
+      - model_name: protocol
+        tf_name: interface_flow_rule_protocol
+        type: String
+        example: tcp
+      - model_name: attributeId
+        tf_name: interface_flow_rule_attribute_id
+        type: String
+        example: "1"
+    description: Interface flow rules
+  - model_name: l3OutFlowRules
+    tf_name: l3_out_flow_rules
+    type: List
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    - flowRules
+    attributes:
+    - model_name: name
+      tf_name: l3_out_flow_rule_name
+      type: String
+      example: rule1
+    - model_name: uuid
+      tf_name: l3_out_flow_rule_uuid
+      type: String
+      example: 67b140d39bbd5b6f18af0af8
+    - model_name: type
+      tf_name: l3_out_flow_rule_type
+      type: String
+      default_value: subInterface
+      example: subInterface
+    - model_name: interfaceCollection
+      tf_name: l3_out_flow_rule_interface_collection
+      type: List
+      attributes:
+      - model_name: tenant
+        tf_name: l3_out_flow_rule_tenant
+        type: String
+        example: tenant1
+      - model_name: l3Out
+        tf_name: l3_out_flow_rule_l3_out
+        type: String
+        example: L3Out1
+      - model_name: encap
+        tf_name: l3_out_flow_rule_encap
+        type: String
+        example: vlan-100
+      - model_name: switchName
+        tf_name: l3_out_flow_rule_switch_name
+        type: String
+        example: N9K-1
+      - model_name: switchId
+        tf_name: l3_out_flow_rule_switch_id
+        type: String
+        example: 10.0.0.1
+      - model_name: interfaces
+        tf_name: l3_out_flow_rule_interfaces
+        type: List:String
+        example: '["example_interfaces_item"]'
+    - model_name: subnets
+      tf_name: l3_out_flow_rule_subnets
+      type: List:String
+      example: '["example_subnets_item"]'
+    description: L3Out flow rules, applicable only for ACI fabrics
+  - model_name: enabled
+    tf_name: traffic_analytics_rules_enabled
+    type: Bool
+    optional: true
+    computed: true
+    ndfc_type: bool
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    - trafficAnalyticsRules
+  - model_name: interfaceRules
+    tf_name: interface_rules
+    type: List
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    - trafficAnalyticsRules
+    attributes:
+    - model_name: name
+      tf_name: interface_rule_name
+      type: String
+      default_value: TAInterfaceRule1
+      example: TAInterfaceRule1
+    - model_name: interfaceCollection
+      tf_name: interface_rule_interface_collection
+      type: List
+      attributes:
+      - model_name: switchId
+        tf_name: interface_rule_switch_id
+        type: String
+        example: FDO250703ZU
+      - model_name: switchName
+        tf_name: interface_rule_switch_name
+        type: String
+        example: N9K-leaf1
+      - model_name: vrfName
+        tf_name: interface_rule_vrf_name
+        type: String
+        example: vrf1
+      - model_name: interfaces
+        tf_name: interface_rule_interfaces
+        type: List
+        attributes:
+        - model_name: name
+          tf_name: interface_rule_interface_name
+          type: String
+          example: eth1/1
+        - model_name: type
+          tf_name: interface_rule_interface_type
+          type: String
+          default_value: routed
+          example: routed
+        - model_name: encap
+          tf_name: interface_rule_interface_encap
+          type: String
+          example: vlan-100
+        - model_name: vrfName
+          tf_name: interface_rule_interface_vrf_name
+          type: String
+          example: vrf1
+      - model_name: tenant
+        tf_name: interface_rule_tenant
+        type: String
+        example: tenant1
+      - model_name: l3Out
+        tf_name: interface_rule_l3_out
+        type: String
+        example: L3Out1
+    - model_name: enabled
+      tf_name: interface_rule_enabled
+      type: Bool
+      default_value: true
+      example: true
+      ndfc_type: bool
+    - model_name: enableFabricInterconnect
+      tf_name: interface_rule_enable_fabric_interconnect
+      type: Bool
+      default_value: true
+      example: true
+      ndfc_type: bool
+    - model_name: enableL3Out
+      tf_name: interface_rule_enable_l3_out
+      type: Bool
+      default_value: true
+      example: true
+      ndfc_type: bool
+    - model_name: uuid
+      tf_name: interface_rule_uuid
+      type: String
+      example: 67b140d39bbd5b6f18af0af8
+    - model_name: subnets
+      tf_name: interface_rule_subnets
+      type: List:String
+      example: '["10.0.0.0/24"]'
+    description: Traffic Analytics interface rules
+  - model_name: trafficAnalyticsMode
+    tf_name: traffic_analytics_mode
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    - flowCollectionCapabilities
+    description: Indicates whether the fabric supports full or compatibility
+      mode for traffic analytics. It is not applicable when the Nexus Dashboard
+      cluster flow collection mode is set to Flow Telemetry
+  - model_name: udpCategorization
+    tf_name: udp_categorization
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    - flowCollectionCapabilities
+    description: Configuration status of Traffic Analytics UDP Categorization in
+      a fabric
+  - model_name: trafficAnalyticsFilterRules
+    tf_name: traffic_analytics_filter_rules
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    - flowCollectionCapabilities
+    description: Indicates whether the fabric supports traffic analytics filter
+      rules, which can be applied to restrict external traffic visibility on
+      Nexus Dashboard. It is not applicable when the Nexus Dashboard cluster
+      flow collection mode is set to Flow Telemetry
+  - model_name: operatingMode
+    tf_name: operating_mode
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    description: Flow collection mode as set on the fabric's telemetry cluster
+  - model_name: udpCategorization
+    tf_name: udp_categorization_support
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - telemetrySettings
+    - flowCollection
+    description: Configuration status of Traffic Analytics UDP Categorization in
+      a fabric
+  - model_name: microburst
+    tf_name: microburst
+    type: Bool
+    optional: true
+    computed: true
+    ndfc_type: bool
+    description: Enable microburst detection
+    ndfc_nested:
+    - telemetrySettings
+    - microburst
+  - model_name: sensitivity
+    tf_name: sensitivity
+    type: String
+    computed: true
+    optional: true
+    description: Microburst sensitivity level
+    ndfc_nested:
+    - telemetrySettings
+    - microburst
+  - model_name: isEnabled
+    tf_name: analysis_settings_is_enabled
+    type: Bool
+    optional: true
+    computed: true
+    description: Enable or disable Assurance analysis on a fabric
+    ndfc_type: bool
+    ndfc_nested:
+    - telemetrySettings
+    - analysisSettings
+  - model_name: server
+    tf_name: server
+    type: String
+    optional: true
+    computed: true
+    description: Name of the Network attached storage server configured for flow
+      collection. This specifies the server where flow collection data will be
+      exported
+    ndfc_nested:
+    - telemetrySettings
+    - nas
+  - model_name: exportType
+    tf_name: export_type
+    type: String
+    optional: true
+    computed: true
+    description: NAS export type
+    ndfc_nested:
+    - telemetrySettings
+    - nas
+    - exportSettings
+  - model_name: exportFormat
+    tf_name: export_format
+    type: String
+    optional: true
+    computed: true
+    description: NAS export format
+    ndfc_nested:
+    - telemetrySettings
+    - nas
+    - exportSettings
+  - model_name: cost
+    tf_name: cost
+    type: Float64
+    example: 1.2
+    computed: true
+    optional: true
+    description: Energy cost in USD/kWh
+    ndfc_nested:
+    - telemetrySettings
+    - energyManagement
+
+  # --- externalStreamingSettings section ---
+
+  - model_name: email
+    tf_name: email
+    type: List
+    description: List of email settings
+    ndfc_nested:
+    - externalStreamingSettings
+    attributes:
+    - model_name: name
+      tf_name: name
+      type: String
+      example: rule1
+      description: Name of the email configuration. Identifies this specific
+        email notification configuration
+    - model_name: receiverEmail
+      tf_name: receiver_email
+      type: String
+      example: example@example.com
+      description: Email address to receive alerts
+    - model_name: format
+      tf_name: format
+      type: String
+      example: html
+      description: "Email format. Can be 'html' or 'text' to specify the format
+        of email alerts"
+    - model_name: startDate
+      tf_name: start_date
+      type: String
+      example: '2023-01-01T00:00:00Z'
+      description: Start date for email alerts
+    - model_name: collectionFrequencyInDays
+      tf_name: collection_frequency_in_days
+      type: Int64
+      example: 42
+      description: Frequency of email alerts in days
+    - model_name: collectionType
+      tf_name: collection_type
+      type: String
+      ndfc_nested:
+      - collectionSettings
+      example: basic
+      description: Data collection type for message bus
+    - model_name: anomalies
+      tf_name: anomalies
+      type: List:String
+      ndfc_nested:
+      - collectionSettings
+      example: '["critical"]'
+    - model_name: advisories
+      tf_name: advisories
+      type: List:String
+      ndfc_nested:
+      - collectionSettings
+      example: '["critical"]'
+    - model_name: riskAndConformanceReports
+      tf_name: risk_and_conformance_reports
+      type: List:String
+      ndfc_nested:
+      - collectionSettings
+      example: '["software"]'
+    - model_name: onlyIncludeActiveAlerts
+      tf_name: only_include_active_alerts
+      type: Bool
+      ndfc_type: bool
+      example: false
+      description: When true, the output will only include alerts that are active
+  - model_name: servers
+    tf_name: syslog_servers
+    type: List:String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - externalStreamingSettings
+    - syslog
+    description: Syslog servers to which alerts are sent
+  - model_name: facility
+    tf_name: syslog_facility
+    type: String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - externalStreamingSettings
+    - syslog
+    description: Syslog servers facility
+  - model_name: anomalies
+    tf_name: syslog_anomalies
+    type: List:String
+    optional: true
+    computed: true
+    ndfc_nested:
+    - externalStreamingSettings
+    - syslog
+    - collectionSettings
+    description: Level of anomalies to be collected
+  - model_name: messageBus
+    tf_name: message_bus
+    type: List
+    ndfc_nested:
+    - externalStreamingSettings
+    attributes:
+    - model_name: server
+      tf_name: server
+      type: String
+      example: stream-server-1
+    - model_name: collectionType
+      tf_name: collection_type
+      type: String
+      example: alertsAndEvents
+    - model_name: collectionType
+      tf_name: collection_settings_collection_type
+      type: String
+      ndfc_nested:
+      - collectionSettings
+      example: basic
+    - model_name: anomalies
+      tf_name: anomalies
+      type: List:String
+      ndfc_nested:
+      - collectionSettings
+      example: '["critical"]'
+    - model_name: advisories
+      tf_name: advisories
+      type: List:String
+      ndfc_nested:
+      - collectionSettings
+      example: '["critical"]'
+    - model_name: statistics
+      tf_name: statistics
+      type: List:String
+      ndfc_nested:
+      - collectionSettings
+      example: '["interfaces"]'
+    - model_name: faults
+      tf_name: faults
+      type: List:String
+      ndfc_nested:
+      - collectionSettings
+      example: '["critical"]'
+    - model_name: auditLogs
+      tf_name: audit_logs
+      type: List:String
+      ndfc_nested:
+      - collectionSettings
+      example: '["creation"]'
+    description: List of message bus settings

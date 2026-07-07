@@ -658,6 +658,11 @@ func FabricVxlanIbgpResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "Specifies the iBGP Peer-Template config used for Route Reflectors and spines with border or border gateway role. This field should begin with ' template peer' or ' template peer-session'. This must have 2 leading spaces. Note ! All configs should strictly match show run output, with respect to case and newlines. Any mismatches will yield unexpected diffs during deploy",
 				MarkdownDescription: "Specifies the iBGP Peer-Template config used for Route Reflectors and spines with border or border gateway role. This field should begin with ' template peer' or ' template peer-session'. This must have 2 leading spaces. Note ! All configs should strictly match show run output, with respect to case and newlines. Any mismatches will yield unexpected diffs during deploy",
 			},
+			"id": schema.StringAttribute{
+				Computed:            true,
+				Description:         "The unique identifier of the fabric_vxlan_ibgp resource",
+				MarkdownDescription: "The unique identifier of the fabric_vxlan_ibgp resource",
+			},
 			"inband_dhcp_servers": schema.StringAttribute{
 				Optional:            true,
 				Description:         "External DHCP Server IP Addresses. Comma separated list of ipv4 Addresses (Max 3)",
@@ -2561,6 +2566,7 @@ type FabricVxlanIbgpModel struct {
 	HypershieldConnectivityProxyServerPort     types.Int64   `tfsdk:"hypershield_connectivity_proxy_server_port"`
 	HypershieldConnectivitySourceIntf          types.String  `tfsdk:"hypershield_connectivity_source_intf"`
 	IbgpPeerTemplate                           types.String  `tfsdk:"ibgp_peer_template"`
+	Id                                         types.String  `tfsdk:"id"`
 	InbandDhcpServers                          types.String  `tfsdk:"inband_dhcp_servers"`
 	InbandManagement                           types.Bool    `tfsdk:"inband_management"`
 	InterfaceFlowRules                         types.List    `tfsdk:"interface_flow_rules"`

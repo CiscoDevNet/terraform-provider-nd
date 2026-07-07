@@ -5,6 +5,12 @@ resource:
   skip_equality: true
   category: manage
   attributes:
+  - model_name: id
+    tf_name: id
+    description: The unique identifier of the fabric_external resource
+    type: String
+    computed: true
+    payload_hide: true
   - model_name: name
     tf_name: fabric_name
     description: The name of the fabric_vxlan resource
@@ -104,6 +110,15 @@ resource:
     - management
     example: '55000'
     description: Autonomous system number 1-4294967295 | 1-65535[.0-65535]
+  - model_name: createBgpConfig
+    tf_name: create_bgp_config
+    type: Bool
+    default_value: true
+    example: true
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Generate BGP configuration for core and edge routers
   - model_name: superSpineBgpAs
     tf_name: super_spine_bgp_as
     type: String
@@ -411,6 +426,16 @@ resource:
     ndfc_nested:
     - management
     description: Underlay Routing Loopback Id
+  - model_name: allowSameLoopbackIpOnSwitches
+    tf_name: allow_same_loopback_ip_on_switches
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Allow the same loopback IP address to be configured on multiple
+      switches (e.g. RP loopback IP)
   - model_name: nveLoopbackId
     tf_name: nve_loopback_id
     type: Int64
@@ -772,6 +797,24 @@ resource:
     ndfc_nested:
     - management
     description: Support day 0 touchless switch bringup
+  - model_name: day0PlugAndPlay
+    tf_name: day0_plug_and_play
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Enable Plug n Play for Catalyst 9000 switches
+  - model_name: inbandDay0Bootstrap
+    tf_name: inband_day0_bootstrap
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: Support day 0 touchless switch bringup via inband management
   - model_name: localDhcpServer
     tf_name: local_dhcp_server
     type: Bool
@@ -802,6 +845,13 @@ resource:
     ndfc_nested:
     - management
     description: End address for switch POAP
+  - model_name: domainName
+    tf_name: domain_name
+    type: String
+    example: example.com
+    ndfc_nested:
+    - management
+    description: Domain name for DHCP server PnP block
   - model_name: managementGateway
     tf_name: management_gateway
     type: String
@@ -868,6 +918,13 @@ resource:
     ndfc_nested:
     - management
     description: Additional CLIs required during device bootup/login e.g. AAA/Radius (NX-OS)
+  - model_name: extraConfigXeBootstrap
+    tf_name: extra_config_xe_bootstrap
+    type: String
+    example: aaa authentication login default group radius
+    ndfc_nested:
+    - management
+    description: Additional CLIs required during device bootup/login e.g. AAA/Radius (IOS-XE)
   - model_name: realTimeBackup
     tf_name: real_time_backup
     type: Bool
@@ -1219,6 +1276,15 @@ resource:
     ndfc_nested:
     - management
     description: DCI MACsec Operational Status periodic report timer in minutes
+  - model_name: monitoredMode
+    tf_name: monitored_mode
+    type: Bool
+    default_value: false
+    example: false
+    ndfc_type: bool
+    ndfc_nested:
+    - management
+    description: If enabled, fabric is only monitored. No configuration will be deployed
   - model_name: overlayMode
     tf_name: overlay_mode
     type: String
@@ -1567,6 +1633,13 @@ resource:
     ndfc_nested:
     - management
     description: Additional CLIs for AAA configuration
+  - model_name: extraConfigFabric
+    tf_name: extra_config_fabric
+    type: String
+    example: no shutdown
+    ndfc_nested:
+    - management
+    description: Additional CLIs for all switches
   - model_name: aaa
     tf_name: aaa
     type: Bool

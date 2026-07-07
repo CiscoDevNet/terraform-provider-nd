@@ -1,6 +1,14 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+// SPDX-License-Identifier: MPL-2.0
+
 // Code generated;  DO NOT EDIT.
 
-package resource_multi_cluster_connectivity
+package provider
 
 import (
 	"terraform-provider-nd/internal/infra/resource_multi_cluster_connectivity"
@@ -26,17 +34,17 @@ func MultiClusterConnectivityModelHelperStateCheck(RscName string, c resource_mu
 	if c.Spec.Hostname != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("hostname").String(), c.Spec.Hostname))
 	}
-	if c.Spec.Username != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("username").String(), c.Spec.Username))
+	if c.Spec.Credentials.Username != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("username").String(), c.Spec.Credentials.Username))
 	}
-	if c.Spec.Password != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("password").String(), c.Spec.Password))
+	if c.Spec.Credentials.Password != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("password").String(), c.Spec.Credentials.Password))
 	}
-	if c.Spec.LoginDomain != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("login_domain").String(), c.Spec.LoginDomain))
+	if c.Spec.Credentials.LoginDomain != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("login_domain").String(), c.Spec.Credentials.LoginDomain))
 	}
-	if c.Spec.MultiClusterLoginDomain != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("multi_cluster_login_domain").String(), c.Spec.MultiClusterLoginDomain))
+	if c.Spec.Nd.MultiClusterLoginDomain != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("multi_cluster_login_domain").String(), c.Spec.Nd.MultiClusterLoginDomain))
 	}
 	return ret
 }

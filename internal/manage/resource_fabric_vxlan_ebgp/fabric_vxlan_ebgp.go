@@ -113,8 +113,12 @@ func (r *fabricVxlanEbgpResource) Read(ctx context.Context, req resource.ReadReq
 		"fabric_name": state.FabricName.ValueString(),
 	})
 
-	resource_fabric_common.RscGetFabric(ctx, r.manageClient.ApiClient, &resp.Diagnostics, &state)
+	found := resource_fabric_common.RscGetFabric(ctx, r.manageClient.ApiClient, &resp.Diagnostics, &state)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !found {
+		resp.State.RemoveResource(ctx)
 		return
 	}
 

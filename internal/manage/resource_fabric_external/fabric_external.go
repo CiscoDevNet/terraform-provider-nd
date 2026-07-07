@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-package resource_fabric_vxlan
+package resource_fabric_external
 
 import (
 	"context"
@@ -20,37 +20,34 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-// ModuleKey is the key used to get the manage module from the provider.
-const ModuleKey = "manage"
-
 // Ensure the implementation satisfies the expected interfaces
 var (
-	_ resource.Resource              = &fabricVxlanResource{}
-	_ resource.ResourceWithConfigure = &fabricVxlanResource{}
+	_ resource.Resource              = &fabricExternalResource{}
+	_ resource.ResourceWithConfigure = &fabricExternalResource{}
 )
 
-// NewFabricVxlanResource is a helper function to simplify the provider implementation.
-func NewFabricVxlanResource() resource.Resource {
-	return &fabricVxlanResource{}
+// NewFabricExternalResource is a helper function to simplify the provider implementation.
+func NewFabricExternalResource() resource.Resource {
+	return &fabricExternalResource{}
 }
 
-// fabricVxlanResource is the resource implementation.
-type fabricVxlanResource struct {
+// fabricExternalResource is the resource implementation.
+type fabricExternalResource struct {
 	manageClient *manage.NexusDashboardManage
 }
 
 // Metadata returns the resource type name.
-func (r *fabricVxlanResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_fabric_vxlan"
+func (r *fabricExternalResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_fabric_external"
 }
 
 // Schema defines the schema for the resource.
-func (r *fabricVxlanResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = FabricVxlanResourceSchema(ctx)
+func (r *fabricExternalResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = FabricExternalResourceSchema(ctx)
 }
 
 // Configure adds the provider configured client to the resource.
-func (r *fabricVxlanResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *fabricExternalResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -78,8 +75,8 @@ func (r *fabricVxlanResource) Configure(_ context.Context, req resource.Configur
 }
 
 // Create creates the resource and sets the initial Terraform state.
-func (r *fabricVxlanResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var in FabricVxlanModel
+func (r *fabricExternalResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var in FabricExternalModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &in)...)
@@ -88,7 +85,7 @@ func (r *fabricVxlanResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	tflog.Debug(ctx, "Creating Fabric VXLAN", map[string]interface{}{
+	tflog.Debug(ctx, "Creating Fabric External", map[string]interface{}{
 		"fabric_name": in.FabricName.ValueString(),
 	})
 
@@ -102,8 +99,8 @@ func (r *fabricVxlanResource) Create(ctx context.Context, req resource.CreateReq
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (r *fabricVxlanResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state FabricVxlanModel
+func (r *fabricExternalResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state FabricExternalModel
 
 	// Get current state
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -112,7 +109,7 @@ func (r *fabricVxlanResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	tflog.Debug(ctx, "Reading Fabric VXLAN", map[string]interface{}{
+	tflog.Debug(ctx, "Reading Fabric External", map[string]interface{}{
 		"fabric_name": state.FabricName.ValueString(),
 	})
 
@@ -130,8 +127,8 @@ func (r *fabricVxlanResource) Read(ctx context.Context, req resource.ReadRequest
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (r *fabricVxlanResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan FabricVxlanModel
+func (r *fabricExternalResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan FabricExternalModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -140,7 +137,7 @@ func (r *fabricVxlanResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	tflog.Debug(ctx, "Updating Fabric VXLAN", map[string]interface{}{
+	tflog.Debug(ctx, "Updating Fabric External", map[string]interface{}{
 		"fabric_name": plan.FabricName.ValueString(),
 	})
 
@@ -153,8 +150,8 @@ func (r *fabricVxlanResource) Update(ctx context.Context, req resource.UpdateReq
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (r *fabricVxlanResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state FabricVxlanModel
+func (r *fabricExternalResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state FabricExternalModel
 
 	// Get current state
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -163,7 +160,7 @@ func (r *fabricVxlanResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	tflog.Debug(ctx, "Deleting Fabric VXLAN", map[string]interface{}{
+	tflog.Debug(ctx, "Deleting Fabric External", map[string]interface{}{
 		"fabric_name": state.FabricName.ValueString(),
 	})
 

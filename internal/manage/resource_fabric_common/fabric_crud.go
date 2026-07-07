@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage/api"
 	"time"
@@ -80,16 +81,26 @@ func createDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics,
 	}
 	// ND BUG - license_tier is not set in the response. Try delaying the read
 	time.Sleep(2 * time.Second)
-	RscGetFabric(ctx, client, dg, model)
+	if !RscGetFabric(ctx, client, dg, model) {
+		dg.AddError(
+			"Error Creating Fabric",
+			fmt.Sprintf("Fabric %q was not found after creation", model.GetFabricName()),
+		)
+	}
 }
 
 // RscGetFabric retrieves fabric information by name and populates the model.
-func RscGetFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
-	fabricHandler(model.GetFabricType()).Read(ctx, client, dg, model)
+// Returns true if the resource was found, false if it no longer exists (404).
+func RscGetFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) bool {
+	return fabricHandler(model.GetFabricType()).Read(ctx, client, dg, model)
 }
 
 // readDefault is the built-in read logic.
-func readDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
+// Returns true if the resource was found and read successfully, false if the
+// resource no longer exists on the remote infrastructure (HTTP 404). When false
+// is returned, no error diagnostic is added — the caller should remove the
+// resource from state so Terraform can plan a re-create.
+func readDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) bool {
 	fabricName := model.GetFabricName()
 	tflog.Debug(ctx, "Read fabric", map[string]interface{}{
 		"fabric_name": fabricName,
@@ -98,11 +109,17 @@ func readDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, m
 	fabricAPI.FabricName = fabricName
 	respData, err := fabricAPI.Get()
 	if err != nil {
+		if strings.Contains(err.Error(), "StatusCode 404") {
+			tflog.Warn(ctx, "Fabric not found on remote, marking for re-creation", map[string]interface{}{
+				"fabric_name": fabricName,
+			})
+			return false
+		}
 		dg.AddError(
 			"Error reading Fabric",
 			fmt.Sprintf("Could not read fabric, unexpected error: %v: %s", err, string(respData)),
 		)
-		return
+		return false
 	}
 	var outData NDFCFabricCommonModel
 
@@ -112,12 +129,14 @@ func readDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, m
 			"Error reading Fabric",
 			fmt.Sprintf("Could not read fabric, unexpected error: %v %v", err, respData),
 		)
-		return
+		return false
 	}
+	outData.Id = fabricName
 	if pu, ok := model.(FabricPostUnmarshal); ok {
 		pu.PostUnmarshal(ctx, &outData)
 	}
 	model.SetModelData(&outData)
+	return true
 }
 
 // RscUpdateFabric updates a fabric resource via the NDFC API.
@@ -158,7 +177,13 @@ func updateDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics,
 		return
 	}
 	// Read the updated fabric
-	RscGetFabric(ctx, client, dg, model)
+	if !RscGetFabric(ctx, client, dg, model) {
+		dg.AddError(
+			"Error Updating Fabric",
+			fmt.Sprintf("Fabric %q was not found after update", inData.FabricName),
+		)
+		return
+	}
 	log.Printf("Updated fabric %s with category %s", inData.FabricName, inData.Category)
 }
 

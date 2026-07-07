@@ -47,21 +47,16 @@ func defaultFabricValues() map[string]interface{} {
 	}
 }
 
-// NDFCFabricVxlanTestData wraps NDFCFabricCommonModel for VXLAN test template selection.
-type NDFCFabricVxlanTestData struct {
-	resource_fabric_common.NDFCFabricCommonModel
-}
-
 // GenerateFabricVxlanObject creates a VXLAN fabric model object for testing.
 // fabricName, bgpAsn, and fabricType are mandatory identifiers.
 // overrides lets each test supply unique values for any field so that
 // multiple fabrics can coexist without conflicting on IP ranges, VNI ranges, etc.
 // Any key not present in overrides gets the value from defaultFabricValues().
-func GenerateFabricVxlanObject(obj **NDFCFabricVxlanTestData,
+func GenerateFabricVxlanObject(obj **resource_fabric_common.NDFCFabricCommonModel,
 	fabricName string, bgpAsn string, fabricType string,
 	overrides map[string]interface{}) {
 
-	fabric := new(NDFCFabricVxlanTestData)
+	fabric := new(resource_fabric_common.NDFCFabricCommonModel)
 
 	fabric.FabricName = fabricName
 	fabric.Management.FabricType = fabricType
@@ -73,7 +68,7 @@ func GenerateFabricVxlanObject(obj **NDFCFabricVxlanTestData,
 		merged[k] = v
 	}
 
-	applyFabricCommonValues(&fabric.NDFCFabricCommonModel, merged)
+	applyFabricCommonValues(fabric, merged)
 
 	*obj = fabric
 }
@@ -81,7 +76,7 @@ func GenerateFabricVxlanObject(obj **NDFCFabricVxlanTestData,
 // ModifyFabricVxlanObject modifies fields on an existing fabric model.
 // Uses the same key set as GenerateFabricVxlanObject overrides.
 func ModifyFabricVxlanObject(
-	obj **NDFCFabricVxlanTestData,
+	obj **resource_fabric_common.NDFCFabricCommonModel,
 	values map[string]interface{},
 ) {
 	fabric := *obj
@@ -89,7 +84,7 @@ func ModifyFabricVxlanObject(
 		return
 	}
 
-	applyFabricCommonValues(&fabric.NDFCFabricCommonModel, values)
+	applyFabricCommonValues(fabric, values)
 
 	*obj = fabric
 }
