@@ -34,6 +34,7 @@ type NDConfig struct {
 	FabricPrefix    string           `yaml:"fabric_prefix"`
 	IntegrationTest IntegratedConfig `yaml:"integration_test"`
 	Inventory       InventoryConfig  `yaml:"inventory"`
+	VpcPair         *VpcPairConfig   `yaml:"vpc_pair"`
 }
 
 // InventoryConfig represents the inventory-specific test configuration
@@ -54,6 +55,11 @@ type InventorySwitch struct {
 	Serial string `yaml:"serial"`
 	IP     string `yaml:"ip"`
 	Role   string `yaml:"role"`
+}
+
+// VpcPairConfig represents the acceptance-test switch selection for vPC pair tests.
+type VpcPairConfig struct {
+	Switches []string `yaml:"switches"`
 }
 
 // IntegratedConfig represents the integration test configuration

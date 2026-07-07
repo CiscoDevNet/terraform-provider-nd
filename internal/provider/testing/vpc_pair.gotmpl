@@ -1,0 +1,10 @@
+{{define "ND_VPC_PAIR_RSC"}}
+resource "nd_vpc_pair" "{{.RscName}}" {
+{{with .VpcPair}}
+    switch_id_1 = "{{.SwitchId1}}"
+    switch_id_2 = "{{.SwitchId2}}"
+    use_virtual_peerlink = {{deref_bool .UseVirtualPeerlink}}
+    deploy = {{.Deploy}}
+{{end}}
+}
+{{end}}

@@ -1,0 +1,64 @@
+---
+resource:
+  name: vpc_pair
+  rest_endpoint: /manage/fabrics/{fabricName}/switches/{switchId}/vpcPair
+  doc_category: Fabric
+  generate_tf_resource: true
+  skip_equality: false
+  category: manage
+  description: "Resource to configure vPC pair on a switch. Note only VXLAN EVPN fabric is supported"
+  attributes:
+    # Computed - Unique identifier for the vPC pair resource
+    - model_name: id
+      tf_name: id
+      description: The Terraform Unique Identifier for the vPC pair resource `<fabric_name>/<switch1_serial_number>:<switch2_serial_number>`
+      type: String
+      id: true
+      computed: true
+      payload_hide: true
+      example: "test_fabric_vxlan/9FRGGCZT8LR:96E0DGXYPV2"
+    # Computed - Fabric identifier resolved from switch inventory
+    - model_name: fabricName
+      tf_name: fabric_name
+      description: Name of the fabric resolved from the switch inventory
+      type: String
+      computed: true
+      example: my_fabric
+      payload_hide: true
+    # Required - peer switch serial number
+    - model_name: peerSwitchId
+      tf_name: switch_id_1
+      description: Serial number of the peer switch in the vPC pair.
+      type: String
+      mandatory: true
+      tf_requires_replace: true
+      example: 9FRGGCZT8LR
+    # Required - switch serial number
+    - model_name: switchId
+      tf_name: switch_id_2
+      description: Serial number of the switch where the vPC pair is being configured.
+      type: String
+      mandatory: true
+      tf_requires_replace: true
+      example: 96E0DGXYPV2
+    # Required - use virtual peer link or not
+    - model_name: useVirtualPeerLink
+      tf_name: use_virtual_peerlink
+      description: Set to true to use virtual peer link
+      ndfc_type: bool
+      type: Bool
+      example: false
+    # Optional - vPC action
+    - model_name: vpcAction
+      tf_name: vpc_action
+      type: String
+      tf_hide: true
+      description: Internal vPC action sent by the provider runtime as (create/update) pair or (delete) unPair
+    # Required - deploy or not
+    - model_name: deploy
+      tf_name: deploy
+      type: Bool
+      description: "Deploy vPC pair"
+      ndfc_type: bool
+      payload_hide: true
+      example: true
