@@ -10,7 +10,7 @@ import (
 type NDFCBackupModel struct {
 	Name          string `json:"name,omitempty"`
 	Type          string `json:"type,omitempty"`
-	Destination   string `json:"destination,omitempty"`
+	Destination   string `json:"destination"`
 	EncryptionKey string `json:"encryptionKey,omitempty"`
 	TelemetryData *bool  `json:"includeTelemetryOperationalData,omitempty"`
 }

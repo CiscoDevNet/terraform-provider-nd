@@ -4,25 +4,34 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"terraform-provider-nd/internal/infra/api"
-
 	"log"
+	"strings"
+	"time"
+
+	"terraform-provider-nd/internal/common/ndapi"
+	"terraform-provider-nd/internal/infra/api"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+const (
+	backupCreatePollInterval = 30 * time.Second
+	backupCreateTimeout      = 60 * time.Minute
+	backupStatusCompleted    = "completed"
+)
+
+type backupCreateStatusResponse struct {
+	Raw         json.RawMessage `json:"-"`
+	Destination string          `json:"destination"`
+	Name        string          `json:"name"`
+	Status      string          `json:"status"`
+	Type        string          `json:"type"`
+}
+
 // rscCreateBackup creates a nd backup resource
 func (r *backupNdResource) rscCreateBackup(ctx context.Context, dg *diag.Diagnostics, input *BackupModel) {
-	if input == nil {
-		dg.AddError(
-			"Invalid Input",
-			"The input model is nil",
-		)
-		return
-	}
-
-	log.Printf("[INFO] Create nd_backup name=%s", input.Name.ValueString())
+	input.Id = input.Name
 	inData := input.GetModelData()
 
 	// Create nd backup API client
@@ -39,7 +48,7 @@ func (r *backupNdResource) rscCreateBackup(ctx context.Context, dg *diag.Diagnos
 	}
 
 	// Call the API to create the nd backup
-	res, err := backupAPI.Post(backupPayload, nil)
+	res, err := backupAPI.Post(backupPayload, &ndapi.APIOptions{DisablePayloadLog: true})
 	if err != nil {
 		dg.AddError(
 			"Error Creating ND Backup",
@@ -47,26 +56,154 @@ func (r *backupNdResource) rscCreateBackup(ctx context.Context, dg *diag.Diagnos
 		)
 		return
 	}
-	r.rscGetBackup(ctx, dg, input)
+
+	if !r.waitForBackupCreateCompletion(ctx, dg, backupAPI, input) {
+		return
+	}
+
+	if r.rscGetBackup(ctx, dg, input) {
+		dg.AddError(
+			"Error Creating ND Backup",
+			fmt.Sprintf("Could not read nd backup %q after create: resource not found", input.Id),
+		)
+	}
 }
 
-// rscGetBackup retrieves nd backup information by name
-func (r *backupNdResource) rscGetBackup(ctx context.Context, dg *diag.Diagnostics, in *BackupModel) {
-	log.Printf("[INFO] Read nd_backup name=%s", in.Name.ValueString())
+func (r *backupNdResource) waitForBackupCreateCompletion(ctx context.Context, dg *diag.Diagnostics, backupAPI *api.BackupAPI, input *BackupModel) bool {
+	id := input.Id.ValueString()
+	backupAPI.Name = id
+	deadline := time.NewTimer(backupCreateTimeout)
+	defer deadline.Stop()
+
+	ticker := time.NewTicker(backupCreatePollInterval)
+	defer ticker.Stop()
+
+	for {
+		respData, err := backupAPI.Get()
+		if err != nil {
+			if strings.Contains(err.Error(), "StatusCode 404") {
+				dg.AddError(
+					"Error Creating ND Backup",
+					fmt.Sprintf("Nexus Dashboard reported backup creation failure for %q: GET /infra/backups/%s returned 404. Response: %s", id, id, string(respData)),
+				)
+				return false
+			}
+
+			log.Printf("[INFO] Waiting for nd_backup id=%s, read failed: %v", id, err)
+		} else {
+			var backupResp backupCreateStatusResponse
+			backupResp.Raw = append(json.RawMessage(nil), respData...)
+			if err := json.Unmarshal(respData, &backupResp); err != nil {
+				dg.AddError(
+					"Error Creating ND Backup",
+					fmt.Sprintf("Could not unmarshal nd backup status response, unexpected error: %v", err),
+				)
+				return false
+			}
+
+			detail := backupCreateStatusDetail(backupResp)
+			log.Printf("[INFO] nd_backup id=%s create status: %s", id, detail)
+
+			if mismatches := backupCreateStatusMismatches(input, backupResp); len(mismatches) > 0 {
+				dg.AddError(
+					"Error Creating ND Backup",
+					fmt.Sprintf("Nexus Dashboard returned backup %q, but the response did not match the requested configuration: %s. Response: %s", id, strings.Join(mismatches, ", "), detail),
+				)
+				return false
+			}
+
+			switch strings.ToLower(backupResp.Status) {
+			case backupStatusCompleted:
+				return true
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			dg.AddError(
+				"Error Creating ND Backup",
+				fmt.Sprintf("Context canceled while waiting for backup %q creation to complete: %v", id, ctx.Err()),
+			)
+			return false
+		case <-deadline.C:
+			dg.AddError(
+				"Error Creating ND Backup",
+				fmt.Sprintf("Timed out after %s waiting for backup %q creation to complete.", backupCreateTimeout, id),
+			)
+			return false
+		case <-ticker.C:
+		}
+	}
+}
+
+func backupCreateStatusMismatches(input *BackupModel, status backupCreateStatusResponse) []string {
+	var mismatches []string
+
+	expectedName := input.Name.ValueString()
+	if status.Name != expectedName {
+		mismatches = append(mismatches, fmt.Sprintf("name expected %q got %q", expectedName, status.Name))
+	}
+
+	expectedType := input.Type.ValueString()
+	if status.Type != expectedType {
+		mismatches = append(mismatches, fmt.Sprintf("type expected %q got %q", expectedType, status.Type))
+	}
+
+	expectedDestination := ""
+	if !input.Destination.IsNull() && !input.Destination.IsUnknown() {
+		expectedDestination = input.Destination.ValueString()
+	}
+	if status.Destination != expectedDestination {
+		mismatches = append(mismatches, fmt.Sprintf("destination expected %q got %q", expectedDestination, status.Destination))
+	}
+
+	return mismatches
+}
+
+func backupCreateStatusDetail(status backupCreateStatusResponse) string {
+	var parts []string
+	if status.Name != "" {
+		parts = append(parts, fmt.Sprintf("name=%s", status.Name))
+	}
+	if status.Status != "" {
+		parts = append(parts, fmt.Sprintf("status=%s", status.Status))
+	}
+	if status.Type != "" {
+		parts = append(parts, fmt.Sprintf("type=%s", status.Type))
+	}
+	if status.Destination != "" {
+		parts = append(parts, fmt.Sprintf("destination=%q", status.Destination))
+	}
+
+	if len(parts) == 0 {
+		return string(status.Raw)
+	}
+
+	return strings.Join(parts, ", ")
+}
+
+// rscGetBackup retrieves nd backup information by id
+func (r *backupNdResource) rscGetBackup(ctx context.Context, dg *diag.Diagnostics, in *BackupModel) bool {
+	id := in.Id.ValueString()
+	log.Printf("[INFO] Read nd_backup id=%s", id)
 	// Preserve sensitive fields that are not returned by the API
+	preservedDestination := in.Destination
 	preservedEncryptionKey := in.EncryptionKey
-	telemetryData := in.TelemetryData
+	preservedTelemetryData := in.TelemetryData
 
 	backupAPI := api.NewBackupAPI(r.infraClient.ApiClient)
-	backupAPI.Name = in.Name.ValueString()
+	backupAPI.Name = id
 	respData, err := backupAPI.Get()
 
 	if err != nil {
+		if strings.Contains(err.Error(), "StatusCode 404") {
+			return true
+		}
 		dg.AddError(
 			"Error Reading ND Backup",
-			fmt.Sprintf("Could not read nd backup, unexpected error: %v %v", err, respData),
+			fmt.Sprintf("Could not read nd backup, unexpected error: %v %s", err, string(respData)),
 		)
-		return
+		return false
 	}
 
 	var backupResp NDFCBackupModel
@@ -76,27 +213,36 @@ func (r *backupNdResource) rscGetBackup(ctx context.Context, dg *diag.Diagnostic
 			"Error Reading ND Backup",
 			fmt.Sprintf("Could not unmarshal nd backup response, unexpected error: %v", err),
 		)
-		return
+		return false
 	}
 
 	in.SetModelData(&backupResp)
 
-	// Destination = "" is valid and indicates the backup location is ND local storage, so it should be set in the state even if empty.
-	in.Destination = types.StringValue(backupResp.Destination)
+	if backupResp.Destination == "" {
+		in.Destination = preservedDestination
+	} else {
+		in.Destination = types.StringValue(backupResp.Destination)
+	}
 
 	// Restore sensitive fields after SetModelData (API does not return them)
 	in.EncryptionKey = preservedEncryptionKey
-	in.TelemetryData = telemetryData
+	in.TelemetryData = preservedTelemetryData
+	in.Id = in.Name
+	return false
 }
 
-// rscDeleteBackup deletes a nd backup by name
+// rscDeleteBackup deletes a nd backup by id
 func (r *backupNdResource) rscDeleteBackup(ctx context.Context, dg *diag.Diagnostics, state *BackupModel) {
-	log.Printf("[INFO] Delete nd_backup name=%s", state.Name.ValueString())
+	id := state.Id.ValueString()
+	log.Printf("[INFO] Delete nd_backup id=%s", id)
 	backupAPI := api.NewBackupAPI(r.infraClient.ApiClient)
-	backupAPI.Name = state.Name.ValueString()
+	backupAPI.Name = id
 
 	res, err := backupAPI.Delete(nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "StatusCode 404") {
+			return
+		}
 		dg.AddError(
 			"Error Deleting ND Backup",
 			fmt.Sprintf("Could not delete nd backup, unexpected error: %v %v", err, res),

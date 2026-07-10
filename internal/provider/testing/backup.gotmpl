@@ -8,7 +8,9 @@ resource "nd_backup" "{{.RscName}}" {
     {{- if .Type}}
     type           = "{{.Type}}"
     {{- end}}
+    {{- if .Destination}}
     destination    = "{{.Destination}}"
+    {{- end}}
     encryption_key = "{{.EncryptionKey}}"
     {{- if ne .TelemetryData nil}}
     telemetry_data = {{deref_bool .TelemetryData}}

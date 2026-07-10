@@ -6,22 +6,18 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+// Code generated;  DO NOT EDIT.
+
 package provider
 
 import (
 	"strconv"
-
 	"terraform-provider-nd/internal/infra/resource_backup"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-// BackupModelHelperStateCheck returns a slice of TestCheckFunc that validates
-// an nd_backup resource state matches the values held in the supplied
-// NDFCBackupModel. The `encryption_key` attribute is intentionally not
-// validated here because it is not returned by the API and is reconstructed
-// from prior state by the provider.
 func BackupModelHelperStateCheck(RscName string, c resource_backup.NDFCBackupModel, attrPath path.Path) []resource.TestCheckFunc {
 	ret := []resource.TestCheckFunc{}
 
@@ -33,7 +29,12 @@ func BackupModelHelperStateCheck(RscName string, c resource_backup.NDFCBackupMod
 	} else {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("type").String(), "configOnly"))
 	}
-	ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("destination").String(), c.Destination))
+	if c.Destination != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("destination").String(), c.Destination))
+	}
+	if c.EncryptionKey != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("encryption_key").String(), c.EncryptionKey))
+	}
 	if c.TelemetryData != nil {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("telemetry_data").String(), strconv.FormatBool(*c.TelemetryData)))
 	}

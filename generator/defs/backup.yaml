@@ -4,7 +4,16 @@ resource:
   category: infra
   generate_tf_resource: true
   skip_equality: true
+  description: Manages backup for Nexus Dashboard
   attributes:
+  - model_name: id
+    tf_name: id
+    description: The unique identifier of the backup.
+    type: String
+    id: true
+    computed: true
+    payload_hide: true
+  
   - model_name: name
     tf_name: name
     description: The name of the backup. Start with a lowercase letter or digit (a-z, 0-9), end with a lowercase letter or digit, may contain lowercase letters, digits, or hyphens in between, and must be at least 1 character long (a single letter/digit is OK).
@@ -16,11 +25,9 @@ resource:
 
   - model_name: type
     tf_name: type
-    description: The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data.
+    description: 'The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data. Allowed values: "configOnly" and "full". Default: "configOnly"'
     type: String
     optional: true
-    computed: true
-    use_state: true
     tf_requires_replace: true
     default_value: configOnly
     enum_values:
@@ -32,7 +39,8 @@ resource:
     tf_name: destination
     description: The name of the remote location where the backup file will be saved. An empty string indicates a Nexus Dashboard local backup.
     type: String
-    mandatory: true
+    optional: true
+    include_empty: true
     tf_requires_replace: true
     example: "sftp-server"
 
@@ -42,7 +50,6 @@ resource:
     type: String
     mandatory: true
     sensitive: true
-    write_only: true
     tf_requires_replace: true
     validator: 'LengthBetween(8, 256)'
     example: backupKey123
@@ -52,8 +59,6 @@ resource:
     description: When set to true, telemetry operational data will be collected. Telemetry operational data can only be collected when `type` is `full` and `destination` is a NAS remote storage location.
     type: Bool
     optional: true
-    computed: true
-    use_state: true
     ndfc_type: bool
     tf_requires_replace: true
     example: false

@@ -5,7 +5,6 @@ package resource_backup
 import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -20,7 +19,7 @@ func BackupResourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"destination": schema.StringAttribute{
-				Required:            true,
+				Optional:            true,
 				Description:         "The name of the remote location where the backup file will be saved. An empty string indicates a Nexus Dashboard local backup.",
 				MarkdownDescription: "The name of the remote location where the backup file will be saved. An empty string indicates a Nexus Dashboard local backup.",
 				PlanModifiers: []planmodifier.String{
@@ -39,6 +38,11 @@ func BackupResourceSchema(ctx context.Context) schema.Schema {
 					stringvalidator.LengthBetween(8, 256),
 				},
 			},
+			"id": schema.StringAttribute{
+				Computed:            true,
+				Description:         "The unique identifier of the backup.",
+				MarkdownDescription: "The unique identifier of the backup.",
+			},
 			"name": schema.StringAttribute{
 				Required:            true,
 				Description:         "The name of the backup. Start with a lowercase letter or digit (a-z, 0-9), end with a lowercase letter or digit, may contain lowercase letters, digits, or hyphens in between, and must be at least 1 character long (a single letter/digit is OK).",
@@ -52,31 +56,29 @@ func BackupResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"telemetry_data": schema.BoolAttribute{
 				Optional:            true,
-				Computed:            true,
 				Description:         "When set to true, telemetry operational data will be collected. Telemetry operational data can only be collected when `type` is `full` and `destination` is a NAS remote storage location.",
 				MarkdownDescription: "When set to true, telemetry operational data will be collected. Telemetry operational data can only be collected when `type` is `full` and `destination` is a NAS remote storage location.",
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"type": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data.",
-				MarkdownDescription: "The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data.",
+				Description:         "The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data. Allowed values: \"configOnly\" and \"full\". Default: \"configOnly\"",
+				MarkdownDescription: "The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data. Allowed values: \"configOnly\" and \"full\". Default: \"configOnly\"",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
 				},
 				Default: stringdefault.StaticString("configOnly"),
 			},
 		},
+		Description:         "Manages backup for Nexus Dashboard",
+		MarkdownDescription: "Manages backup for Nexus Dashboard",
 	}
 }
 
 type BackupModel struct {
 	Destination   types.String `tfsdk:"destination"`
 	EncryptionKey types.String `tfsdk:"encryption_key"`
+	Id            types.String `tfsdk:"id"`
 	Name          types.String `tfsdk:"name"`
 	TelemetryData types.Bool   `tfsdk:"telemetry_data"`
 	Type          types.String `tfsdk:"type"`

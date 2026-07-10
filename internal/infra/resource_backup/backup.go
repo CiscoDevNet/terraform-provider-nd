@@ -10,7 +10,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // ModuleKey is the key used to get the infra module from the provider.
@@ -84,7 +83,7 @@ func (r *backupNdResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	log.Printf("[DEBUG] Creating ND Backup: name=%s", in.Name.ValueString())
+	in.Id = in.Name
 
 	r.rscCreateBackup(ctx, &resp.Diagnostics, &in)
 	if resp.Diagnostics.HasError() {
@@ -93,7 +92,7 @@ func (r *backupNdResource) Create(ctx context.Context, req resource.CreateReques
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &in)...)
-	log.Printf("[DEBUG] End create of resource nd_backup with name=%s", in.Name.ValueString())
+	log.Printf("[DEBUG] End create of resource nd_backup with id=%s", in.Id.ValueString())
 }
 
 // Read refreshes the Terraform state with the latest data.
@@ -109,16 +108,18 @@ func (r *backupNdResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	log.Printf("[DEBUG] Reading ND Backup: name=%s", state.Name.ValueString())
-
-	r.rscGetBackup(ctx, &resp.Diagnostics, &state)
+	if r.rscGetBackup(ctx, &resp.Diagnostics, &state) {
+		log.Printf("[DEBUG] ND Backup not found; removing resource from state: id=%s", state.Id.ValueString())
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-	log.Printf("[DEBUG] End read of resource nd_backup with name=%s", state.Name.ValueString())
+	log.Printf("[DEBUG] End read of resource nd_backup with id=%s", state.Id.ValueString())
 }
 
 // Update is not supported for nd_backup. All updatable attributes use
@@ -144,22 +145,15 @@ func (r *backupNdResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 
 	r.rscDeleteBackup(ctx, &resp.Diagnostics, &state)
-	log.Printf("[DEBUG] End delete of resource nd_backup with name=%s", state.Name.ValueString())
+	log.Printf("[DEBUG] End delete of resource nd_backup with id=%s", state.Id.ValueString())
 }
 
-// ImportState imports a nd backup resource by name.
+// ImportState imports a nd backup resource by id.
 func (r *backupNdResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	log.Printf("[DEBUG] Start import state of resource: nd_backup")
 
-	var state BackupModel
-	state.Name = types.StringValue(req.ID)
-
-	r.rscGetBackup(ctx, &resp.Diagnostics, &state)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	// TODO: The value for the `encryption_key` attribute will not be imported when the nd_backup resource imports an already created backup from Nexus Dashboard.
-	// Need to use Environment Variables or a credentials file to supply the encryption key during the import of the resource.
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-	log.Printf("[DEBUG] End import of state resource: nd_backup with name=%s", state.Name.ValueString())
+	resp.Diagnostics.AddError(
+		"Import Not Supported",
+		fmt.Sprintf("Cannot import nd_backup with id %q because Nexus Dashboard does not return the required encryption_key attribute. Create the backup with Terraform so the provider can preserve encryption_key in state.", req.ID),
+	)
 }

@@ -3,12 +3,12 @@
 page_title: "nd_backup Resource - terraform-provider-nd"
 subcategory: ""
 description: |-
-  
+  Manages backup for Nexus Dashboard
 ---
 
 # nd_backup (Resource)
 
-
+Manages backup for Nexus Dashboard
 
 ## Example Usage
 
@@ -27,11 +27,15 @@ resource "nd_backup" "test_resource_backup_1" {
 
 ### Required
 
-- `destination` (String) The name of the remote location where the backup file will be saved. An empty string indicates a Nexus Dashboard local backup.
 - `encryption_key` (String, Sensitive) The encryption key used to encrypt the backup file. Must be at least 8 characters long and contain at least one letter and one number.
 - `name` (String) The name of the backup. Start with a lowercase letter or digit (a-z, 0-9), end with a lowercase letter or digit, may contain lowercase letters, digits, or hyphens in between, and must be at least 1 character long (a single letter/digit is OK).
 
 ### Optional
 
+- `destination` (String) The name of the remote location where the backup file will be saved. An empty string indicates a Nexus Dashboard local backup.
 - `telemetry_data` (Boolean) When set to true, telemetry operational data will be collected. Telemetry operational data can only be collected when `type` is `full` and `destination` is a NAS remote storage location.
-- `type` (String) The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data.
+- `type` (String) The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data. Allowed values: "configOnly" and "full". Default: "configOnly"
+
+### Read-Only
+
+- `id` (String) The unique identifier of the backup.
