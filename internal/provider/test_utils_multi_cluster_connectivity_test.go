@@ -17,22 +17,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-// MultiClusterConnectivityModelHelperStateCheck returns a slice of
-// TestCheckFunc covering every populated attribute on the NDFC
-// multi-cluster connectivity model.
-func MultiClusterConnectivityModelHelperStateCheck(
-	RscName string,
-	c resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel,
-	attrPath path.Path,
-) []resource.TestCheckFunc {
+func MultiClusterConnectivityModelHelperStateCheck(RscName string, c resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel, attrPath path.Path) []resource.TestCheckFunc {
 	ret := []resource.TestCheckFunc{}
 
 	if c.Spec.ClusterName != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("cluster_name").String(), c.Spec.ClusterName))
 	}
-	// cluster_type is computed and auto-filled to "ND" by the provider.
-	ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("cluster_type").String(), "ND"))
-
 	if c.Spec.Hostname != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("hostname").String(), c.Spec.Hostname))
 	}

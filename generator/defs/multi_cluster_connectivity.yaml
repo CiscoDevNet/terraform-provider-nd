@@ -2,13 +2,26 @@ resource:
   name: multi_cluster_connectivity
   generate_tf_resource: true
   skip_equality: true
+  subcategory: Multi-Cluster Connectivity
   category: infra
+  description: Manages multi-cluster connectivity for Nexus Dashboard clusters.
   attributes:
+  - model_name: id
+    tf_name: id
+    description: The unique identifier of the terraform resource.
+    type: String
+    computed: true
+    id: true
+    payload_hide: true
+
+  # cluster_type is not exposed in the terraform resource schema attributes
   - model_name: clusterType
     tf_name: cluster_type
     description: The type of the cluster. The value will be auto filled as "ND" for this resource.
     type: String
     computed: true
+    default_value: ND
+    tf_hide: true
     ndfc_nested:
     - spec
     example: ND
@@ -72,11 +85,11 @@ resource:
   - model_name: multiClusterLoginDomainName
     tf_name: multi_cluster_login_domain
     description: The multi-cluster login domain is created on the primary cluster and can be configured either during initial onboarding or manually at a later time. Each primary cluster supports only one login domain of type Multi-cluster. This domain enables the primary cluster to function as the shared authentication authority for the multi-cluster group, allowing users defined on the primary cluster to remotely log in to any connected cluster.
-    type: String
+    sensitive: true
     use_state: true
     optional: true
     computed: true
-    sensitive: true
+    type: String
     ndfc_nested:
     - spec
     - nd

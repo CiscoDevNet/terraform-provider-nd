@@ -18,8 +18,9 @@ import (
 // This lets tests print the step header / snapshot path / TF config inline
 // with the actual API call logs instead of all at once at test setup.
 type StepInfo struct {
-	Name string
-	Cfg  string
+	Index int
+	Name  string
+	Cfg   string
 }
 
 // LogStep emits the per-step log block (header, snapshot path, optional HCL
