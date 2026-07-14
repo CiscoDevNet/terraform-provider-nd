@@ -84,7 +84,10 @@ func (r *multiClusterConnectivityNdResource) Create(ctx context.Context, req res
 		return
 	}
 
-	log.Printf("[DEBUG] Creating Multi Cluster Connectivity ND: cluster_name=%s", in.ClusterName.ValueString())
+	if !in.ClusterName.IsNull() && !in.ClusterName.IsUnknown() {
+		in.Id = in.ClusterName
+	}
+	log.Printf("[DEBUG] Creating Multi Cluster Connectivity ND: id=%s", in.Id.ValueString())
 
 	r.rscCreateMultiClusterConnectivity(ctx, &resp.Diagnostics, &in)
 	if resp.Diagnostics.HasError() {
@@ -93,7 +96,10 @@ func (r *multiClusterConnectivityNdResource) Create(ctx context.Context, req res
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &in)...)
-	log.Printf("[DEBUG] End create of resource nd_multi_cluster_connectivity with cluster_name '%s'", in.ClusterName.ValueString())
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] End create of resource nd_multi_cluster_connectivity with id '%s'", in.Id.ValueString())
 }
 
 // Read refreshes the Terraform state with the latest data.
@@ -109,16 +115,24 @@ func (r *multiClusterConnectivityNdResource) Read(ctx context.Context, req resou
 		return
 	}
 
-	log.Printf("[DEBUG] Reading Multi Cluster Connectivity ND: cluster_name=%s", state.ClusterName.ValueString())
+	id := multiClusterConnectivityID(&state)
+	log.Printf("[DEBUG] Reading Multi Cluster Connectivity ND: id=%s", id)
 
-	r.rscGetMultiClusterConnectivity(ctx, &resp.Diagnostics, &state)
+	if r.rscGetMultiClusterConnectivity(ctx, &resp.Diagnostics, &state) {
+		log.Printf("[WARN] Multi Cluster Connectivity ND not found; removing resource from state: id=%s", id)
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-	log.Printf("[DEBUG] End read of resource nd_multi_cluster_connectivity with cluster_name '%s'", state.ClusterName.ValueString())
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] End read of resource nd_multi_cluster_connectivity with id '%s'", state.Id.ValueString())
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
@@ -133,7 +147,10 @@ func (r *multiClusterConnectivityNdResource) Update(ctx context.Context, req res
 		return
 	}
 
-	log.Printf("[DEBUG] Updating Multi Cluster Connectivity ND: cluster_name=%s", plan.ClusterName.ValueString())
+	if !plan.ClusterName.IsNull() && !plan.ClusterName.IsUnknown() {
+		plan.Id = plan.ClusterName
+	}
+	log.Printf("[DEBUG] Updating Multi Cluster Connectivity ND: id=%s", plan.Id.ValueString())
 
 	r.rscUpdateMultiClusterConnectivity(ctx, &resp.Diagnostics, &plan)
 	if resp.Diagnostics.HasError() {
@@ -141,7 +158,10 @@ func (r *multiClusterConnectivityNdResource) Update(ctx context.Context, req res
 	}
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	log.Printf("[DEBUG] End update of resource nd_multi_cluster_connectivity with cluster_name '%s'", plan.ClusterName.ValueString())
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] End update of resource nd_multi_cluster_connectivity with id '%s'", plan.Id.ValueString())
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
@@ -156,9 +176,26 @@ func (r *multiClusterConnectivityNdResource) Delete(ctx context.Context, req res
 		return
 	}
 
+	id := multiClusterConnectivityID(&state)
 	r.rscDeleteMultiClusterConnectivity(ctx, &resp.Diagnostics, &state)
-	log.Printf("[DEBUG] End delete of resource nd_multi_cluster_connectivity with cluster_name '%s'", state.ClusterName.ValueString())
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] End delete of resource nd_multi_cluster_connectivity with id '%s'", id)
 }
+
+// // ImportState is intentionally unsupported for this resource.
+// // Nexus Dashboard does not return the username, password, login domain, and
+// // multi-cluster login domain needed to fully manage an imported connection.
+// // Without those credential fields in state, Terraform cannot update
+// // the remote cluster connection reliably after import.
+// func (r *multiClusterConnectivityNdResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+// 	log.Printf("[DEBUG] Start import state of resource: nd_multi_cluster_connectivity")
+// 	resp.Diagnostics.AddError(
+// 		"Import Not Supported",
+// 		"Import is not supported for nd_multi_cluster_connectivity. Nexus Dashboard does not return the username, password, login domain, or multi-cluster login domain for an existing cluster connection. Without those sensitive credential fields, the imported object would not be fully managed by Terraform and update operations could not be performed reliably.",
+// 	)
+// }
 
 // ImportState imports a multi cluster connectivity nd resource by cluster name.
 func (r *multiClusterConnectivityNdResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -171,8 +208,12 @@ func (r *multiClusterConnectivityNdResource) ImportState(ctx context.Context, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: The values for `username`, `password`, `login_domain` and `multi_cluster_login_domain` attributes will not be imported when the nd_multi_cluster_connectivity resource imports an already registered cluster from Nexus Dashboard.
-	// Need to use Environment Variables or CLUSTER_CREDENTIALS_FILE_LOCATION file to import those values during the import of the resource.
+
+	resp.Diagnostics.AddWarning(
+		"Sensitive Attributes Not Imported",
+		"The values for `username`, `password`, `login_domain` and `multi_cluster_login_domain` attributes will not be imported when the nd_multi_cluster_connectivity resource imports an already registered cluster from Nexus Dashboard.",
+	)
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-	log.Printf("[DEBUG] End import of state resource: nd_multi_cluster_connectivity with cluster_name '%s'", state.ClusterName.ValueString())
+	log.Printf("[DEBUG] End import of state resource: nd_multi_cluster_connectivity")
 }

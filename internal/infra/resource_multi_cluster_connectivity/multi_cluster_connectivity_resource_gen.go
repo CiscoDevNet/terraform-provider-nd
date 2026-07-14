@@ -23,11 +23,6 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"cluster_type": schema.StringAttribute{
-				Computed:            true,
-				Description:         "The type of the cluster. The value will be auto filled as \"ND\" for this resource.",
-				MarkdownDescription: "The type of the cluster. The value will be auto filled as \"ND\" for this resource.",
-			},
 			"hostname": schema.StringAttribute{
 				Required:            true,
 				Description:         "The IP address or Hostname of the ND cluster.",
@@ -35,6 +30,11 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+			},
+			"id": schema.StringAttribute{
+				Computed:            true,
+				Description:         "The unique identifier of the terraform resource.",
+				MarkdownDescription: "The unique identifier of the terraform resource.",
 			},
 			"login_domain": schema.StringAttribute{
 				Optional:            true,
@@ -69,13 +69,15 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "The username of the ND cluster.",
 			},
 		},
+		Description:         "Manages multi-cluster connectivity for Nexus Dashboard clusters.",
+		MarkdownDescription: "Manages multi-cluster connectivity for Nexus Dashboard clusters.",
 	}
 }
 
 type MultiClusterConnectivityModel struct {
 	ClusterName             types.String `tfsdk:"cluster_name"`
-	ClusterType             types.String `tfsdk:"cluster_type"`
 	Hostname                types.String `tfsdk:"hostname"`
+	Id                      types.String `tfsdk:"id"`
 	LoginDomain             types.String `tfsdk:"login_domain"`
 	MultiClusterLoginDomain types.String `tfsdk:"multi_cluster_login_domain"`
 	Password                types.String `tfsdk:"password"`

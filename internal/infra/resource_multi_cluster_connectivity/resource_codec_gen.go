@@ -33,13 +33,6 @@ func (v *MultiClusterConnectivityModel) SetModelData(jsonData *NDFCMultiClusterC
 	var err diag.Diagnostics
 	err = nil
 
-	if jsonData.Spec.ClusterType != "" {
-		v.ClusterType = types.StringValue(jsonData.Spec.ClusterType)
-
-	} else {
-		v.ClusterType = types.StringNull()
-	}
-
 	if jsonData.Spec.ClusterName != "" {
 		v.ClusterName = types.StringValue(jsonData.Spec.ClusterName)
 

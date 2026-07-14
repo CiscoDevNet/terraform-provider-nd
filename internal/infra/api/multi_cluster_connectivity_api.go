@@ -44,10 +44,9 @@ type ClusterAPI struct {
 	Delete      bool
 }
 
-func NewClusterAPI(client *nd.Client, fabric string) *ClusterAPI {
+func NewClusterAPI(client *nd.Client) *ClusterAPI {
 	papi := new(ClusterAPI)
 	papi.Client = client
-	papi.Fabric = fabric
 	papi.NexusDashboardAPI = papi
 	return papi
 }
