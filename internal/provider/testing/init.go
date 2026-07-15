@@ -43,8 +43,6 @@ type NDConfig struct {
 type MultiClusterConnectivityConfig struct {
 	ClusterName             string `yaml:"cluster_name"`
 	Hostname                string `yaml:"hostname"`
-	Username                string `yaml:"username"`
-	Password                string `yaml:"password"`
 	LoginDomain             string `yaml:"login_domain"`
 	MultiClusterLoginDomain string `yaml:"multi_cluster_login_domain"`
 }

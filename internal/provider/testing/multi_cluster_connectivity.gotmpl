@@ -1,9 +1,6 @@
 {{define "ND_MULTI_CLUSTER_CONNECTIVITY_RSC"}}
 resource "nd_multi_cluster_connectivity" "{{.RscName}}" {
 {{with .MultiClusterConnectivity}}
-    {{- if .Spec.ClusterName}}
-    cluster_name = "{{.Spec.ClusterName}}"
-    {{- end}}
     hostname = "{{.Spec.Hostname}}"
     username = "{{.Spec.Credentials.Username}}"
     password = "{{.Spec.Credentials.Password}}"

@@ -22,7 +22,6 @@ import (
 //
 // Optional values supplied via the overrides map (keys are the TF
 // attribute names):
-//   - "cluster_name"
 //   - "login_domain"
 //   - "multi_cluster_login_domain"
 func GenerateMultiClusterConnectivityObject(
@@ -63,8 +62,6 @@ func applyMultiClusterConnectivityValues(
 ) {
 	for key, val := range values {
 		switch key {
-		case "cluster_name":
-			m.Spec.ClusterName = val.(string)
 		case "hostname":
 			m.Spec.Hostname = val.(string)
 		case "username":

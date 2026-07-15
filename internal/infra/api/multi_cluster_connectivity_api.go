@@ -23,19 +23,6 @@ const (
 	UrlClusterRemoveByName = "/infra/clusters/%s/remove"
 )
 
-// ClusterRemoveCredentials represents credentials for the cluster remove payload
-type ClusterRemoveCredentials struct {
-	LoginDomain string `json:"loginDomain,omitempty"`
-	Password    string `json:"password,omitempty"`
-	User        string `json:"user,omitempty"`
-}
-
-// ClusterRemovePayload represents the JSON body for the POST-based cluster remove endpoint
-type ClusterRemovePayload struct {
-	Credentials ClusterRemoveCredentials `json:"credentials"`
-	Force       bool                     `json:"force"`
-}
-
 const RscNameMultiClusterConnectivity = "multi_cluster_connectivity"
 
 type ClusterAPI struct {
@@ -73,7 +60,8 @@ func (c *ClusterAPI) DeleteUrl() string {
 	return fmt.Sprintf(UrlClusterRemoveByName, c.ClusterName)
 }
 
-// Multi Cluster Delete API does not support query params so GetDeleteQP is not implemented for now, but keeping the logic in place in case it's needed in the future
+// GetDeleteQP satisfies the shared NexusDashboardAPI interface. This resource
+// does not use query parameters for delete-style operations.
 func (c *ClusterAPI) GetDeleteQP() []string {
 	return nil
 }
