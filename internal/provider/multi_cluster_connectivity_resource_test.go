@@ -9,11 +9,16 @@
 package provider
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/infra/api"
@@ -22,14 +27,13 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/netascode/go-nd"
 )
 
 const (
-	multiClusterConnectivityHostname     = "198.18.133.100"
-	multiClusterConnectivityClusterName  = "nexus-dashboard"
-	multiClusterConnectivityCreateDomain = "local1"
-	multiClusterConnectivityUpdateDomain = "local"
+	multiClusterConnectivityBackendAssignTimeout = 2 * time.Minute
+	multiClusterConnectivityPollInterval         = 5 * time.Second
 )
 
 func newMultiClusterConnectivityTestClient(t *testing.T) *nd.Client {
@@ -46,7 +50,7 @@ func newMultiClusterConnectivityTestClient(t *testing.T) *nd.Client {
 		nd.MaxRetries(3),
 	)
 	if err != nil {
-		t.Fatalf("failed to create ND client for multi-cluster connectivity acceptance helper: %v", err)
+		t.Fatalf("failed to create ND client for multi-cluster connectivity acceptance helper: %s", err.Error())
 	}
 
 	return &client
@@ -65,12 +69,12 @@ func multiClusterConnectivityNameOutsideTerraform(t *testing.T, client *nd.Clien
 		if strings.Contains(err.Error(), "StatusCode 404") {
 			return ""
 		}
-		t.Fatalf("failed to list multi-cluster connectivity objects outside Terraform: %v", err)
+		t.Fatalf("failed to list multi-cluster connectivity objects outside Terraform: %s", err.Error())
 	}
 
 	var clustersResp map[string][]resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel
 	if err := json.Unmarshal(respData, &clustersResp); err != nil {
-		t.Fatalf("failed to decode multi-cluster connectivity list response: %v", err)
+		t.Fatalf("failed to decode multi-cluster connectivity list response: %s", err.Error())
 	}
 
 	for _, cluster := range clustersResp["clusters"] {
@@ -81,6 +85,28 @@ func multiClusterConnectivityNameOutsideTerraform(t *testing.T, client *nd.Clien
 	}
 
 	return ""
+}
+
+func waitForMultiClusterConnectivityNameOutsideTerraform(t *testing.T, client *nd.Client, model *resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel, wantPresent bool) string {
+	t.Helper()
+
+	deadline := time.Now().Add(multiClusterConnectivityBackendAssignTimeout)
+	for {
+		clusterName := multiClusterConnectivityNameOutsideTerraform(t, client, model)
+		if wantPresent && clusterName != "" {
+			return clusterName
+		}
+		if !wantPresent && clusterName == "" {
+			return ""
+		}
+		if time.Now().After(deadline) {
+			if wantPresent {
+				t.Fatalf("timed out waiting for multi-cluster connectivity object with hostname %q to be created", model.Spec.Hostname)
+			}
+			t.Fatalf("timed out waiting for multi-cluster connectivity object with hostname %q to be deleted", model.Spec.Hostname)
+		}
+		time.Sleep(multiClusterConnectivityPollInterval)
+	}
 }
 
 func deleteMultiClusterConnectivityOutsideTerraform(t *testing.T, model *resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel) {
@@ -104,7 +130,7 @@ func deleteMultiClusterConnectivityOutsideTerraform(t *testing.T, model *resourc
 			t.Logf("multi-cluster connectivity %q already absent before Terraform delete", clusterName)
 			return
 		}
-		t.Fatalf("failed to delete multi-cluster connectivity %q outside Terraform: %v %v", clusterName, err, res)
+		t.Fatalf("failed to delete multi-cluster connectivity %q outside Terraform: %s %s", clusterName, err.Error(), res.String())
 	}
 }
 
@@ -133,19 +159,225 @@ func createMultiClusterConnectivityOutsideTerraform(t *testing.T, model *resourc
 	preexisting.Spec.ClusterType = "ND"
 	payload, err := json.Marshal(preexisting)
 	if err != nil {
-		t.Fatalf("failed to marshal manual multi-cluster connectivity payload: %v", err)
+		t.Fatalf("failed to marshal manual multi-cluster connectivity payload: %s", err.Error())
 	}
 
 	clusterAPI := api.NewClusterAPI(client)
 	res, err := clusterAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true})
 	if err != nil {
-		t.Fatalf("failed to create multi-cluster connectivity outside Terraform: %v %v", err, res)
+		t.Fatalf("failed to create multi-cluster connectivity outside Terraform: %s %s", err.Error(), res.String())
 	}
 	return true
 }
 
+func multiClusterConnectivityImportIDFromState(resourceName string) resource.ImportStateIdFunc {
+	return func(state *terraform.State) (string, error) {
+		rs, ok := state.RootModule().Resources[resourceName]
+		if !ok || rs.Primary == nil {
+			return "", fmt.Errorf("resource %q not found in state", resourceName)
+		}
+
+		clusterName := rs.Primary.Attributes["cluster_name"]
+		if clusterName == "" {
+			clusterName = rs.Primary.ID
+		}
+		if clusterName == "" {
+			return "", fmt.Errorf("resource %q does not have a cluster_name or id in state", resourceName)
+		}
+
+		return clusterName, nil
+	}
+}
+
+func missingMultiClusterConnectivityImportIDFromState(resourceName string) resource.ImportStateIdFunc {
+	return func(state *terraform.State) (string, error) {
+		clusterName, err := multiClusterConnectivityImportIDFromState(resourceName)(state)
+		if err != nil {
+			return "", err
+		}
+
+		return clusterName + "_missing", nil
+	}
+}
+
+func TestAccMultiClusterConnectivityResourceCreateIgnoresRequestedClusterName(t *testing.T) {
+	cfg := helper.GetConfig("global")
+	mccCfg := cfg.ND.MultiClusterConnectivity
+
+	testCases := []map[string]string{
+		{
+			"name":    "ignored_create_name",
+			"purpose": "verify create payload clusterName is ignored and Nexus Dashboard returns its assigned cluster name",
+		},
+	}
+	for _, tc := range testCases {
+		t.Logf("coverage: %s - %s", tc["name"], tc["purpose"])
+	}
+
+	testAccPreCheck(t, "global")
+	s1 := &helper.StepInfo{
+		Index: 1,
+		Name:  fmt.Sprintf("%s_%d_ignored_create_name", t.Name(), 1),
+		Cfg:   "raw POST /infra/clusters payload with requested clusterName",
+	}
+	helper.LogStep(t, s1.Index, s1.Name, s1.Cfg)
+
+	client := newMultiClusterConnectivityTestClient(t)
+
+	loginPayload, err := json.Marshal(map[string]string{
+		"userName":   client.Usr,
+		"userPasswd": client.Pwd,
+		"domain":     client.Domain,
+	})
+	if err != nil {
+		t.Fatalf("failed to marshal Nexus Dashboard login payload: %s", err.Error())
+	}
+	loginReq, err := http.NewRequest(http.MethodPost, client.Url+"/login", bytes.NewReader(loginPayload))
+	if err != nil {
+		t.Fatalf("failed to build Nexus Dashboard login request: %s", err.Error())
+	}
+	loginReq.Header.Set("Content-Type", "application/json")
+	loginResp, err := client.HttpClient.Do(loginReq)
+	if err != nil {
+		t.Fatalf("failed to login to Nexus Dashboard: %s", err.Error())
+	}
+	defer loginResp.Body.Close()
+	loginBody, err := io.ReadAll(loginResp.Body)
+	if err != nil {
+		t.Fatalf("failed to read Nexus Dashboard login response: %s", err.Error())
+	}
+	if loginResp.StatusCode < http.StatusOK || loginResp.StatusCode >= http.StatusMultipleChoices {
+		t.Fatalf("Nexus Dashboard login failed: status=%s body=%s", loginResp.Status, string(loginBody))
+	}
+	var loginData struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(loginBody, &loginData); err != nil {
+		t.Fatalf("failed to decode Nexus Dashboard login response: %s", err.Error())
+	}
+	if loginData.Token == "" {
+		t.Fatalf("Nexus Dashboard login response did not include a token")
+	}
+
+	rawRequest := func(method, path string, payload []byte) []byte {
+		req, err := http.NewRequest(method, client.Url+client.BasePath+path, bytes.NewReader(payload))
+		if err != nil {
+			t.Fatalf("failed to build Nexus Dashboard %s request for %s: %s", method, path, err.Error())
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+loginData.Token)
+
+		resp, err := client.HttpClient.Do(req)
+		if err != nil {
+			t.Fatalf("failed Nexus Dashboard %s request for %s: %s", method, path, err.Error())
+		}
+		defer resp.Body.Close()
+
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("failed to read Nexus Dashboard %s response for %s: %s", method, path, err.Error())
+		}
+		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+			t.Fatalf("Nexus Dashboard %s request for %s failed: status=%s body=%s", method, path, resp.Status, string(respBody))
+		}
+
+		return respBody
+	}
+
+	findClusterName := func(model *resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel) string {
+		if model.Spec.ClusterName != "" {
+			return model.Spec.ClusterName
+		}
+
+		respData := rawRequest(http.MethodGet, api.UrlCluster, nil)
+		var clustersResp map[string][]resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel
+		if err := json.Unmarshal(respData, &clustersResp); err != nil {
+			t.Fatalf("failed to decode multi-cluster connectivity list response: %s", err.Error())
+		}
+
+		for _, cluster := range clustersResp["clusters"] {
+			if cluster.Spec.Hostname == model.Spec.Hostname &&
+				(cluster.Spec.ClusterType == "" || cluster.Spec.ClusterType == "ND") {
+				return cluster.Spec.ClusterName
+			}
+		}
+
+		return ""
+	}
+
+	waitForClusterName := func(model *resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel, wantPresent bool) string {
+		deadline := time.Now().Add(multiClusterConnectivityBackendAssignTimeout)
+		for {
+			clusterName := findClusterName(model)
+			if wantPresent && clusterName != "" {
+				return clusterName
+			}
+			if !wantPresent && clusterName == "" {
+				return ""
+			}
+			if time.Now().After(deadline) {
+				if wantPresent {
+					t.Fatalf("timed out waiting for multi-cluster connectivity object with hostname %q to be created", model.Spec.Hostname)
+				}
+				t.Fatalf("timed out waiting for multi-cluster connectivity object with hostname %q to be deleted", model.Spec.Hostname)
+			}
+			time.Sleep(multiClusterConnectivityPollInterval)
+		}
+	}
+
+	deleteIfExists := func(model *resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel) {
+		clusterName := findClusterName(model)
+		if clusterName == "" {
+			return
+		}
+
+		removePath := fmt.Sprintf(api.UrlClusterRemoveByName, url.PathEscape(clusterName))
+		rawRequest(http.MethodPost, removePath, []byte("{}"))
+	}
+
+	requestedClusterName := "cluster_name_test"
+
+	rsc := new(resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel)
+	helper.GenerateMultiClusterConnectivityObject(&rsc,
+		mccCfg.Hostname,
+		cfg.ND.User,
+		cfg.ND.Password,
+		map[string]interface{}{
+			"login_domain": mccCfg.LoginDomain,
+		},
+	)
+	rsc.Spec.ClusterName = requestedClusterName
+
+	lookupModel := *rsc
+	lookupModel.Spec.ClusterName = ""
+	defer func() {
+		deleteIfExists(&lookupModel)
+		waitForClusterName(&lookupModel, false)
+	}()
+	deleteIfExists(&lookupModel)
+	waitForClusterName(&lookupModel, false)
+
+	createPayload := *rsc
+	createPayload.Spec.ClusterType = "ND"
+	payload, err := json.Marshal(createPayload)
+	if err != nil {
+		t.Fatalf("failed to marshal multi-cluster connectivity payload with requested clusterName: %s", err.Error())
+	}
+
+	rawRequest(http.MethodPost, api.UrlCluster, payload)
+
+	assignedClusterName := waitForClusterName(&lookupModel, true)
+	if assignedClusterName == requestedClusterName {
+		t.Fatalf("expected backend to ignore requested clusterName %q during create, but read back the same cluster name", requestedClusterName)
+	} else {
+		// Expected result
+		t.Logf("backend-assigned clusterName %q differs from requested create payload clusterName %q", assignedClusterName, requestedClusterName)
+	}
+}
+
 func TestAccMultiClusterConnectivityResourcePreExistingObject(t *testing.T) {
 	cfg := helper.GetConfig("global")
+	mccCfg := cfg.ND.MultiClusterConnectivity
 
 	testCases := []map[string]string{
 		{
@@ -193,10 +425,10 @@ func TestAccMultiClusterConnectivityResourcePreExistingObject(t *testing.T) {
 					s1.Name = fmt.Sprintf("%s_%d_preexisting_remote_object_conflict", t.Name(), s1.Index)
 
 					overrides := map[string]interface{}{
-						"login_domain": multiClusterConnectivityCreateDomain,
+						"login_domain": mccCfg.LoginDomain,
 					}
 					helper.GenerateMultiClusterConnectivityObject(&rsc,
-						multiClusterConnectivityHostname,
+						mccCfg.Hostname,
 						cfg.ND.User,
 						cfg.ND.Password,
 						overrides,
@@ -228,19 +460,24 @@ func TestAccMultiClusterConnectivityResourcePreExistingObject(t *testing.T) {
 // testbed config is still used for provider test setup and TLS behavior.
 func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 	cfg := helper.GetConfig("global")
+	mccCfg := cfg.ND.MultiClusterConnectivity
 
 	testCases := []map[string]string{
 		{
 			"name":    "create_with_sample_payload",
-			"purpose": "create with the recent sample hostname and local1 login domain",
+			"purpose": "create with the configured sample hostname and login domain",
 		},
 		{
 			"name":    "update_sample_payload",
-			"purpose": "update the nexus-dashboard cluster with the local login domain",
+			"purpose": "update the backend-assigned Nexus Dashboard cluster with the configured login domain",
 		},
 		{
 			"name":    "import_existing_cluster",
 			"purpose": "verify import succeeds for an already registered cluster while ignoring attributes Nexus Dashboard does not return",
+		},
+		{
+			"name":    "import_missing_cluster",
+			"purpose": "verify import returns a resource not found error for a missing cluster name",
 		},
 		{
 			"name":    "manual_delete_recreate",
@@ -274,6 +511,7 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 	s3 := &helper.StepInfo{}
 	s4 := &helper.StepInfo{}
 	s5 := &helper.StepInfo{}
+	s6 := &helper.StepInfo{}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
@@ -287,10 +525,10 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 					s1.Name = fmt.Sprintf("%s_%d_create_with_sample_payload", t.Name(), s1.Index)
 
 					overrides := map[string]interface{}{
-						"login_domain": multiClusterConnectivityCreateDomain,
+						"login_domain": mccCfg.LoginDomain,
 					}
 					helper.GenerateMultiClusterConnectivityObject(&rsc,
-						multiClusterConnectivityHostname,
+						mccCfg.Hostname,
 						cfg.ND.User,
 						cfg.ND.Password,
 						overrides,
@@ -312,6 +550,7 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 							rscAddr, *rsc, path.Empty(),
 						),
 						resource.TestCheckResourceAttrSet(rscAddr, "id"),
+						resource.TestCheckResourceAttrSet(rscAddr, "cluster_name"),
 					)...,
 				),
 			},
@@ -322,10 +561,7 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 					s2.Index = *stepCount
 					s2.Name = fmt.Sprintf("%s_%d_update_sample_payload", t.Name(), s2.Index)
 
-					updates := map[string]interface{}{
-						"cluster_name": multiClusterConnectivityClusterName,
-						"login_domain": multiClusterConnectivityUpdateDomain,
-					}
+					updates := map[string]interface{}{"login_domain": mccCfg.LoginDomain}
 					helper.ModifyMultiClusterConnectivityObject(&rsc, updates)
 
 					helper.GetTFConfigWithSingleResource(s2.Name, *x,
@@ -343,6 +579,7 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 							rscAddr, *rsc, path.Empty(),
 						),
 						resource.TestCheckResourceAttrSet(rscAddr, "id"),
+						resource.TestCheckResourceAttrSet(rscAddr, "cluster_name"),
 					)...,
 				),
 			},
@@ -360,7 +597,7 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 				ResourceName:                         rscAddr,
 				ImportState:                          true,
 				ImportStateVerify:                    true,
-				ImportStateId:                        multiClusterConnectivityClusterName,
+				ImportStateIdFunc:                    multiClusterConnectivityImportIDFromState(rscAddr),
 				ImportStateVerifyIdentifierAttribute: "cluster_name",
 				ImportStateVerifyIgnore: []string{
 					"username",
@@ -369,16 +606,33 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 					"multi_cluster_login_domain",
 				},
 			},
-			// Step 4: Delete the remote cluster outside Terraform before the
+			// Step 4: Import a missing cluster name to verify the import path
+			// reports resource not found instead of producing partial state.
+			{
+				PreConfig: func() {
+					*stepCount++
+					s4.Index = *stepCount
+					s4.Name = fmt.Sprintf("%s_%d_import_missing_cluster", t.Name(), s4.Index)
+					s4.Cfg = *tfConfig
+					helper.LogStep(t, s4.Index, s4.Name, s4.Cfg)
+				},
+				ResourceName:      rscAddr,
+				ImportState:       true,
+				ImportStateIdFunc: missingMultiClusterConnectivityImportIDFromState(rscAddr),
+				ExpectError: regexp.MustCompile(
+					`Could not import nd multi cluster connectivity with id\s+"[^"]+_missing":\s+resource\s+not\s+found`,
+				),
+			},
+			// Step 5: Delete the remote cluster outside Terraform before the
 			// next apply. The provider Read should remove stale state on 404,
 			// and Terraform should recreate the same configured resource.
 			{
 				PreConfig: func() {
 					*stepCount++
-					s4.Index = *stepCount
-					s4.Name = fmt.Sprintf("%s_%d_manual_delete_recreate", t.Name(), s4.Index)
-					s4.Cfg = *tfConfig
-					helper.LogStep(t, s4.Index, s4.Name, s4.Cfg)
+					s5.Index = *stepCount
+					s5.Name = fmt.Sprintf("%s_%d_manual_delete_recreate", t.Name(), s5.Index)
+					s5.Cfg = *tfConfig
+					helper.LogStep(t, s5.Index, s5.Name, s5.Cfg)
 					deleteMultiClusterConnectivityOutsideTerraform(t, rsc)
 				},
 				Config: *tfConfig,
@@ -388,19 +642,20 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 							rscAddr, *rsc, path.Empty(),
 						),
 						resource.TestCheckResourceAttrSet(rscAddr, "id"),
+						resource.TestCheckResourceAttrSet(rscAddr, "cluster_name"),
 					)...,
 				),
 			},
-			// Step 5: Delete the remote cluster outside Terraform before
+			// Step 6: Delete the remote cluster outside Terraform before
 			// destroy. The provider Delete should treat the backend 404 as a
 			// successful idempotent cleanup.
 			{
 				PreConfig: func() {
 					*stepCount++
-					s5.Index = *stepCount
-					s5.Name = fmt.Sprintf("%s_%d_destroy_after_out_of_band_delete", t.Name(), s5.Index)
-					s5.Cfg = *tfConfig
-					helper.LogStep(t, s5.Index, s5.Name, s5.Cfg)
+					s6.Index = *stepCount
+					s6.Name = fmt.Sprintf("%s_%d_destroy_after_out_of_band_delete", t.Name(), s6.Index)
+					s6.Cfg = *tfConfig
+					helper.LogStep(t, s6.Index, s6.Name, s6.Cfg)
 					deleteMultiClusterConnectivityOutsideTerraform(t, rsc)
 				},
 				Config:  *tfConfig,

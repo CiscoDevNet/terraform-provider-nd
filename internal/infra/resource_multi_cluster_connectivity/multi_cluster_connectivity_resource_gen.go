@@ -15,13 +15,9 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"cluster_name": schema.StringAttribute{
-				Optional:            true,
 				Computed:            true,
 				Description:         "The name of the ND cluster.",
 				MarkdownDescription: "The name of the ND cluster.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"hostname": schema.StringAttribute{
 				Required:            true,

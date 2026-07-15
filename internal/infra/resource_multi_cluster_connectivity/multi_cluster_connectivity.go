@@ -89,7 +89,7 @@ func (r *multiClusterConnectivityNdResource) Create(ctx context.Context, req res
 	}
 	log.Printf("[DEBUG] Creating Multi Cluster Connectivity ND: id=%s", in.Id.ValueString())
 
-	r.rscCreateMultiClusterConnectivity(ctx, &resp.Diagnostics, &in)
+	r.rscCreateMultiClusterConnectivity(&resp.Diagnostics, &in)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -115,10 +115,10 @@ func (r *multiClusterConnectivityNdResource) Read(ctx context.Context, req resou
 		return
 	}
 
-	id := multiClusterConnectivityID(&state)
+	id := setMultiClusterConnectivityID(&state)
 	log.Printf("[DEBUG] Reading Multi Cluster Connectivity ND: id=%s", id)
 
-	if r.rscGetMultiClusterConnectivity(ctx, &resp.Diagnostics, &state) {
+	if r.rscGetMultiClusterConnectivity(&resp.Diagnostics, &state) {
 		log.Printf("[WARN] Multi Cluster Connectivity ND not found; removing resource from state: id=%s", id)
 		resp.State.RemoveResource(ctx)
 		return
@@ -152,7 +152,7 @@ func (r *multiClusterConnectivityNdResource) Update(ctx context.Context, req res
 	}
 	log.Printf("[DEBUG] Updating Multi Cluster Connectivity ND: id=%s", plan.Id.ValueString())
 
-	r.rscUpdateMultiClusterConnectivity(ctx, &resp.Diagnostics, &plan)
+	r.rscUpdateMultiClusterConnectivity(&resp.Diagnostics, &plan)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -176,26 +176,13 @@ func (r *multiClusterConnectivityNdResource) Delete(ctx context.Context, req res
 		return
 	}
 
-	id := multiClusterConnectivityID(&state)
-	r.rscDeleteMultiClusterConnectivity(ctx, &resp.Diagnostics, &state)
+	id := setMultiClusterConnectivityID(&state)
+	r.rscDeleteMultiClusterConnectivity(&resp.Diagnostics, &state)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	log.Printf("[DEBUG] End delete of resource nd_multi_cluster_connectivity with id '%s'", id)
 }
-
-// // ImportState is intentionally unsupported for this resource.
-// // Nexus Dashboard does not return the username, password, login domain, and
-// // multi-cluster login domain needed to fully manage an imported connection.
-// // Without those credential fields in state, Terraform cannot update
-// // the remote cluster connection reliably after import.
-// func (r *multiClusterConnectivityNdResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-// 	log.Printf("[DEBUG] Start import state of resource: nd_multi_cluster_connectivity")
-// 	resp.Diagnostics.AddError(
-// 		"Import Not Supported",
-// 		"Import is not supported for nd_multi_cluster_connectivity. Nexus Dashboard does not return the username, password, login domain, or multi-cluster login domain for an existing cluster connection. Without those sensitive credential fields, the imported object would not be fully managed by Terraform and update operations could not be performed reliably.",
-// 	)
-// }
 
 // ImportState imports a multi cluster connectivity nd resource by cluster name.
 func (r *multiClusterConnectivityNdResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -204,7 +191,13 @@ func (r *multiClusterConnectivityNdResource) ImportState(ctx context.Context, re
 	var state MultiClusterConnectivityModel
 	state.ClusterName = types.StringValue(req.ID)
 
-	r.rscGetMultiClusterConnectivity(ctx, &resp.Diagnostics, &state)
+	if r.rscGetMultiClusterConnectivity(&resp.Diagnostics, &state) {
+		resp.Diagnostics.AddError(
+			"Error Importing Multi Cluster Connectivity ND",
+			fmt.Sprintf("Could not import nd multi cluster connectivity with id %q: resource not found", req.ID),
+		)
+		return
+	}
 	if resp.Diagnostics.HasError() {
 		return
 	}

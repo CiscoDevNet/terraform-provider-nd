@@ -20,8 +20,8 @@ resource:
     description: The type of the cluster. The value will be auto filled as "ND" for this resource.
     type: String
     computed: true
-    default_value: ND
     tf_hide: true
+    default_value: ND
     ndfc_nested:
     - spec
     example: ND
@@ -30,9 +30,7 @@ resource:
     tf_name: cluster_name
     description: The name of the ND cluster.
     type: String
-    optional: true
     computed: true
-    use_state: true
     ndfc_nested:
     - spec
     example: nd4x
@@ -85,11 +83,11 @@ resource:
   - model_name: multiClusterLoginDomainName
     tf_name: multi_cluster_login_domain
     description: The multi-cluster login domain is created on the primary cluster and can be configured either during initial onboarding or manually at a later time. Each primary cluster supports only one login domain of type Multi-cluster. This domain enables the primary cluster to function as the shared authentication authority for the multi-cluster group, allowing users defined on the primary cluster to remotely log in to any connected cluster.
-    sensitive: true
+    type: String
     use_state: true
     optional: true
     computed: true
-    type: String
+    sensitive: true
     ndfc_nested:
     - spec
     - nd
