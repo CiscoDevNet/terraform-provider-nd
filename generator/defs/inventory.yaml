@@ -15,7 +15,7 @@ resource:
   # Mode selection
   - model_name: mode
     tf_name: mode
-    description: Operation mode - discovery (brownfield/greenfield) or bootstrap (POAP)
+    description: Operation mode - discovery (brownfield/greenfield), bootstrap (POAP), or preprovision
     type: String
     optional: true
     default_value: discovery
@@ -53,6 +53,7 @@ resource:
       type: String
       use_state: true
       computed: true
+      optional: true
     
     - model_name: serialNumber
       tf_name: serial_number
@@ -151,6 +152,33 @@ resource:
       optional: true
       sensitive: true
       example: admin123
+
+    - model_name: imagePolicy
+      tf_name: image_policy
+      description: Image policy name for POAP bootstrap or pre-provision
+      type: String
+      optional: true
+      example: my_image_policy
+
+    - model_name: discoveryUsername
+      tf_name: discovery_username
+      description: Post-bootstrap/provision discovery username
+      type: String
+      optional: true
+      sensitive: true
+
+    - model_name: discoveryPassword
+      tf_name: discovery_password
+      description: Post-bootstrap/provision discovery password
+      type: String
+      optional: true
+      sensitive: true
+
+    - model_name: moduleModels
+      tf_name: module_models
+      description: Module model strings for pre-provision (e.g., ["N9K-X9364v", "N9K-vSUP"])
+      type: List:String
+      optional: true
 
     - model_name: vdcId
       tf_name: vdc_id

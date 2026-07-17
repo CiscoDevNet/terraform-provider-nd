@@ -18,7 +18,6 @@ import (
 
 	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage/api"
-	"terraform-provider-nd/internal/manage/deployment"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -55,24 +54,13 @@ func (r *inventorySwitchResource) rscCreateInventory(ctx context.Context, dg *di
 
 	log.Printf("Creating inventory for fabric %s with mode %s", switchesData.FabricName, switchesData.Mode)
 
-	if switchesData.Mode == ModeBootstrap {
-		r.createBootstrapSwitches(ctx, dg, invAPI, switchesData)
-		if dg.HasError() {
-			return
-		}
-		// Bootstrap uses the old linear flow for config save/deploy
-		deployment.ConfigSaveAndDeploy(ctx, r.manageClient.ApiClient, switchesData.FabricName, switchesData.Recalculate, switchesData.Deploy, dg)
-		if dg.HasError() {
-			return
-		}
-	} else {
-		// Discovery mode uses the FSM which handles the full lifecycle
-		// including retryable config-save errors
-		fsm := NewInventoryFSM(ctx, r, true, invAPI, switchesData, dg)
-		fsm.Run()
-		if dg.HasError() {
-			return
-		}
+	// All modes (discovery, bootstrap) go through the FSM which handles the
+	// full lifecycle including mode-specific entry points, readiness checks,
+	// credential save, role updates, and retryable config-save/deploy.
+	fsm := NewInventoryFSM(ctx, r, true, invAPI, switchesData, dg)
+	fsm.Run()
+	if dg.HasError() {
+		return
 	}
 
 	// Read back the created state
@@ -125,7 +113,29 @@ func (r *inventorySwitchResource) rscGetInventory(ctx context.Context, dg *diag.
 			log.Printf("Switch %s found in fabric %s - not part of resource", sw.SerialNumber, fabricName)
 			continue
 		}
-		outData.Switches[mapKey] = sw.NDFCSwitchesValue
+		entry := sw.NDFCSwitchesValue
+		// Preserve sensitive/write-only fields from prior state (API doesn't return these)
+		if prior, ok := switchesData.Switches[mapKey]; ok {
+			if entry.PoapPassword == "" {
+				entry.PoapPassword = prior.PoapPassword
+			}
+			if entry.DiscoveryUsername == "" {
+				entry.DiscoveryUsername = prior.DiscoveryUsername
+			}
+			if entry.DiscoveryPassword == "" {
+				entry.DiscoveryPassword = prior.DiscoveryPassword
+			}
+			if entry.GatewayIpMask == "" {
+				entry.GatewayIpMask = prior.GatewayIpMask
+			}
+			if entry.DiscoveryAuthProtocol == "" {
+				entry.DiscoveryAuthProtocol = prior.DiscoveryAuthProtocol
+			}
+			if entry.ImagePolicy == "" {
+				entry.ImagePolicy = prior.ImagePolicy
+			}
+		}
+		outData.Switches[mapKey] = entry
 	}
 
 	input.SetModelData(&outData)

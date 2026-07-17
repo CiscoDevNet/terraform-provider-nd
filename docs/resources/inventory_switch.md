@@ -39,7 +39,7 @@ resource "nd_inventory_switch" "test_resource_inventory_switch_1" {
 
 - `deploy` (Boolean) Deploy configuration to switches after operations
 - `max_hop` (Number) Maximum hops for CDP/LLDP discovery
-- `mode` (String) Operation mode - discovery (brownfield/greenfield) or bootstrap (POAP)
+- `mode` (String) Operation mode - discovery (brownfield/greenfield), bootstrap (POAP), or preprovision
 - `password` (String, Sensitive) Switch login password
 - `preserve_config` (Boolean) Preserve existing config (true=brownfield, false=greenfield)
 - `recalculate` (Boolean) Recalculate (config-save) fabric configuration after switch operations
@@ -62,8 +62,13 @@ Required:
 Optional:
 
 - `discovery_auth_protocol` (String) Authentication protocol for POAP discovery
+- `discovery_password` (String, Sensitive) Post-bootstrap/provision discovery password
+- `discovery_username` (String, Sensitive) Post-bootstrap/provision discovery username
 - `gateway_ip_mask` (String) Gateway IP with mask for POAP (e.g., 10.1.1.1/24)
+- `hostname` (String) Switch hostname
+- `image_policy` (String) Image policy name for POAP bootstrap or pre-provision
 - `model` (String) Switch hardware model
+- `module_models` (Set of String) Module model strings for pre-provision (e.g., ["N9K-X9364v", "N9K-vSUP"])
 - `poap_password` (String, Sensitive) Password for POAP bootstrap
 - `software_version` (String) Switch software version
 - `switch_role` (String) Role of switch in fabric.
@@ -72,7 +77,6 @@ Optional:
 
 Read-Only:
 
-- `hostname` (String) Switch hostname
 - `serial_number` (String) Switch serial number
 - `status` (String) Current switch status
 - `status_reason` (String) Reason for current switch status (e.g., failure details)

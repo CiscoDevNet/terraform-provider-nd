@@ -17,6 +17,10 @@ import (
 
 func (v NDFCSwitchesValue) DeepEqual(c NDFCSwitchesValue) int {
 	cf := false
+	if v.Hostname != c.Hostname {
+		log.Printf("v.Hostname=%v, c.Hostname=%v", v.Hostname, c.Hostname)
+		return RequiresUpdate
+	}
 	if v.IpAddress != c.IpAddress {
 		log.Printf("v.IpAddress=%v, c.IpAddress=%v", v.IpAddress, c.IpAddress)
 		return RequiresReplace
@@ -44,6 +48,29 @@ func (v NDFCSwitchesValue) DeepEqual(c NDFCSwitchesValue) int {
 	if v.PoapPassword != c.PoapPassword {
 		log.Printf("v.PoapPassword=%v, c.PoapPassword=%v", v.PoapPassword, c.PoapPassword)
 		return RequiresUpdate
+	}
+	if v.ImagePolicy != c.ImagePolicy {
+		log.Printf("v.ImagePolicy=%v, c.ImagePolicy=%v", v.ImagePolicy, c.ImagePolicy)
+		return RequiresUpdate
+	}
+	if v.DiscoveryUsername != c.DiscoveryUsername {
+		log.Printf("v.DiscoveryUsername=%v, c.DiscoveryUsername=%v", v.DiscoveryUsername, c.DiscoveryUsername)
+		return RequiresUpdate
+	}
+	if v.DiscoveryPassword != c.DiscoveryPassword {
+		log.Printf("v.DiscoveryPassword=%v, c.DiscoveryPassword=%v", v.DiscoveryPassword, c.DiscoveryPassword)
+		return RequiresUpdate
+	}
+
+	if len(v.ModuleModels) != len(c.ModuleModels) {
+		log.Printf("len(v.ModuleModels)=%d, len(c.ModuleModels)=%d", len(v.ModuleModels), len(c.ModuleModels))
+		return PortListUpdate
+	}
+	for i := range v.ModuleModels {
+		if v.ModuleModels[i] != c.ModuleModels[i] {
+			log.Printf("v.ModuleModels[%d]=%s, c.ModuleModels[%d]=%s", i, v.ModuleModels[i], i, c.ModuleModels[i])
+			return PortListUpdate
+		}
 	}
 
 	if v.VdcId != nil && c.VdcId != nil {
@@ -74,6 +101,13 @@ func (v NDFCSwitchesValue) DeepEqual(c NDFCSwitchesValue) int {
 
 func (v *NDFCSwitchesValue) CreatePlan(c NDFCSwitchesValue, cf *bool) int {
 	action := ActionNone
+
+	if v.Hostname != c.Hostname {
+		log.Printf("Hostname-Update: v.Hostname=%v, c.Hostname=%v", v.Hostname, c.Hostname)
+		if action == ActionNone || action == RequiresUpdate {
+			action = RequiresUpdate
+		}
+	}
 
 	if v.IpAddress != c.IpAddress {
 		log.Printf("IpAddress-Update: v.IpAddress=%v, c.IpAddress=%v", v.IpAddress, c.IpAddress)
@@ -121,6 +155,38 @@ func (v *NDFCSwitchesValue) CreatePlan(c NDFCSwitchesValue, cf *bool) int {
 		log.Printf("PoapPassword-Update: v.PoapPassword=%v, c.PoapPassword=%v", v.PoapPassword, c.PoapPassword)
 		if action == ActionNone || action == RequiresUpdate {
 			action = RequiresUpdate
+		}
+	}
+
+	if v.ImagePolicy != c.ImagePolicy {
+		log.Printf("ImagePolicy-Update: v.ImagePolicy=%v, c.ImagePolicy=%v", v.ImagePolicy, c.ImagePolicy)
+		if action == ActionNone || action == RequiresUpdate {
+			action = RequiresUpdate
+		}
+	}
+
+	if v.DiscoveryUsername != c.DiscoveryUsername {
+		log.Printf("DiscoveryUsername-Update: v.DiscoveryUsername=%v, c.DiscoveryUsername=%v", v.DiscoveryUsername, c.DiscoveryUsername)
+		if action == ActionNone || action == RequiresUpdate {
+			action = RequiresUpdate
+		}
+	}
+
+	if v.DiscoveryPassword != c.DiscoveryPassword {
+		log.Printf("DiscoveryPassword-Update: v.DiscoveryPassword=%v, c.DiscoveryPassword=%v", v.DiscoveryPassword, c.DiscoveryPassword)
+		if action == ActionNone || action == RequiresUpdate {
+			action = RequiresUpdate
+		}
+	}
+
+	if len(v.ModuleModels) != len(c.ModuleModels) {
+		log.Printf("Update: len(v.ModuleModels)=%d, len(c.ModuleModels)=%d", len(v.ModuleModels), len(c.ModuleModels))
+		return RequiresUpdate
+	}
+	for i := range v.ModuleModels {
+		if v.ModuleModels[i] != c.ModuleModels[i] {
+			log.Printf("Update: v.ModuleModels[%d]=%s, c.ModuleModels[%d]=%s", i, v.ModuleModels[i], i, c.ModuleModels[i])
+			return RequiresUpdate
 		}
 	}
 

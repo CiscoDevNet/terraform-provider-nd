@@ -118,6 +118,15 @@ func SwitchesValueHelperStateCheck(RscName string, c resource_inventory_switch.N
 	if c.PoapPassword != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("poap_password").String(), c.PoapPassword))
 	}
+	if c.ImagePolicy != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("image_policy").String(), c.ImagePolicy))
+	}
+	if c.DiscoveryUsername != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("discovery_username").String(), c.DiscoveryUsername))
+	}
+	if c.DiscoveryPassword != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("discovery_password").String(), c.DiscoveryPassword))
+	}
 	if c.VdcId != nil {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("vdc_id").String(), strconv.Itoa(int(*c.VdcId))))
 	}

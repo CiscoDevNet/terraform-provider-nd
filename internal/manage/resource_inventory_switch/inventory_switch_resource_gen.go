@@ -45,8 +45,8 @@ func InventorySwitchResourceSchema(ctx context.Context) schema.Schema {
 			"mode": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "Operation mode - discovery (brownfield/greenfield) or bootstrap (POAP)",
-				MarkdownDescription: "Operation mode - discovery (brownfield/greenfield) or bootstrap (POAP)",
+				Description:         "Operation mode - discovery (brownfield/greenfield), bootstrap (POAP), or preprovision",
+				MarkdownDescription: "Operation mode - discovery (brownfield/greenfield), bootstrap (POAP), or preprovision",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -104,18 +104,36 @@ func InventorySwitchResourceSchema(ctx context.Context) schema.Schema {
 							Description:         "Authentication protocol for POAP discovery",
 							MarkdownDescription: "Authentication protocol for POAP discovery",
 						},
+						"discovery_password": schema.StringAttribute{
+							Optional:            true,
+							Sensitive:           true,
+							Description:         "Post-bootstrap/provision discovery password",
+							MarkdownDescription: "Post-bootstrap/provision discovery password",
+						},
+						"discovery_username": schema.StringAttribute{
+							Optional:            true,
+							Sensitive:           true,
+							Description:         "Post-bootstrap/provision discovery username",
+							MarkdownDescription: "Post-bootstrap/provision discovery username",
+						},
 						"gateway_ip_mask": schema.StringAttribute{
 							Optional:            true,
 							Description:         "Gateway IP with mask for POAP (e.g., 10.1.1.1/24)",
 							MarkdownDescription: "Gateway IP with mask for POAP (e.g., 10.1.1.1/24)",
 						},
 						"hostname": schema.StringAttribute{
+							Optional:            true,
 							Computed:            true,
 							Description:         "Switch hostname",
 							MarkdownDescription: "Switch hostname",
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseStateForUnknown(),
 							},
+						},
+						"image_policy": schema.StringAttribute{
+							Optional:            true,
+							Description:         "Image policy name for POAP bootstrap or pre-provision",
+							MarkdownDescription: "Image policy name for POAP bootstrap or pre-provision",
 						},
 						"ip_address": schema.StringAttribute{
 							Required:            true,
@@ -127,6 +145,12 @@ func InventorySwitchResourceSchema(ctx context.Context) schema.Schema {
 							Computed:            true,
 							Description:         "Switch hardware model",
 							MarkdownDescription: "Switch hardware model",
+						},
+						"module_models": schema.SetAttribute{
+							ElementType:         types.StringType,
+							Optional:            true,
+							Description:         "Module model strings for pre-provision (e.g., [\"N9K-X9364v\", \"N9K-vSUP\"])",
+							MarkdownDescription: "Module model strings for pre-provision (e.g., [\"N9K-X9364v\", \"N9K-vSUP\"])",
 						},
 						"poap_password": schema.StringAttribute{
 							Optional:            true,
@@ -257,6 +281,42 @@ func (t SwitchesType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 			fmt.Sprintf(`discovery_auth_protocol expected to be basetypes.StringValue, was: %T`, discoveryAuthProtocolAttribute))
 	}
 
+	discoveryPasswordAttribute, ok := attributes["discovery_password"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`discovery_password is missing from object`)
+
+		return nil, diags
+	}
+
+	discoveryPasswordVal, ok := discoveryPasswordAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`discovery_password expected to be basetypes.StringValue, was: %T`, discoveryPasswordAttribute))
+	}
+
+	discoveryUsernameAttribute, ok := attributes["discovery_username"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`discovery_username is missing from object`)
+
+		return nil, diags
+	}
+
+	discoveryUsernameVal, ok := discoveryUsernameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`discovery_username expected to be basetypes.StringValue, was: %T`, discoveryUsernameAttribute))
+	}
+
 	gatewayIpMaskAttribute, ok := attributes["gateway_ip_mask"]
 
 	if !ok {
@@ -293,6 +353,24 @@ func (t SwitchesType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 			fmt.Sprintf(`hostname expected to be basetypes.StringValue, was: %T`, hostnameAttribute))
 	}
 
+	imagePolicyAttribute, ok := attributes["image_policy"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`image_policy is missing from object`)
+
+		return nil, diags
+	}
+
+	imagePolicyVal, ok := imagePolicyAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`image_policy expected to be basetypes.StringValue, was: %T`, imagePolicyAttribute))
+	}
+
 	ipAddressAttribute, ok := attributes["ip_address"]
 
 	if !ok {
@@ -327,6 +405,24 @@ func (t SwitchesType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 		diags.AddError(
 			"Attribute Wrong Type",
 			fmt.Sprintf(`model expected to be basetypes.StringValue, was: %T`, modelAttribute))
+	}
+
+	moduleModelsAttribute, ok := attributes["module_models"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`module_models is missing from object`)
+
+		return nil, diags
+	}
+
+	moduleModelsVal, ok := moduleModelsAttribute.(basetypes.SetValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`module_models expected to be basetypes.SetValue, was: %T`, moduleModelsAttribute))
 	}
 
 	poapPasswordAttribute, ok := attributes["poap_password"]
@@ -479,10 +575,14 @@ func (t SwitchesType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 
 	return SwitchesValue{
 		DiscoveryAuthProtocol: discoveryAuthProtocolVal,
+		DiscoveryPassword:     discoveryPasswordVal,
+		DiscoveryUsername:     discoveryUsernameVal,
 		GatewayIpMask:         gatewayIpMaskVal,
 		Hostname:              hostnameVal,
+		ImagePolicy:           imagePolicyVal,
 		IpAddress:             ipAddressVal,
 		Model:                 modelVal,
+		ModuleModels:          moduleModelsVal,
 		PoapPassword:          poapPasswordVal,
 		SerialNumber:          serialNumberVal,
 		SoftwareVersion:       softwareVersionVal,
@@ -576,6 +676,42 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			fmt.Sprintf(`discovery_auth_protocol expected to be basetypes.StringValue, was: %T`, discoveryAuthProtocolAttribute))
 	}
 
+	discoveryPasswordAttribute, ok := attributes["discovery_password"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`discovery_password is missing from object`)
+
+		return NewSwitchesValueUnknown(), diags
+	}
+
+	discoveryPasswordVal, ok := discoveryPasswordAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`discovery_password expected to be basetypes.StringValue, was: %T`, discoveryPasswordAttribute))
+	}
+
+	discoveryUsernameAttribute, ok := attributes["discovery_username"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`discovery_username is missing from object`)
+
+		return NewSwitchesValueUnknown(), diags
+	}
+
+	discoveryUsernameVal, ok := discoveryUsernameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`discovery_username expected to be basetypes.StringValue, was: %T`, discoveryUsernameAttribute))
+	}
+
 	gatewayIpMaskAttribute, ok := attributes["gateway_ip_mask"]
 
 	if !ok {
@@ -612,6 +748,24 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			fmt.Sprintf(`hostname expected to be basetypes.StringValue, was: %T`, hostnameAttribute))
 	}
 
+	imagePolicyAttribute, ok := attributes["image_policy"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`image_policy is missing from object`)
+
+		return NewSwitchesValueUnknown(), diags
+	}
+
+	imagePolicyVal, ok := imagePolicyAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`image_policy expected to be basetypes.StringValue, was: %T`, imagePolicyAttribute))
+	}
+
 	ipAddressAttribute, ok := attributes["ip_address"]
 
 	if !ok {
@@ -646,6 +800,24 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 		diags.AddError(
 			"Attribute Wrong Type",
 			fmt.Sprintf(`model expected to be basetypes.StringValue, was: %T`, modelAttribute))
+	}
+
+	moduleModelsAttribute, ok := attributes["module_models"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`module_models is missing from object`)
+
+		return NewSwitchesValueUnknown(), diags
+	}
+
+	moduleModelsVal, ok := moduleModelsAttribute.(basetypes.SetValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`module_models expected to be basetypes.SetValue, was: %T`, moduleModelsAttribute))
 	}
 
 	poapPasswordAttribute, ok := attributes["poap_password"]
@@ -798,10 +970,14 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 
 	return SwitchesValue{
 		DiscoveryAuthProtocol: discoveryAuthProtocolVal,
+		DiscoveryPassword:     discoveryPasswordVal,
+		DiscoveryUsername:     discoveryUsernameVal,
 		GatewayIpMask:         gatewayIpMaskVal,
 		Hostname:              hostnameVal,
+		ImagePolicy:           imagePolicyVal,
 		IpAddress:             ipAddressVal,
 		Model:                 modelVal,
+		ModuleModels:          moduleModelsVal,
 		PoapPassword:          poapPasswordVal,
 		SerialNumber:          serialNumberVal,
 		SoftwareVersion:       softwareVersionVal,
@@ -883,10 +1059,14 @@ var _ basetypes.ObjectValuable = SwitchesValue{}
 
 type SwitchesValue struct {
 	DiscoveryAuthProtocol basetypes.StringValue `tfsdk:"discovery_auth_protocol"`
+	DiscoveryPassword     basetypes.StringValue `tfsdk:"discovery_password"`
+	DiscoveryUsername     basetypes.StringValue `tfsdk:"discovery_username"`
 	GatewayIpMask         basetypes.StringValue `tfsdk:"gateway_ip_mask"`
 	Hostname              basetypes.StringValue `tfsdk:"hostname"`
+	ImagePolicy           basetypes.StringValue `tfsdk:"image_policy"`
 	IpAddress             basetypes.StringValue `tfsdk:"ip_address"`
 	Model                 basetypes.StringValue `tfsdk:"model"`
+	ModuleModels          basetypes.SetValue    `tfsdk:"module_models"`
 	PoapPassword          basetypes.StringValue `tfsdk:"poap_password"`
 	SerialNumber          basetypes.StringValue `tfsdk:"serial_number"`
 	SoftwareVersion       basetypes.StringValue `tfsdk:"software_version"`
@@ -899,16 +1079,22 @@ type SwitchesValue struct {
 }
 
 func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 13)
+	attrTypes := make(map[string]tftypes.Type, 17)
 
 	var val tftypes.Value
 	var err error
 
 	attrTypes["discovery_auth_protocol"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["discovery_password"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["discovery_username"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["gateway_ip_mask"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["hostname"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["image_policy"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["ip_address"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["model"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["module_models"] = basetypes.SetType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
 	attrTypes["poap_password"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["serial_number"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["software_version"] = basetypes.StringType{}.TerraformType(ctx)
@@ -922,7 +1108,7 @@ func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 13)
+		vals := make(map[string]tftypes.Value, 17)
 
 		val, err = v.DiscoveryAuthProtocol.ToTerraformValue(ctx)
 
@@ -931,6 +1117,22 @@ func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 		}
 
 		vals["discovery_auth_protocol"] = val
+
+		val, err = v.DiscoveryPassword.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["discovery_password"] = val
+
+		val, err = v.DiscoveryUsername.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["discovery_username"] = val
 
 		val, err = v.GatewayIpMask.ToTerraformValue(ctx)
 
@@ -948,6 +1150,14 @@ func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 
 		vals["hostname"] = val
 
+		val, err = v.ImagePolicy.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["image_policy"] = val
+
 		val, err = v.IpAddress.ToTerraformValue(ctx)
 
 		if err != nil {
@@ -963,6 +1173,14 @@ func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 		}
 
 		vals["model"] = val
+
+		val, err = v.ModuleModels.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["module_models"] = val
 
 		val, err = v.PoapPassword.ToTerraformValue(ctx)
 
@@ -1057,20 +1275,62 @@ func (v SwitchesValue) String() string {
 func (v SwitchesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
+	var moduleModelsVal basetypes.SetValue
+	switch {
+	case v.ModuleModels.IsUnknown():
+		moduleModelsVal = types.SetUnknown(types.StringType)
+	case v.ModuleModels.IsNull():
+		moduleModelsVal = types.SetNull(types.StringType)
+	default:
+		var d diag.Diagnostics
+		moduleModelsVal, d = types.SetValue(types.StringType, v.ModuleModels.Elements())
+		diags.Append(d...)
+	}
+
+	if diags.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"discovery_auth_protocol": basetypes.StringType{},
+			"discovery_password":      basetypes.StringType{},
+			"discovery_username":      basetypes.StringType{},
+			"gateway_ip_mask":         basetypes.StringType{},
+			"hostname":                basetypes.StringType{},
+			"image_policy":            basetypes.StringType{},
+			"ip_address":              basetypes.StringType{},
+			"model":                   basetypes.StringType{},
+			"module_models": basetypes.SetType{
+				ElemType: types.StringType,
+			},
+			"poap_password":    basetypes.StringType{},
+			"serial_number":    basetypes.StringType{},
+			"software_version": basetypes.StringType{},
+			"status":           basetypes.StringType{},
+			"status_reason":    basetypes.StringType{},
+			"switch_role":      basetypes.StringType{},
+			"vdc_id":           basetypes.Int64Type{},
+			"vdc_mac":          basetypes.StringType{},
+		}), diags
+	}
+
 	attributeTypes := map[string]attr.Type{
 		"discovery_auth_protocol": basetypes.StringType{},
+		"discovery_password":      basetypes.StringType{},
+		"discovery_username":      basetypes.StringType{},
 		"gateway_ip_mask":         basetypes.StringType{},
 		"hostname":                basetypes.StringType{},
+		"image_policy":            basetypes.StringType{},
 		"ip_address":              basetypes.StringType{},
 		"model":                   basetypes.StringType{},
-		"poap_password":           basetypes.StringType{},
-		"serial_number":           basetypes.StringType{},
-		"software_version":        basetypes.StringType{},
-		"status":                  basetypes.StringType{},
-		"status_reason":           basetypes.StringType{},
-		"switch_role":             basetypes.StringType{},
-		"vdc_id":                  basetypes.Int64Type{},
-		"vdc_mac":                 basetypes.StringType{},
+		"module_models": basetypes.SetType{
+			ElemType: types.StringType,
+		},
+		"poap_password":    basetypes.StringType{},
+		"serial_number":    basetypes.StringType{},
+		"software_version": basetypes.StringType{},
+		"status":           basetypes.StringType{},
+		"status_reason":    basetypes.StringType{},
+		"switch_role":      basetypes.StringType{},
+		"vdc_id":           basetypes.Int64Type{},
+		"vdc_mac":          basetypes.StringType{},
 	}
 
 	if v.IsNull() {
@@ -1085,10 +1345,14 @@ func (v SwitchesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue
 		attributeTypes,
 		map[string]attr.Value{
 			"discovery_auth_protocol": v.DiscoveryAuthProtocol,
+			"discovery_password":      v.DiscoveryPassword,
+			"discovery_username":      v.DiscoveryUsername,
 			"gateway_ip_mask":         v.GatewayIpMask,
 			"hostname":                v.Hostname,
+			"image_policy":            v.ImagePolicy,
 			"ip_address":              v.IpAddress,
 			"model":                   v.Model,
+			"module_models":           moduleModelsVal,
 			"poap_password":           v.PoapPassword,
 			"serial_number":           v.SerialNumber,
 			"software_version":        v.SoftwareVersion,
@@ -1121,6 +1385,14 @@ func (v SwitchesValue) Equal(o attr.Value) bool {
 		return false
 	}
 
+	if !v.DiscoveryPassword.Equal(other.DiscoveryPassword) {
+		return false
+	}
+
+	if !v.DiscoveryUsername.Equal(other.DiscoveryUsername) {
+		return false
+	}
+
 	if !v.GatewayIpMask.Equal(other.GatewayIpMask) {
 		return false
 	}
@@ -1129,11 +1401,19 @@ func (v SwitchesValue) Equal(o attr.Value) bool {
 		return false
 	}
 
+	if !v.ImagePolicy.Equal(other.ImagePolicy) {
+		return false
+	}
+
 	if !v.IpAddress.Equal(other.IpAddress) {
 		return false
 	}
 
 	if !v.Model.Equal(other.Model) {
+		return false
+	}
+
+	if !v.ModuleModels.Equal(other.ModuleModels) {
 		return false
 	}
 
@@ -1183,17 +1463,23 @@ func (v SwitchesValue) Type(ctx context.Context) attr.Type {
 func (v SwitchesValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"discovery_auth_protocol": basetypes.StringType{},
+		"discovery_password":      basetypes.StringType{},
+		"discovery_username":      basetypes.StringType{},
 		"gateway_ip_mask":         basetypes.StringType{},
 		"hostname":                basetypes.StringType{},
+		"image_policy":            basetypes.StringType{},
 		"ip_address":              basetypes.StringType{},
 		"model":                   basetypes.StringType{},
-		"poap_password":           basetypes.StringType{},
-		"serial_number":           basetypes.StringType{},
-		"software_version":        basetypes.StringType{},
-		"status":                  basetypes.StringType{},
-		"status_reason":           basetypes.StringType{},
-		"switch_role":             basetypes.StringType{},
-		"vdc_id":                  basetypes.Int64Type{},
-		"vdc_mac":                 basetypes.StringType{},
+		"module_models": basetypes.SetType{
+			ElemType: types.StringType,
+		},
+		"poap_password":    basetypes.StringType{},
+		"serial_number":    basetypes.StringType{},
+		"software_version": basetypes.StringType{},
+		"status":           basetypes.StringType{},
+		"status_reason":    basetypes.StringType{},
+		"switch_role":      basetypes.StringType{},
+		"vdc_id":           basetypes.Int64Type{},
+		"vdc_mac":          basetypes.StringType{},
 	}
 }

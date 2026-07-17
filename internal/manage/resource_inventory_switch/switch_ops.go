@@ -97,19 +97,53 @@ type BootstrapSwitchRequest struct {
 	Switches []BootstrapSwitchModel `json:"switches"`
 }
 
-// BootstrapSwitchModel represents a switch for POAP bootstrap
+// BootstrapSwitchModel represents a switch for POAP bootstrap (importBootstrap payload)
 type BootstrapSwitchModel struct {
-	GatewayIpMask         string `json:"gatewayIpMask"`
-	Model                 string `json:"model,omitempty"`
-	SoftwareVersion       string `json:"softwareVersion,omitempty"`
-	Password              string `json:"password,omitempty"`
-	DiscoveryAuthProtocol string `json:"discoveryAuthProtocol,omitempty"`
-	Hostname              string `json:"hostname,omitempty"`
-	IP                    string `json:"ip,omitempty"`
-	SerialNumber          string `json:"serialNumber"`
-	InInventory           bool   `json:"inInventory,omitempty"`
-	PublicKey             string `json:"publicKey,omitempty"`
-	FingerPrint           string `json:"fingerPrint,omitempty"`
+	SerialNumber          string         `json:"serialNumber"`
+	Hostname              string         `json:"hostname,omitempty"`
+	IP                    string         `json:"ip,omitempty"`
+	Password              string         `json:"password,omitempty"`
+	Model                 string         `json:"model,omitempty"`
+	SoftwareVersion       string         `json:"softwareVersion,omitempty"`
+	GatewayIpMask         string         `json:"gatewayIpMask"`
+	DiscoveryAuthProtocol string         `json:"discoveryAuthProtocol,omitempty"`
+	SwitchRole            string         `json:"switchRole,omitempty"`
+	ImagePolicy           string         `json:"imagePolicy,omitempty"`
+	DiscoveryUsername     string         `json:"discoveryUsername,omitempty"`
+	DiscoveryPassword     string         `json:"discoveryPassword,omitempty"`
+	UseNewCredentials     bool           `json:"useNewCredentials"`
+	RemoteCredentialStore string         `json:"remoteCredentialStore,omitempty"`
+	FingerPrint           string         `json:"fingerPrint,omitempty"`
+	PublicKey             string         `json:"publicKey,omitempty"`
+	ReAdd                 bool           `json:"reAdd"`
+	InInventory           bool           `json:"inInventory"`
+	Data                  *BootstrapData `json:"data,omitempty"`
+}
+
+// BootstrapData represents the nested data block in bootstrap API payloads
+type BootstrapData struct {
+	GatewayIpMask string   `json:"gatewayIpMask,omitempty"`
+	Models        []string `json:"models,omitempty"`
+}
+
+// BootstrapListResponse represents the response from GET /bootstrap/switches
+type BootstrapListResponse struct {
+	Switches []BootstrapListEntry `json:"switches"`
+}
+
+// BootstrapListEntry represents a single switch in the bootstrap list response
+type BootstrapListEntry struct {
+	SerialNumber    string         `json:"serialNumber"`
+	Hostname        string         `json:"hostname,omitempty"`
+	Model           string         `json:"model,omitempty"`
+	SoftwareVersion string         `json:"softwareVersion,omitempty"`
+	SwitchRole      string         `json:"switchRole,omitempty"`
+	GatewayIpMask   string         `json:"gatewayIpMask,omitempty"`
+	FingerPrint     string         `json:"fingerPrint,omitempty"`
+	PublicKey       string         `json:"publicKey,omitempty"`
+	ReAdd           bool           `json:"reAdd"`
+	InInventory     bool           `json:"inInventory"`
+	Data            *BootstrapData `json:"data,omitempty"`
 }
 
 // SwitchCredentialsRequest represents credentials save request
@@ -223,8 +257,8 @@ func (r *inventorySwitchResource) switchesReady(ctx context.Context, fabricName 
 		}
 		result.Found++
 
-		// Check migration mode — both discoveredSystemMode and systemMode must be "normal"
-		if sw.AdditionalData.DiscoveredSystemMode != "normal" || sw.AdditionalData.SystemMode != "normal" {
+		// Check migration mode — discoveredSystemMode and systemMode must be "normal" or "notApplicable"
+		if !isNormalSystemMode(sw.AdditionalData.DiscoveredSystemMode) || !isNormalSystemMode(sw.AdditionalData.SystemMode) {
 			tflog.Debug(ctx, "Switch in migration mode, waiting", map[string]interface{}{
 				"serial":               sw.SerialNumber,
 				"discoveredSystemMode": sw.AdditionalData.DiscoveredSystemMode,
@@ -362,7 +396,7 @@ func (r *inventorySwitchResource) buildBootstrapRequest(data *NDFCInventorySwitc
 	req := BootstrapSwitchRequest{}
 
 	for serial, sw := range data.Switches {
-		req.Switches = append(req.Switches, BootstrapSwitchModel{
+		model := BootstrapSwitchModel{
 			SerialNumber:          serial,
 			Hostname:              sw.Hostname,
 			IP:                    sw.IpAddress,
@@ -371,10 +405,102 @@ func (r *inventorySwitchResource) buildBootstrapRequest(data *NDFCInventorySwitc
 			GatewayIpMask:         sw.GatewayIpMask,
 			Password:              sw.PoapPassword,
 			DiscoveryAuthProtocol: sw.DiscoveryAuthProtocol,
-		})
+			SwitchRole:            sw.SwitchRole,
+			ImagePolicy:           sw.ImagePolicy,
+			DiscoveryUsername:     sw.DiscoveryUsername,
+			DiscoveryPassword:     sw.DiscoveryPassword,
+			UseNewCredentials:     sw.DiscoveryUsername != "" && sw.DiscoveryPassword != "",
+			RemoteCredentialStore: data.RemoteCredentialStore,
+		}
+		req.Switches = append(req.Switches, model)
 	}
 
 	return req
+}
+
+// queryBootstrapList queries the bootstrap API to get switches in the POAP loop
+// and returns a map of serial number -> BootstrapListEntry for easy lookup.
+func (r *inventorySwitchResource) queryBootstrapList(ctx context.Context, invAPI *api.InventoryAPI) (map[string]BootstrapListEntry, error) {
+	invAPI.SetOperation(api.OpGetBootstrapList)
+	respData, err := invAPI.Get()
+	if err != nil {
+		return nil, fmt.Errorf("could not query bootstrap list: %w", err)
+	}
+
+	var resp BootstrapListResponse
+	if err := json.Unmarshal(respData, &resp); err != nil {
+		return nil, fmt.Errorf("could not parse bootstrap list response: %w", err)
+	}
+
+	result := make(map[string]BootstrapListEntry, len(resp.Switches))
+	for _, entry := range resp.Switches {
+		result[entry.SerialNumber] = entry
+	}
+
+	tflog.Info(ctx, "Queried bootstrap list", map[string]interface{}{
+		"fabric_name": invAPI.FabricName,
+		"count":       len(result),
+	})
+
+	return result, nil
+}
+
+// BootstrapBuildResult holds the result of buildBootstrapRequestFromAPI.
+type BootstrapBuildResult struct {
+	Request              BootstrapSwitchRequest
+	MissingFromBootstrap []string // serials not found in the POAP bootstrap list
+}
+
+// buildBootstrapRequestFromAPI builds the importBootstrap request by merging
+// user-provided config with data from the bootstrap API response.
+// Serials not found in the bootstrap list are returned in MissingFromBootstrap
+// so the caller can check if they are already in the fabric inventory.
+func (r *inventorySwitchResource) buildBootstrapRequestFromAPI(data *NDFCInventorySwitchModel, bootstrapEntries map[string]BootstrapListEntry) BootstrapBuildResult {
+	result := BootstrapBuildResult{}
+
+	for serial, sw := range data.Switches {
+		entry, ok := bootstrapEntries[serial]
+		if !ok {
+			result.MissingFromBootstrap = append(result.MissingFromBootstrap, serial)
+			continue
+		}
+
+		// Merge: API-sourced fields take precedence for hardware details
+		model := BootstrapSwitchModel{
+			SerialNumber:          serial,
+			Hostname:              sw.Hostname,
+			IP:                    sw.IpAddress,
+			Password:              sw.PoapPassword,
+			DiscoveryAuthProtocol: "md5",
+			SwitchRole:            sw.SwitchRole,
+			ImagePolicy:           sw.ImagePolicy,
+			DiscoveryUsername:     sw.DiscoveryUsername,
+			DiscoveryPassword:     sw.DiscoveryPassword,
+			UseNewCredentials:     sw.DiscoveryUsername != "" && sw.DiscoveryPassword != "",
+			RemoteCredentialStore: data.RemoteCredentialStore,
+			// From bootstrap API response
+			Model:           entry.Model,
+			SoftwareVersion: entry.SoftwareVersion,
+			GatewayIpMask:   entry.GatewayIpMask,
+			FingerPrint:     entry.FingerPrint,
+			PublicKey:       entry.PublicKey,
+			ReAdd:           entry.ReAdd,
+			InInventory:     entry.InInventory,
+			Data:            entry.Data,
+		}
+
+		// API hostname/role override if present
+		if entry.Hostname != "" && entry.Hostname != sw.Hostname {
+			model.Hostname = entry.Hostname
+		}
+		if entry.SwitchRole != "" && sw.SwitchRole == "" {
+			model.SwitchRole = entry.SwitchRole
+		}
+
+		result.Request.Switches = append(result.Request.Switches, model)
+	}
+
+	return result
 }
 
 // triggerRediscovery sends a rediscovery request for the given switch serials.
@@ -578,4 +704,10 @@ func (r *inventorySwitchResource) createBootstrapSwitches(ctx context.Context, d
 		dg.AddError("Error Creating Inventory", fmt.Sprintf("Wait for manageable failed: %v", err))
 		return
 	}
+}
+
+// isNormalSystemMode returns true if the system mode value indicates the switch
+// is NOT in migration. "normal", "notApplicable", and "" are all non-migration states.
+func isNormalSystemMode(mode string) bool {
+	return mode == "normal" || mode == "notApplicable" || mode == ""
 }

@@ -37,21 +37,25 @@ type NDFCInventorySwitchModel struct {
 }
 
 type NDFCSwitchesValue struct {
-	Hostname              string `json:"hostname,omitempty"`
-	SerialNumber          string `json:"serialNumber,omitempty"`
-	IpAddress             string `json:"ip,omitempty"`
-	FabricManagementIp    string `json:"fabricManagementIp,omitempty"`
-	Model                 string `json:"model,omitempty"`
-	SoftwareVersion       string `json:"softwareVersion,omitempty"`
-	SwitchRole            string `json:"switchRole,omitempty"`
-	PreserveConfig        *bool  `json:"preserveConfig,omitempty"`
-	Status                string `json:"status,omitempty"`
-	StatusReason          string `json:"statusReason,omitempty"`
-	GatewayIpMask         string `json:"gatewayIpMask,omitempty"`
-	DiscoveryAuthProtocol string `json:"discoveryAuthProtocol,omitempty"`
-	PoapPassword          string `json:"poapPassword,omitempty"`
-	VdcId                 *int64 `json:"vdcId,omitempty"`
-	VdcMac                string `json:"vdcMac,omitempty"`
+	Hostname              string   `json:"hostname,omitempty"`
+	SerialNumber          string   `json:"serialNumber,omitempty"`
+	IpAddress             string   `json:"ip,omitempty"`
+	FabricManagementIp    string   `json:"fabricManagementIp,omitempty"`
+	Model                 string   `json:"model,omitempty"`
+	SoftwareVersion       string   `json:"softwareVersion,omitempty"`
+	SwitchRole            string   `json:"switchRole,omitempty"`
+	PreserveConfig        *bool    `json:"preserveConfig,omitempty"`
+	Status                string   `json:"status,omitempty"`
+	StatusReason          string   `json:"statusReason,omitempty"`
+	GatewayIpMask         string   `json:"gatewayIpMask,omitempty"`
+	DiscoveryAuthProtocol string   `json:"discoveryAuthProtocol,omitempty"`
+	PoapPassword          string   `json:"poapPassword,omitempty"`
+	ImagePolicy           string   `json:"imagePolicy,omitempty"`
+	DiscoveryUsername     string   `json:"discoveryUsername,omitempty"`
+	DiscoveryPassword     string   `json:"discoveryPassword,omitempty"`
+	ModuleModels          []string `json:"moduleModels,omitempty"`
+	VdcId                 *int64   `json:"vdcId,omitempty"`
+	VdcMac                string   `json:"vdcMac,omitempty"`
 }
 
 func (v *InventorySwitchModel) SetModelData(jsonData *NDFCInventorySwitchModel) diag.Diagnostics {
@@ -219,6 +223,43 @@ func (v *SwitchesValue) SetValue(jsonData *NDFCSwitchesValue) diag.Diagnostics {
 		v.PoapPassword = types.StringValue(jsonData.PoapPassword)
 	} else {
 		v.PoapPassword = types.StringNull()
+	}
+
+	if jsonData.ImagePolicy != "" {
+		v.ImagePolicy = types.StringValue(jsonData.ImagePolicy)
+	} else {
+		v.ImagePolicy = types.StringNull()
+	}
+
+	if jsonData.DiscoveryUsername != "" {
+		v.DiscoveryUsername = types.StringValue(jsonData.DiscoveryUsername)
+	} else {
+		v.DiscoveryUsername = types.StringNull()
+	}
+
+	if jsonData.DiscoveryPassword != "" {
+		v.DiscoveryPassword = types.StringValue(jsonData.DiscoveryPassword)
+	} else {
+		v.DiscoveryPassword = types.StringNull()
+	}
+
+	if len(jsonData.ModuleModels) == 0 {
+		log.Printf("v.ModuleModels is empty")
+		v.ModuleModels = types.SetNull(types.StringType)
+		if err != nil {
+			log.Printf("Error in converting []string to  List %v", err)
+			return err
+		}
+	} else {
+		listData := make([]attr.Value, len(jsonData.ModuleModels))
+		for i, item := range jsonData.ModuleModels {
+			listData[i] = types.StringValue(item)
+		}
+		v.ModuleModels, err = types.SetValue(types.StringType, listData)
+		if err != nil {
+			log.Printf("Error in converting []string to  List")
+			return err
+		}
 	}
 
 	if jsonData.VdcId != nil {
@@ -392,6 +433,42 @@ func (v InventorySwitchModel) GetModelData() *NDFCInventorySwitchModel {
 				data1.PoapPassword = ele1.PoapPassword.ValueString()
 			} else {
 				data1.PoapPassword = ""
+			}
+
+			// image_policy | String| []| false
+			if !ele1.ImagePolicy.IsNull() && !ele1.ImagePolicy.IsUnknown() {
+
+				data1.ImagePolicy = ele1.ImagePolicy.ValueString()
+			} else {
+				data1.ImagePolicy = ""
+			}
+
+			// discovery_username | String| []| false
+			if !ele1.DiscoveryUsername.IsNull() && !ele1.DiscoveryUsername.IsUnknown() {
+
+				data1.DiscoveryUsername = ele1.DiscoveryUsername.ValueString()
+			} else {
+				data1.DiscoveryUsername = ""
+			}
+
+			// discovery_password | String| []| false
+			if !ele1.DiscoveryPassword.IsNull() && !ele1.DiscoveryPassword.IsUnknown() {
+
+				data1.DiscoveryPassword = ele1.DiscoveryPassword.ValueString()
+			} else {
+				data1.DiscoveryPassword = ""
+			}
+
+			// module_models | List:String| []| false
+			if !ele1.ModuleModels.IsNull() && !ele1.ModuleModels.IsUnknown() {
+
+				listStringData := make([]string, len(ele1.ModuleModels.Elements()))
+				dg := ele1.ModuleModels.ElementsAs(context.Background(), &listStringData, false)
+				if dg.HasError() {
+					panic(dg.Errors())
+				}
+				data1.ModuleModels = make([]string, len(listStringData))
+				copy(data1.ModuleModels, listStringData)
 			}
 
 			// vdc_id | Int64| []| false

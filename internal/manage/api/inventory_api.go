@@ -37,7 +37,8 @@ const (
 	UrlCredentialsSwitchValidate = "/manage/credentials/switches/%s/actions/validate"
 
 	// Bootstrap/POAP endpoints
-	UrlBootstrapSwitches = "/manage/fabrics/%s/inventory/poap"
+	UrlBootstrapList   = "/manage/fabrics/%s/bootstrap"
+	UrlImportBootstrap = "/manage/fabrics/%s/switchActions/importBootstrap"
 )
 
 const RscNameInventorySwitch = "inventory_switch"
@@ -66,6 +67,8 @@ const (
 	OpCreateCredentials
 	OpRemoveCredentials
 	OpValidateCredentials
+	OpGetBootstrapList
+	OpImportBootstrap
 )
 
 func NewInventoryAPI(client *nd.Client, fabric string) *InventoryAPI {
@@ -86,6 +89,8 @@ func (c *InventoryAPI) GetUrl() string {
 		return fmt.Sprintf(UrlDiscoveryStatus, c.FabricName)
 	case OpValidateCredentials:
 		return fmt.Sprintf(UrlCredentialsSwitchValidate, c.SerialNumber)
+	case OpGetBootstrapList:
+		return fmt.Sprintf(UrlBootstrapList, c.FabricName)
 	default:
 		if c.SerialNumber != "" {
 			return fmt.Sprintf(UrlFabricSwitch, c.FabricName, c.SerialNumber)
@@ -104,8 +109,8 @@ func (c *InventoryAPI) PostUrl() string {
 		return fmt.Sprintf(UrlShallowDiscovery, c.FabricName)
 	case OpRediscover:
 		return fmt.Sprintf(UrlSwitchActionsRediscover, c.FabricName)
-	case OpBootstrap:
-		return fmt.Sprintf(UrlBootstrapSwitches, c.FabricName)
+	case OpImportBootstrap:
+		return fmt.Sprintf(UrlImportBootstrap, c.FabricName)
 	case OpCreateCredentials:
 		return UrlCredentialsSwitches
 	case OpRemoveCredentials:

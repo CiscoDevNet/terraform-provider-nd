@@ -26,36 +26,40 @@ import (
 
 // FSM state names
 const (
-	StateInit              = "init"
-	StateDiscovering       = "discovering"
-	StateAddingSwitches    = "adding_switches"
-	StateCheckingReadiness = "checking_readiness"
-	StateWaitingReady      = "waiting_ready"
-	StateSavingCreds       = "saving_creds"
-	StateUpdatingRoles     = "updating_roles"
-	StateSavingConfig      = "saving_config"
-	StateConfigSaveWait    = "config_save_wait"
-	StateRediscovering     = "rediscovering"
-	StateDeployingConfig   = "deploying_config"
-	StateDone              = "done"
-	StateFailed            = "failed"
+	StateInit               = "init"
+	StateDiscovering        = "discovering"
+	StateAddingSwitches     = "adding_switches"
+	StateCheckingReadiness  = "checking_readiness"
+	StateWaitingReady       = "waiting_ready"
+	StateSavingCreds        = "saving_creds"
+	StateUpdatingRoles      = "updating_roles"
+	StateSavingConfig       = "saving_config"
+	StateConfigSaveWait     = "config_save_wait"
+	StateRediscovering      = "rediscovering"
+	StateDeployingConfig    = "deploying_config"
+	StateQueryingBootstrap  = "querying_bootstrap"
+	StateImportingBootstrap = "importing_bootstrap"
+	StateDone               = "done"
+	StateFailed             = "failed"
 )
 
 // FSM event names
 const (
-	EventDiscover     = "discover"
-	EventAddSwitches  = "add_switches"
-	EventCheck        = "check"
-	EventWait         = "wait"
-	EventPoll         = "poll"
-	EventSaveCreds    = "save_creds"
-	EventUpdateRoles  = "update_roles"
-	EventConfigSave   = "config_save"
-	EventRediscover   = "rediscover_switches"
-	EventRetryWait    = "retry_wait"
-	EventConfigDeploy = "config_deploy"
-	EventFinish       = "finish"
-	EventFail         = "fail"
+	EventDiscover        = "discover"
+	EventAddSwitches     = "add_switches"
+	EventCheck           = "check"
+	EventWait            = "wait"
+	EventPoll            = "poll"
+	EventSaveCreds       = "save_creds"
+	EventUpdateRoles     = "update_roles"
+	EventConfigSave      = "config_save"
+	EventRediscover      = "rediscover_switches"
+	EventRetryWait       = "retry_wait"
+	EventConfigDeploy    = "config_deploy"
+	EventFinish          = "finish"
+	EventFail            = "fail"
+	EventQueryBootstrap  = "query_bootstrap"
+	EventImportBootstrap = "import_bootstrap"
 )
 
 // Retryable error patterns from config-save
@@ -86,7 +90,7 @@ func calculateFSMTimeout(numSwitches int) time.Duration {
 	return BaseFSMTimeout + (PerSwitchTimeout * time.Duration(numSwitches))
 }
 
-// InventoryFSM manages the state machine for discovery-based switch creation
+// InventoryFSM manages the state machine for switch creation (discovery and bootstrap modes)
 type InventoryFSM struct {
 	FSM               *fsm.FSM
 	ctx               context.Context
@@ -95,6 +99,7 @@ type InventoryFSM struct {
 	switchesData      *NDFCInventorySwitchModel
 	updateSwitches    *NDFCInventorySwitchModel
 	discovery         DiscoveryStatusResponse
+	bootstrapEntries  map[string]BootstrapListEntry // populated by onQueryBootstrap
 	dg                *diag.Diagnostics
 	deadline          time.Time
 	timeoutDuration   time.Duration // Total timeout for error reporting
@@ -104,74 +109,52 @@ type InventoryFSM struct {
 	serialSet         map[string]bool
 }
 
-// NewInventoryFSM creates a new FSM for discovery-based switch creation.
+// NewInventoryFSM creates a new FSM for switch creation (discovery and bootstrap modes).
 //
-// The FSM drives the full lifecycle of adding switches to a fabric via shallow
-// discovery. A single call to Run() fires the initial "discover" event; every
-// subsequent transition is chained from enter_<state> callbacks.
+// The FSM drives the full lifecycle of adding switches to a fabric. A single
+// call to Run() fires the initial event based on mode; every subsequent
+// transition is chained from enter_<state> callbacks.
 //
-// States and transitions:
+// Discovery mode:
 //
 //	+--------+  discover   +--------------+  add_switches  +------------------+
-//	|  init  |----------->| discovering  |--------------->| adding_switches  |
-//	+--------+            +--------------+                +--------+---------+
-//	                                                               |
-//	                                                             check
-//	                                                           (immediate)
-//	                                                               |
-//	                                                               v
+//	|  init  |----------->| discovering  |--------------->| adding_switches  |---+
+//	+--------+            +--------------+                +------------------+   |
+//	                                                                          check
+//	                                                                            |
+//	                                                                            v
+//	                                                                +---------------------+
+//	                                                                | checking_readiness  |---> ...
+//	                                                                +---------------------+
+//
+// Bootstrap mode:
+//
+//	+--------+  query_bootstrap  +----------------------+  import_bootstrap  +------------------------+
+//	|  init  |------------------>| querying_bootstrap   |-------------------->| importing_bootstrap   |---+
+//	+--------+                   +----------------------+                    +------------------------+   |
+//	                                                                                                   check
+//	                                                                                                     |
+//	                                                                                                     v
+//	                                                                                         +---------------------+
+//	                                                                                         | checking_readiness  |---> ...
+//	                                                                                         +---------------------+
+//
+// Common tail (both modes):
+//
 //	                      +----------------+  poll   +---------------------+
 //	                      | waiting_ready  |-------->| checking_readiness  |
 //	                      +-------+--------+         +-+-----+-------+----+
 //	                              ^                    |     |       |
 //	                              |               wait | rediscover  | save_creds
-//	                              |  (not ready)       |     |       |
 //	                              +--------------------+     |       |
 //	                              |                          v       |
 //	                              |  wait   +----------------+       |
 //	                              +---------| rediscovering  |       |
 //	                                        +----------------+       |
 //	                                                                 v
-//	                                                  +---------------+
-//	                                                  | saving_creds  |
-//	                                                  +-------+-------+
-//	                                                          |
-//	                                                    update_roles
-//	                                                          |
-//	                                                          v
-//	                                                  +----------------+
-//	                                                  | updating_roles |
-//	                                                  +-------+--------+
-//	                                                          |
-//	                                                     config_save
-//	                                                          |
-//	                                                          v
-//	                                                  +----------------+  retry_wait  +-------------------+
-//	                                                  | saving_config  |------------->| config_save_wait  |
-//	                                                  +---+--------+---+              +--+-----+-----+----+
-//	                                                      |        |                     |     |     |
-//	                                       config_deploy  |        | finish    retry_wait|     |     | rediscover
-//	                                                      |        | (!deploy)           |     |     |
-//	                                                      v        |                     |     |     v
-//	                                           +------------------+|                     |     |  +----------------+
-//	                                           | deploying_config ||                     |     |  | rediscovering  |
-//	                                           +---------+--------+                      |     |  +-------+--------+
-//	                                                     |                               |     |          |
-//	                                                     |                               +-----+----------+
-//	                                                     |                              config_save  retry_wait
-//	                                                     |
-//	                                                   finish
-//	                                                     |
-//	                                                     v
-//	                                                +--------+
-//	                                                |  done  |
-//	                                                +--------+
+//	          saving_creds -> updating_roles -> saving_config -> deploying_config -> done
 //
-//	Any non-terminal state can transition to "failed" via the "fail" event:
-//
-//	    +---any state---+   fail   +----------+
-//	    |               |--------->|  failed  |
-//	    +---------------+          +----------+
+//	Any non-terminal state can transition to "failed" via the "fail" event.
 func NewInventoryFSM(
 	ctx context.Context,
 	r *inventorySwitchResource,
@@ -197,14 +180,19 @@ func NewInventoryFSM(
 		StateCheckingReadiness, StateRediscovering, StateWaitingReady, StateSavingCreds,
 		StateUpdatingRoles, StateSavingConfig, StateConfigSaveWait,
 		StateDeployingConfig,
+		StateQueryingBootstrap, StateImportingBootstrap,
 	}
 
 	inv.FSM = fsm.NewFSM(
 		StateInit,
 		fsm.Events{
+			// Discovery flow
 			{Name: EventDiscover, Src: []string{StateInit}, Dst: StateDiscovering},
 			{Name: EventAddSwitches, Src: []string{StateDiscovering}, Dst: StateAddingSwitches},
-			{Name: EventCheck, Src: []string{StateAddingSwitches}, Dst: StateCheckingReadiness},
+			{Name: EventCheck, Src: []string{StateAddingSwitches, StateImportingBootstrap}, Dst: StateCheckingReadiness},
+			// Bootstrap flow
+			{Name: EventQueryBootstrap, Src: []string{StateInit}, Dst: StateQueryingBootstrap},
+			{Name: EventImportBootstrap, Src: []string{StateQueryingBootstrap}, Dst: StateImportingBootstrap},
 			{Name: EventRetryWait, Src: []string{StateSavingConfig, StateConfigSaveWait, StateRediscovering}, Dst: StateConfigSaveWait},
 			{Name: EventRediscover, Src: []string{StateCheckingReadiness, StateConfigSaveWait}, Dst: StateRediscovering},
 			{Name: EventWait, Src: []string{StateCheckingReadiness, StateRediscovering}, Dst: StateWaitingReady},
@@ -217,27 +205,40 @@ func NewInventoryFSM(
 			{Name: EventFail, Src: allStates, Dst: StateFailed},
 		},
 		fsm.Callbacks{
-			"enter_discovering":        func(ctx context.Context, e *fsm.Event) { inv.onDiscover(ctx, e) },
-			"enter_adding_switches":    func(ctx context.Context, e *fsm.Event) { inv.onAddSwitches(ctx, e) },
-			"enter_checking_readiness": func(ctx context.Context, e *fsm.Event) { inv.onCheckReadiness(ctx, e) },
-			"enter_rediscovering":      func(ctx context.Context, e *fsm.Event) { inv.onRediscover(ctx, e) },
-			"enter_waiting_ready":      func(ctx context.Context, e *fsm.Event) { inv.onWaitReady(ctx, e) },
-			"enter_saving_creds":       func(ctx context.Context, e *fsm.Event) { inv.onSaveCreds(ctx, e) },
-			"enter_updating_roles":     func(ctx context.Context, e *fsm.Event) { inv.onUpdateRoles(ctx, e) },
-			"enter_saving_config":      func(ctx context.Context, e *fsm.Event) { inv.onConfigSave(ctx, e) },
-			"enter_config_save_wait":   func(ctx context.Context, e *fsm.Event) { inv.onConfigSaveWait(ctx, e) },
-			"enter_deploying_config":   func(ctx context.Context, e *fsm.Event) { inv.onConfigDeploy(ctx, e) },
-			"enter_failed":             func(ctx context.Context, e *fsm.Event) { inv.onFailed(ctx, e) },
+			"enter_discovering":         func(ctx context.Context, e *fsm.Event) { inv.onDiscover(ctx, e) },
+			"enter_adding_switches":     func(ctx context.Context, e *fsm.Event) { inv.onAddSwitches(ctx, e) },
+			"enter_querying_bootstrap":  func(ctx context.Context, e *fsm.Event) { inv.onQueryBootstrap(ctx, e) },
+			"enter_importing_bootstrap": func(ctx context.Context, e *fsm.Event) { inv.onImportBootstrap(ctx, e) },
+			"enter_checking_readiness":  func(ctx context.Context, e *fsm.Event) { inv.onCheckReadiness(ctx, e) },
+			"enter_rediscovering":       func(ctx context.Context, e *fsm.Event) { inv.onRediscover(ctx, e) },
+			"enter_waiting_ready":       func(ctx context.Context, e *fsm.Event) { inv.onWaitReady(ctx, e) },
+			"enter_saving_creds":        func(ctx context.Context, e *fsm.Event) { inv.onSaveCreds(ctx, e) },
+			"enter_updating_roles":      func(ctx context.Context, e *fsm.Event) { inv.onUpdateRoles(ctx, e) },
+			"enter_saving_config":       func(ctx context.Context, e *fsm.Event) { inv.onConfigSave(ctx, e) },
+			"enter_config_save_wait":    func(ctx context.Context, e *fsm.Event) { inv.onConfigSaveWait(ctx, e) },
+			"enter_deploying_config":    func(ctx context.Context, e *fsm.Event) { inv.onConfigDeploy(ctx, e) },
+			"enter_failed":              func(ctx context.Context, e *fsm.Event) { inv.onFailed(ctx, e) },
 		},
 	)
 	return inv
 }
 
-// Run kicks off the FSM by firing the initial discover event
+// Run kicks off the FSM by firing the initial event based on mode.
+// Discovery mode fires EventDiscover; bootstrap mode fires EventQueryBootstrap.
 func (inv *InventoryFSM) Run() {
-	tflog.Info(inv.ctx, "Starting inventory FSM")
+	tflog.Info(inv.ctx, "Starting inventory FSM", map[string]interface{}{
+		"mode": inv.switchesData.Mode,
+	})
 
-	if err := inv.FSM.Event(inv.ctx, EventDiscover); err != nil {
+	var initialEvent string
+	switch inv.switchesData.Mode {
+	case ModeBootstrap:
+		initialEvent = EventQueryBootstrap
+	default:
+		initialEvent = EventDiscover
+	}
+
+	if err := inv.FSM.Event(inv.ctx, initialEvent); err != nil {
 		if !inv.dg.HasError() {
 			inv.dg.AddError("Error Creating Inventory", fmt.Sprintf("FSM error: %v", err))
 		}
@@ -355,6 +356,100 @@ func (inv *InventoryFSM) onAddSwitches(ctx context.Context, e *fsm.Event) {
 	e.FSM.Event(ctx, EventCheck)
 }
 
+// --- Bootstrap mode callbacks ---
+
+// onQueryBootstrap queries the bootstrap API to find switches in the POAP loop.
+func (inv *InventoryFSM) onQueryBootstrap(ctx context.Context, e *fsm.Event) {
+	if !inv.checkDeadline(ctx, e) {
+		return
+	}
+
+	entries, err := inv.r.queryBootstrapList(ctx, inv.invAPI)
+	if err != nil {
+		inv.triggerFail(ctx, e, "bootstrap list query failed: %v", err)
+		return
+	}
+
+	inv.bootstrapEntries = entries
+	e.FSM.Event(ctx, EventImportBootstrap)
+}
+
+// onImportBootstrap builds the importBootstrap payload by merging user config
+// with bootstrap API data, posts it, and transitions to checking_readiness.
+//
+// Idempotency: if some serials are missing from the POAP bootstrap list,
+// they may already be in the fabric inventory (from a previous partial run).
+// Those serials are added to serialSet so downstream steps still process them,
+// but only the POAP-listed switches are sent to importBootstrap.
+func (inv *InventoryFSM) onImportBootstrap(ctx context.Context, e *fsm.Event) {
+	if !inv.checkDeadline(ctx, e) {
+		return
+	}
+
+	buildResult := inv.r.buildBootstrapRequestFromAPI(inv.switchesData, inv.bootstrapEntries)
+
+	// Check if missing serials are already in the fabric inventory
+	if len(buildResult.MissingFromBootstrap) > 0 {
+		resp, err := inv.r.getAllSwitchesByFabric(ctx, inv.switchesData.FabricName, true)
+		if err != nil {
+			inv.triggerFail(ctx, e, "could not check fabric inventory for missing bootstrap switches: %v", err)
+			return
+		}
+
+		var genuinelyMissing []string
+		var alreadyInFabric []string
+		for _, serial := range buildResult.MissingFromBootstrap {
+			if _, found := resp.SwitchesBySerial[serial]; found {
+				alreadyInFabric = append(alreadyInFabric, serial)
+			} else {
+				genuinelyMissing = append(genuinelyMissing, serial)
+			}
+		}
+
+		if len(genuinelyMissing) > 0 {
+			inv.triggerFail(ctx, e, "switches not found in POAP bootstrap list or fabric inventory: %v", genuinelyMissing)
+			return
+		}
+
+		if len(alreadyInFabric) > 0 {
+			tflog.Info(ctx, "Switches already in fabric inventory, skipping import for these", map[string]interface{}{
+				"serials": alreadyInFabric,
+			})
+		}
+	}
+
+	// Build serial set for readiness checking — includes ALL config serials
+	inv.serialSet = make(map[string]bool, len(inv.switchesData.Switches))
+	for serial := range inv.switchesData.Switches {
+		inv.serialSet[serial] = true
+	}
+
+	// Only POST importBootstrap if there are switches to import
+	if len(buildResult.Request.Switches) > 0 {
+		payload, err := json.Marshal(buildResult.Request)
+		if err != nil {
+			inv.triggerFail(ctx, e, "could not marshal bootstrap request: %v", err)
+			return
+		}
+
+		inv.invAPI.SetOperation(api.OpImportBootstrap)
+		res, err := inv.invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true})
+		if err != nil {
+			inv.triggerFail(ctx, e, "importBootstrap failed: %v: %s", err, res.String())
+			return
+		}
+
+		tflog.Info(ctx, "Bootstrap import initiated", map[string]interface{}{
+			"fabric_name": inv.invAPI.FabricName,
+			"count":       len(buildResult.Request.Switches),
+		})
+	} else {
+		tflog.Info(ctx, "All switches already in fabric, skipping importBootstrap")
+	}
+
+	e.FSM.Event(ctx, EventCheck)
+}
+
 // onCheckReadiness performs a single readiness check for all target switches.
 // If all ready, transitions to save_creds. Otherwise, transitions to waiting_ready.
 func (inv *InventoryFSM) onCheckReadiness(ctx context.Context, e *fsm.Event) {
@@ -442,8 +537,14 @@ func (inv *InventoryFSM) onSaveCreds(ctx context.Context, e *fsm.Event) {
 		return
 	}
 
+	// Collect serial numbers from serialSet (works for both discovery and bootstrap modes)
+	serials := make([]string, 0, len(inv.serialSet))
+	for s := range inv.serialSet {
+		serials = append(serials, s)
+	}
+
 	credReq := SwitchCredentialsRequest{
-		SwitchIds:      inv.r.getSerialNumbers(&inv.discovery),
+		SwitchIds:      serials,
 		SwitchUsername: inv.switchesData.Username,
 		SwitchPassword: inv.switchesData.Password,
 	}
@@ -625,9 +726,48 @@ func (inv *InventoryFSM) onConfigDeploy(ctx context.Context, e *fsm.Event) {
 	e.FSM.Event(ctx, EventFinish)
 }
 
-func (inv *InventoryFSM) onFailed(_ context.Context, _ *fsm.Event) {
+func (inv *InventoryFSM) onFailed(_ context.Context, e *fsm.Event) {
 	if inv.lastErr != nil {
 		inv.dg.AddError("Error Creating Inventory", inv.lastErr.Error())
+	}
+
+	// Bootstrap cleanup: if switches were already imported into the fabric,
+	// remove them so they return to the POAP loop for the next run.
+	if inv.switchesData.Mode == ModeBootstrap && inv.serialSet != nil && len(inv.serialSet) > 0 {
+		// Only clean up if we got past the import step
+		postImportStates := map[string]bool{
+			StateCheckingReadiness: true,
+			StateWaitingReady:      true,
+			StateRediscovering:     true,
+			StateSavingCreds:       true,
+			StateUpdatingRoles:     true,
+			StateSavingConfig:      true,
+			StateConfigSaveWait:    true,
+			StateDeployingConfig:   true,
+		}
+		if postImportStates[e.Src] {
+			serials := make([]string, 0, len(inv.serialSet))
+			for s := range inv.serialSet {
+				serials = append(serials, s)
+			}
+			tflog.Warn(inv.ctx, "Bootstrap failed after import, removing switches to restore POAP state", map[string]interface{}{
+				"serials": serials,
+			})
+			cleanupDg := diag.Diagnostics{}
+			inv.r.removeSwitches(inv.ctx, &cleanupDg, inv.invAPI, serials)
+			if cleanupDg.HasError() {
+				tflog.Error(inv.ctx, "Bootstrap cleanup failed: could not remove imported switches", map[string]interface{}{
+					"error": cleanupDg[0].Detail(),
+				})
+				inv.dg.AddWarning("Bootstrap Cleanup Failed",
+					fmt.Sprintf("Could not remove imported switches after failure. "+
+						"Manually remove switches %v from the fabric before retrying.", serials))
+			} else {
+				inv.dg.AddWarning("Bootstrap Rolled Back",
+					fmt.Sprintf("Switches %v were removed from the fabric after failure. "+
+						"They should return to the POAP loop for retry.", serials))
+			}
+		}
 	}
 }
 
