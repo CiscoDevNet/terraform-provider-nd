@@ -209,6 +209,14 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 				panic(fmt.Sprintf("Failed to execute ND_BACKUP_RSC template: %v", err))
 			}
 
+		case *NDFCRemoteStorageLocationTestData:
+			args["RemoteStorage"] = v
+			args["RscName"] = rscName
+			err = t.ExecuteTemplate(&output, "ND_REMOTE_STORAGE_LOCATION_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_REMOTE_STORAGE_LOCATION_RSC template: %v", err))
+			}
+
 		default:
 			panic(fmt.Sprintf("Unknown resource type: %T", rsc))
 		}

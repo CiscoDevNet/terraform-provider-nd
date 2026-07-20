@@ -37,6 +37,7 @@ type NDConfig struct {
 	VpcPair                  *VpcPairConfig                 `yaml:"vpc_pair"`
 	LocalUser                LocalUserConfig                `yaml:"local_user"`
 	MultiClusterConnectivity MultiClusterConnectivityConfig `yaml:"multi_cluster_connectivity"`
+	RemoteStorage            RemoteStorageConfig            `yaml:"remote_storage"`
 }
 
 // MultiClusterConnectivityConfig represents the multi-cluster connectivity test configuration
@@ -98,6 +99,18 @@ type IntegratedConfig struct {
 type InventoryDevice struct {
 	Device string `yaml:"device"`
 	Role   string `yaml:"role"`
+}
+
+// RemoteStorageConfig represents the nd_remote_storage_location-specific
+// test configuration. Tests use the Hostname/Username/Password/SshKey
+// fields when set; otherwise sensible literal defaults from the user's
+// testbed are applied inside the test itself.
+type RemoteStorageConfig struct {
+	Hostname   string `yaml:"hostname"`
+	Username   string `yaml:"username"`
+	Password   string `yaml:"password"`
+	SshKey     string `yaml:"ssh_key"`
+	Passphrase string `yaml:"passphrase"`
 }
 
 var (

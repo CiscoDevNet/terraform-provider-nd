@@ -26,6 +26,22 @@ nd:
     login_domain: "local"
     multi_cluster_login_domain: "multi_cluster_login_domain"
 
+  # nd_remote_storage_location test configuration
+  remote_storage:
+    hostname: "198.18.134.22"
+    username: "cisco"
+    password: "C1sco12345"
+    passphrase: "123"
+    ssh_key: |
+      -----BEGIN OPENSSH PRIVATE KEY-----
+      b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABBboe/GgV
+      gHyKT6yHJpWsM4AAAAGAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAINAqo49ZI8p5V+vY
+      JtdCjc7UHItO48d8S6yndRPuu3GKAAAAkDwi1fg++X06m6RdShQMA/atBy10vc9AwYlzvQ
+      5HpWKlsUK0FwLKTBzF743b5HZYxBFDwSLaZNGFSlOoMu7D3HpEhHDtF++A+p3pi1cBG3a6
+      7UvvtocuRjscf7QhiPJ5t+YFnEMNM7SN3aQfl/n2bDlE0gkf4s0jkjVJamsnuslOTljFPs
+      8+o7sij11HX7erVA==
+      -----END OPENSSH PRIVATE KEY-----
+
   # Integration test configuration
   integration_test:
     fabric: at_int_test_vxlan

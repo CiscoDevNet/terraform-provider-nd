@@ -11,4 +11,5 @@ files:
   - fabric_external.yaml
   - local_user.yaml
   - backup.yaml
+  - remote_storage_location.yaml
   #- sample.yaml
