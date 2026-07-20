@@ -115,7 +115,7 @@ func (r *multiClusterConnectivityNdResource) Read(ctx context.Context, req resou
 		return
 	}
 
-	id := setMultiClusterConnectivityID(&state)
+	id := getMultiClusterConnectivityID(&state)
 	log.Printf("[DEBUG] Reading Multi Cluster Connectivity ND: id=%s", id)
 
 	if r.rscGetMultiClusterConnectivity(&resp.Diagnostics, &state) {
@@ -176,7 +176,7 @@ func (r *multiClusterConnectivityNdResource) Delete(ctx context.Context, req res
 		return
 	}
 
-	id := setMultiClusterConnectivityID(&state)
+	id := getMultiClusterConnectivityID(&state)
 	r.rscDeleteMultiClusterConnectivity(&resp.Diagnostics, &state)
 	if resp.Diagnostics.HasError() {
 		return

@@ -13,13 +13,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// setMultiClusterConnectivityID returns the identifier used by the cluster API.
+// getMultiClusterConnectivityID returns the identifier used by the cluster API.
 // Nexus Dashboard identifies a connected cluster by its cluster name. In
 // Terraform, cluster_name is Optional+Computed because users can omit it during
 // create and let the backend assign the name. Once readback has populated the
 // Terraform id, prefer id; before that, fall back to cluster_name when it is
 // already known, and use an empty identifier for create-time list lookup.
-func setMultiClusterConnectivityID(model *MultiClusterConnectivityModel) string {
+func getMultiClusterConnectivityID(model *MultiClusterConnectivityModel) string {
 	// Id is unknown during the create
 	if !model.Id.IsNull() && !model.Id.IsUnknown() && model.Id.ValueString() != "" {
 		return model.Id.ValueString()
@@ -34,7 +34,7 @@ func setMultiClusterConnectivityID(model *MultiClusterConnectivityModel) string 
 
 // RscCreateMultiClusterConnectivity creates a multi cluster connectivity nd resource
 func (r *multiClusterConnectivityNdResource) rscCreateMultiClusterConnectivity(dg *diag.Diagnostics, model *MultiClusterConnectivityModel) {
-	id := setMultiClusterConnectivityID(model)
+	id := getMultiClusterConnectivityID(model)
 	log.Printf("[INFO] Create nd_multi_cluster_connectivity id=%s", id)
 
 	inData := model.GetModelData()
@@ -73,7 +73,7 @@ func (r *multiClusterConnectivityNdResource) rscCreateMultiClusterConnectivity(d
 
 // GetMultiClusterConnectivity retrieves multi cluster connectivity nd information by name
 func (r *multiClusterConnectivityNdResource) rscGetMultiClusterConnectivity(dg *diag.Diagnostics, model *MultiClusterConnectivityModel) bool {
-	id := setMultiClusterConnectivityID(model)
+	id := getMultiClusterConnectivityID(model)
 	log.Printf("[INFO] Read nd_multi_cluster_connectivity id=%s", id)
 
 	// Preserve sensitive fields that are not returned by the API.
@@ -176,7 +176,7 @@ type updatePayload struct {
 
 // UpdateMultiClusterConnectivity updates a multi cluster connectivity nd with the provided payload
 func (r *multiClusterConnectivityNdResource) rscUpdateMultiClusterConnectivity(dg *diag.Diagnostics, model *MultiClusterConnectivityModel) {
-	id := setMultiClusterConnectivityID(model)
+	id := getMultiClusterConnectivityID(model)
 	log.Printf("[INFO] Update nd_multi_cluster_connectivity id=%s", id)
 	inData := model.GetModelData()
 
@@ -223,7 +223,7 @@ func (r *multiClusterConnectivityNdResource) rscUpdateMultiClusterConnectivity(d
 
 // DeleteMultiClusterConnectivity deletes a multi cluster connectivity nd by name
 func (r *multiClusterConnectivityNdResource) rscDeleteMultiClusterConnectivity(dg *diag.Diagnostics, model *MultiClusterConnectivityModel) {
-	id := setMultiClusterConnectivityID(model)
+	id := getMultiClusterConnectivityID(model)
 	log.Printf("[INFO] Delete nd_multi_cluster_connectivity id=%s", id)
 	clusterAPI := api.NewClusterAPI(r.infraClient.ApiClient)
 	clusterAPI.ClusterName = id
