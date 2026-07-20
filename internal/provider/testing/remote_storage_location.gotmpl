@@ -1,0 +1,40 @@
+{{define "ND_REMOTE_STORAGE_LOCATION_RSC"}}
+resource "nd_remote_storage_location" "{{.RscName}}" {
+{{- with .RemoteStorage }}
+    name                  = "{{.Name}}"
+    {{- if .Description }}
+    description           = "{{.Description}}"
+    {{- end }}
+    storage_location_type = "{{.StorageLocationType}}"
+    {{- if ne .ReadWrite nil }}
+    read_write            = {{deref_bool .ReadWrite}}
+    {{- end }}
+    hostname              = "{{.Hostname}}"
+    {{- if ne .Port nil }}
+    port                  = {{deref_int64 .Port}}
+    {{- end }}
+    path                  = "{{.Path}}"
+    {{- if ne .AlertThreshold nil }}
+    alert_threshold       = {{deref_int64 .AlertThreshold}}
+    {{- end }}
+    {{- if .Limit }}
+    limit                 = "{{.Limit}}"
+    {{- end }}
+    {{- if .Username }}
+    username              = "{{.Username}}"
+    {{- end }}
+    {{- if .Password }}
+    password              = "{{.Password}}"
+    {{- end }}
+    {{- if .SshKey }}
+    ssh_key               = {{printf "%q" .SshKey}}
+    {{- end }}
+    {{- if .Passphrase }}
+    passphrase            = "{{.Passphrase}}"
+    {{- end }}
+    {{- if ne .IgnoreHostKeyValidation nil }}
+    ignore_host_key_validation = {{deref_bool .IgnoreHostKeyValidation}}
+    {{- end }}
+{{- end }}
+}
+{{end}}
