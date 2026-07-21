@@ -16,9 +16,13 @@ import (
 )
 
 const (
-	backupCreatePollInterval = 30 * time.Second
-	backupCreateTimeout      = 60 * time.Minute
-	backupStatusCompleted    = "completed"
+	// backupCreateStatusPollInterval controls how often the provider checks
+	// ND backup creation status while waiting for status=completed.
+	backupCreateStatusPollInterval = 30 * time.Second
+
+	// backupCreateDefaultTimeout is the default maximum duration Terraform waits
+	// for ND backup creation to complete.
+	backupCreateDefaultTimeout = 90 * time.Minute
 )
 
 type backupCreateStatusResponse struct {
@@ -72,10 +76,10 @@ func (r *backupNdResource) rscCreateBackup(ctx context.Context, dg *diag.Diagnos
 func (r *backupNdResource) waitForBackupCreateCompletion(ctx context.Context, dg *diag.Diagnostics, backupAPI *api.BackupAPI, input *BackupModel) bool {
 	id := input.Id.ValueString()
 	backupAPI.Name = id
-	deadline := time.NewTimer(backupCreateTimeout)
+	deadline := time.NewTimer(backupCreateDefaultTimeout)
 	defer deadline.Stop()
 
-	ticker := time.NewTicker(backupCreatePollInterval)
+	ticker := time.NewTicker(backupCreateStatusPollInterval)
 	defer ticker.Stop()
 
 	for {
@@ -113,7 +117,7 @@ func (r *backupNdResource) waitForBackupCreateCompletion(ctx context.Context, dg
 			}
 
 			switch strings.ToLower(backupResp.Status) {
-			case backupStatusCompleted:
+			case "completed":
 				return true
 			}
 		}
@@ -128,7 +132,7 @@ func (r *backupNdResource) waitForBackupCreateCompletion(ctx context.Context, dg
 		case <-deadline.C:
 			dg.AddError(
 				"Error Creating ND Backup",
-				fmt.Sprintf("Timed out after %s waiting for backup %q creation to complete.", backupCreateTimeout, id),
+				fmt.Sprintf("Timed out after %s waiting for backup %q creation to complete.", backupCreateDefaultTimeout, id),
 			)
 			return false
 		case <-ticker.C:

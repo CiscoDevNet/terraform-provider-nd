@@ -5,6 +5,8 @@ resource:
   generate_tf_resource: true
   skip_equality: true
   description: Manages backup for Nexus Dashboard
+  # Documentation note: backup creation waits up to 90 minutes before timing out.
+  # Include this behavior in the generated resource documentation when doc support is updated.
   attributes:
   - model_name: id
     tf_name: id
