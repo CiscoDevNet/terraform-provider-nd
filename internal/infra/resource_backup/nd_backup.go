@@ -3,6 +3,7 @@ package resource_backup
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -76,68 +77,61 @@ func (r *backupNdResource) rscCreateBackup(ctx context.Context, dg *diag.Diagnos
 func (r *backupNdResource) waitForBackupCreateCompletion(ctx context.Context, dg *diag.Diagnostics, backupAPI *api.BackupAPI, input *BackupModel) bool {
 	id := input.Id.ValueString()
 	backupAPI.Name = id
-	deadline := time.NewTimer(backupCreateDefaultTimeout)
-	defer deadline.Stop()
 
-	ticker := time.NewTicker(backupCreateStatusPollInterval)
-	defer ticker.Stop()
+	err := ndapi.PollUntil(ctx, backupCreateStatusPollInterval, backupCreateDefaultTimeout, func() (bool, error) {
+		return backupCreateStatusCheck(backupAPI, input)
+	})
 
-	for {
-		respData, err := backupAPI.Get()
-		if err != nil {
-			if strings.Contains(err.Error(), "StatusCode 404") {
-				dg.AddError(
-					"Error Creating ND Backup",
-					fmt.Sprintf("Nexus Dashboard reported backup creation failure for %q: GET /infra/backups/%s returned 404. Response: %s", id, id, string(respData)),
-				)
-				return false
-			}
-
-			log.Printf("[INFO] Waiting for nd_backup id=%s, read failed: %v", id, err)
-		} else {
-			var backupResp backupCreateStatusResponse
-			backupResp.Raw = append(json.RawMessage(nil), respData...)
-			if err := json.Unmarshal(respData, &backupResp); err != nil {
-				dg.AddError(
-					"Error Creating ND Backup",
-					fmt.Sprintf("Could not unmarshal nd backup status response, unexpected error: %v", err),
-				)
-				return false
-			}
-
-			detail := backupCreateStatusDetail(backupResp)
-			log.Printf("[INFO] nd_backup id=%s create status: %s", id, detail)
-
-			if mismatches := backupCreateStatusMismatches(input, backupResp); len(mismatches) > 0 {
-				dg.AddError(
-					"Error Creating ND Backup",
-					fmt.Sprintf("Nexus Dashboard returned backup %q, but the response did not match the requested configuration: %s. Response: %s", id, strings.Join(mismatches, ", "), detail),
-				)
-				return false
-			}
-
-			switch strings.ToLower(backupResp.Status) {
-			case "completed":
-				return true
-			}
-		}
-
-		select {
-		case <-ctx.Done():
-			dg.AddError(
-				"Error Creating ND Backup",
-				fmt.Sprintf("Context canceled while waiting for backup %q creation to complete: %v", id, ctx.Err()),
-			)
-			return false
-		case <-deadline.C:
-			dg.AddError(
-				"Error Creating ND Backup",
-				fmt.Sprintf("Timed out after %s waiting for backup %q creation to complete.", backupCreateDefaultTimeout, id),
-			)
-			return false
-		case <-ticker.C:
-		}
+	if err == nil {
+		return true
 	}
+
+	if errors.Is(err, ndapi.ErrPollTimeout) {
+		dg.AddError(
+			"Error Creating ND Backup",
+			fmt.Sprintf("Timed out after %s waiting for backup %q creation to complete.", backupCreateDefaultTimeout, id),
+		)
+		return false
+	}
+
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		dg.AddError(
+			"Error Creating ND Backup",
+			fmt.Sprintf("Context canceled while waiting for backup %q creation to complete: %v", id, err),
+		)
+		return false
+	}
+
+	dg.AddError("Error Creating ND Backup", err.Error())
+	return false
+}
+
+func backupCreateStatusCheck(backupAPI *api.BackupAPI, input *BackupModel) (bool, error) {
+	id := input.Id.ValueString()
+	respData, err := backupAPI.Get()
+	if err != nil {
+		if strings.Contains(err.Error(), "StatusCode 404") {
+			return false, fmt.Errorf("Nexus Dashboard reported backup creation failure for %q: GET /infra/backups/%s returned 404. Response: %s", id, id, string(respData))
+		}
+
+		log.Printf("[INFO] Waiting for nd_backup id=%s, read failed: %v", id, err)
+		return false, nil
+	}
+
+	var backupResp backupCreateStatusResponse
+	backupResp.Raw = append(json.RawMessage(nil), respData...)
+	if err := json.Unmarshal(respData, &backupResp); err != nil {
+		return false, fmt.Errorf("Could not unmarshal nd backup status response, unexpected error: %v", err)
+	}
+
+	detail := backupCreateStatusDetail(backupResp)
+	log.Printf("[INFO] nd_backup id=%s create status: %s", id, detail)
+
+	if mismatches := backupCreateStatusMismatches(input, backupResp); len(mismatches) > 0 {
+		return false, fmt.Errorf("Nexus Dashboard returned backup %q, but the response did not match the requested configuration: %s. Response: %s", id, strings.Join(mismatches, ", "), detail)
+	}
+
+	return strings.EqualFold(backupResp.Status, "completed"), nil
 }
 
 func backupCreateStatusMismatches(input *BackupModel, status backupCreateStatusResponse) []string {

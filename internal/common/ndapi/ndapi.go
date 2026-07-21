@@ -9,14 +9,46 @@
 package ndapi
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/netascode/go-nd"
 
 	"github.com/tidwall/gjson"
 )
+
+// ErrPollTimeout is returned when PollUntil reaches its total timeout.
+var ErrPollTimeout = errors.New("poll timed out")
+
+// PollUntil runs poll immediately, then waits interval after each incomplete
+// attempt before retrying. The timeout is a total deadline for the whole poll
+// operation, while interval is the delay between completed poll attempts.
+func PollUntil(ctx context.Context, interval time.Duration, timeout time.Duration, poll func() (bool, error)) error {
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
+
+	for {
+		done, err := poll()
+		if done || err != nil {
+			return err
+		}
+
+		wait := time.NewTimer(interval)
+		select {
+		case <-ctx.Done():
+			wait.Stop()
+			return ctx.Err()
+		case <-deadline.C:
+			wait.Stop()
+			return ErrPollTimeout
+		case <-wait.C:
+		}
+	}
+}
 
 type NexusDashboardAPI interface {
 	GetUrl() string
