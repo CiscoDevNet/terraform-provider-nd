@@ -5,8 +5,6 @@ resource:
   generate_tf_resource: true
   skip_equality: true
   description: Manages backup for Nexus Dashboard
-  # Documentation note: backup creation waits up to 90 minutes before timing out.
-  # Include this behavior in the generated resource documentation when doc support is updated.
   attributes:
   - model_name: id
     tf_name: id
@@ -14,8 +12,9 @@ resource:
     type: String
     id: true
     computed: true
+    use_state: true
     payload_hide: true
-  
+
   - model_name: name
     tf_name: name
     description: The name of the backup. Start with a lowercase letter or digit (a-z, 0-9), end with a lowercase letter or digit, may contain lowercase letters, digits, or hyphens in between, and must be at least 1 character long (a single letter/digit is OK).
@@ -29,7 +28,6 @@ resource:
     tf_name: type
     description: 'The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data. Allowed values: "configOnly" and "full". Default: "configOnly"'
     type: String
-    optional: true
     tf_requires_replace: true
     default_value: configOnly
     enum_values:
@@ -64,3 +62,27 @@ resource:
     ndfc_type: bool
     tf_requires_replace: true
     example: false
+
+  - model_name: timeouts
+    tf_name: timeouts
+    description: The timeouts for the Nexus Dashboard backup process.
+    type: Struct
+    optional: true
+    computed: true
+    payload_hide: true
+    attributes:
+      - model_name: create
+        tf_name: create
+        description: 'The maximum time to wait for the Nexus Dashboard backup creation process. Default: "90m".'
+        type: String
+        default_value: 90m
+        validator: 'RegexMatches(regexp.MustCompile(`^[1-9][0-9]*m$`), "must be a positive duration in minutes, such as 90m")'
+        tf_requires_replace: true
+
+      - model_name: read
+        tf_name: read
+        description: 'The polling interval used while waiting for Nexus Dashboard backup creation. Default: "30s".'
+        type: String
+        default_value: 30s
+        validator: 'RegexMatches(regexp.MustCompile(`^[1-9][0-9]*s$`), "must be a positive duration in seconds, such as 30s")'
+        tf_requires_replace: true

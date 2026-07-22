@@ -34,8 +34,17 @@ resource "nd_backup" "test_resource_backup_1" {
 
 - `destination` (String) The name of the remote location where the backup file will be saved. An empty string indicates a Nexus Dashboard local backup.
 - `telemetry_data` (Boolean) When set to true, telemetry operational data will be collected. Telemetry operational data can only be collected when `type` is `full` and `destination` is a NAS remote storage location.
+- `timeouts` (Attributes) The timeouts for the Nexus Dashboard backup process. (see [below for nested schema](#nestedatt--timeouts))
 - `type` (String) The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data. Allowed values: "configOnly" and "full". Default: "configOnly"
 
 ### Read-Only
 
 - `id` (String) The unique identifier of the backup.
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String) The maximum time to wait for the Nexus Dashboard backup creation process. Default: "90m".
+- `read` (String) The polling interval used while waiting for Nexus Dashboard backup creation. Default: "30s".

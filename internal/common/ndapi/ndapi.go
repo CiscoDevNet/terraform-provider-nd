@@ -21,35 +21,6 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// ErrPollTimeout is returned when PollUntil reaches its total timeout.
-var ErrPollTimeout = errors.New("poll timed out")
-
-// PollUntil runs poll immediately, then waits interval after each incomplete
-// attempt before retrying. The timeout is a total deadline for the whole poll
-// operation, while interval is the delay between completed poll attempts.
-func PollUntil(ctx context.Context, interval time.Duration, timeout time.Duration, poll func() (bool, error)) error {
-	deadline := time.NewTimer(timeout)
-	defer deadline.Stop()
-
-	for {
-		done, err := poll()
-		if done || err != nil {
-			return err
-		}
-
-		wait := time.NewTimer(interval)
-		select {
-		case <-ctx.Done():
-			wait.Stop()
-			return ctx.Err()
-		case <-deadline.C:
-			wait.Stop()
-			return ErrPollTimeout
-		case <-wait.C:
-		}
-	}
-}
-
 type NexusDashboardAPI interface {
 	GetUrl() string
 	PostUrl() string
@@ -166,4 +137,45 @@ func (c NexusDashboardAPICommon) DeployPost(payload []byte, opts *APIOptions) (g
 	log.Printf("Deploy Post URL: %s\n", url)
 
 	return c.Client.Post(url, string(payload), opts.Mods(payload)...)
+}
+
+// ErrPollTimeout is returned when PollUntil reaches its total timeout.
+var ErrPollTimeout = errors.New("poll timed out")
+
+// PollUntil runs poll immediately, then waits interval after each incomplete
+// attempt before retrying. The callback receives a context bounded by the total
+// timeout so an in-flight polling request can be canceled.
+func PollUntil(ctx context.Context, interval time.Duration, timeout time.Duration, poll func(context.Context) (bool, error)) error {
+	pollCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	for {
+		done, err := poll(pollCtx)
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if errors.Is(pollCtx.Err(), context.DeadlineExceeded) {
+			return ErrPollTimeout
+		}
+		if err != nil {
+			return err
+		}
+		if done {
+			return nil
+		}
+
+		wait := time.NewTimer(interval)
+		select {
+		case <-ctx.Done():
+			wait.Stop()
+			return ctx.Err()
+		case <-pollCtx.Done():
+			wait.Stop()
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			return ErrPollTimeout
+		case <-wait.C:
+		}
+	}
 }

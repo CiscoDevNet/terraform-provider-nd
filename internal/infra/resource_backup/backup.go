@@ -3,13 +3,19 @@ package resource_backup
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"terraform-provider-nd/internal/infra"
 	"terraform-provider-nd/internal/registry"
 
-	"log"
-
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/defaults"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // ModuleKey is the key used to get the infra module from the provider.
@@ -40,6 +46,69 @@ func (r *backupNdResource) Metadata(_ context.Context, req resource.MetadataRequ
 // Schema defines the schema for the resource.
 func (r *backupNdResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = BackupResourceSchema(ctx)
+	setBackupTimeoutsObjectDefault(ctx, &resp.Schema, &resp.Diagnostics)
+}
+
+// setBackupTimeoutsObjectDefault promotes the nested schema defaults to the
+// parent object so an omitted timeouts block is known in plan and state.
+func setBackupTimeoutsObjectDefault(ctx context.Context, resourceSchema *schema.Schema, dg *diag.Diagnostics) {
+	timeoutsAttribute, ok := resourceSchema.Attributes["timeouts"].(schema.SingleNestedAttribute)
+	if !ok {
+		dg.AddError(
+			"Invalid Backup Timeouts Schema",
+			"The nd_backup timeouts attribute is not a single nested attribute.",
+		)
+		return
+	}
+
+	timeoutValues := make(map[string]attr.Value, len(timeoutsAttribute.Attributes))
+	for name, nestedAttribute := range timeoutsAttribute.Attributes {
+		stringAttribute, ok := nestedAttribute.(schema.StringAttribute)
+		if !ok || stringAttribute.Default == nil {
+			dg.AddError(
+				"Invalid Backup Timeouts Schema",
+				fmt.Sprintf("The nd_backup timeouts.%s attribute must define a string default.", name),
+			)
+			continue
+		}
+
+		defaultResp := defaults.StringResponse{}
+		stringAttribute.Default.DefaultString(
+			ctx,
+			defaults.StringRequest{Path: path.Root("timeouts").AtName(name)},
+			&defaultResp,
+		)
+		dg.Append(defaultResp.Diagnostics...)
+		if defaultResp.Diagnostics.HasError() {
+			continue
+		}
+
+		if defaultResp.PlanValue.IsNull() || defaultResp.PlanValue.IsUnknown() {
+			dg.AddError(
+				"Invalid Backup Timeouts Schema",
+				fmt.Sprintf("The nd_backup timeouts.%s schema default must be known and non-null.", name),
+			)
+			continue
+		}
+
+		timeoutValues[name] = defaultResp.PlanValue
+	}
+
+	if dg.HasError() {
+		return
+	}
+
+	timeoutsDefault, defaultDiags := types.ObjectValue(
+		TimeoutsValue{}.AttributeTypes(ctx),
+		timeoutValues,
+	)
+	dg.Append(defaultDiags...)
+	if defaultDiags.HasError() {
+		return
+	}
+
+	timeoutsAttribute.Default = objectdefault.StaticValue(timeoutsDefault)
+	resourceSchema.Attributes["timeouts"] = timeoutsAttribute
 }
 
 // Configure adds the provider configured client to the resource.
@@ -122,13 +191,12 @@ func (r *backupNdResource) Read(ctx context.Context, req resource.ReadRequest, r
 	log.Printf("[DEBUG] End read of resource nd_backup with id=%s", state.Id.ValueString())
 }
 
-// Update is not supported for nd_backup. All updatable attributes use
-// RequiresReplace plan modifiers, so Terraform will never invoke Update.
-// This method exists only to satisfy the resource.Resource interface.
-func (r *backupNdResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+// Update is retained for the resource interface, but all configurable
+// attributes require replacement.
+func (r *backupNdResource) Update(_ context.Context, _ resource.UpdateRequest, resp *resource.UpdateResponse) {
 	resp.Diagnostics.AddError(
 		"Update Not Supported",
-		"The nd_backup resource does not support in-place updates. Changes require resource replacement.",
+		"The nd_backup resource does not support in-place updates. All changes require resource replacement.",
 	)
 }
 
@@ -145,6 +213,9 @@ func (r *backupNdResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 
 	r.rscDeleteBackup(ctx, &resp.Diagnostics, &state)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	log.Printf("[DEBUG] End delete of resource nd_backup with id=%s", state.Id.ValueString())
 }
 

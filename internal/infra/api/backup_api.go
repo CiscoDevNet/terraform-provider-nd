@@ -29,10 +29,11 @@ type BackupAPI struct {
 	Name string
 }
 
-func NewBackupAPI(client *nd.Client) *BackupAPI {
+func NewBackupAPI(client *nd.Client, fabric string) *BackupAPI {
 	papi := new(BackupAPI)
 	papi.Client = client
 	papi.NexusDashboardAPI = papi
+	papi.Fabric = fabric
 	return papi
 }
 

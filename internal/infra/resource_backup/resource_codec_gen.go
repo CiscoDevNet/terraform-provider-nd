@@ -3,16 +3,23 @@
 package resource_backup
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 type NDFCBackupModel struct {
-	Name          string `json:"name,omitempty"`
-	Type          string `json:"type,omitempty"`
-	Destination   string `json:"destination"`
-	EncryptionKey string `json:"encryptionKey,omitempty"`
-	TelemetryData *bool  `json:"includeTelemetryOperationalData,omitempty"`
+	Name          string            `json:"name,omitempty"`
+	Type          string            `json:"type,omitempty"`
+	Destination   string            `json:"destination"`
+	EncryptionKey string            `json:"encryptionKey,omitempty"`
+	TelemetryData *bool             `json:"includeTelemetryOperationalData,omitempty"`
+	Timeouts      NDFCTimeoutsValue `json:"-"`
+}
+
+type NDFCTimeoutsValue struct {
+	Create string `json:"create,omitempty"`
+	Read   string `json:"read,omitempty"`
 }
 
 func (v *BackupModel) SetModelData(jsonData *NDFCBackupModel) diag.Diagnostics {
@@ -48,6 +55,29 @@ func (v *BackupModel) SetModelData(jsonData *NDFCBackupModel) diag.Diagnostics {
 
 	} else {
 		v.TelemetryData = types.BoolNull()
+	}
+
+	v.Timeouts.SetValue(&jsonData.Timeouts)
+	v.Timeouts.state = attr.ValueStateKnown
+
+	return err
+}
+
+func (v *TimeoutsValue) SetValue(jsonData *NDFCTimeoutsValue) diag.Diagnostics {
+
+	var err diag.Diagnostics
+	err = nil
+
+	if jsonData.Create != "" {
+		v.Create = types.StringValue(jsonData.Create)
+	} else {
+		v.Create = types.StringNull()
+	}
+
+	if jsonData.Read != "" {
+		v.Read = types.StringValue(jsonData.Read)
+	} else {
+		v.Read = types.StringNull()
 	}
 
 	return err
@@ -87,6 +117,22 @@ func (v BackupModel) GetModelData() *NDFCBackupModel {
 		*data.TelemetryData = v.TelemetryData.ValueBool()
 	} else {
 		data.TelemetryData = nil
+	}
+
+	//MARSHAL_BODY
+
+	// Nested types Timeouts # create
+	if !v.Timeouts.Create.IsNull() && !v.Timeouts.Create.IsUnknown() {
+		data.Timeouts.Create = v.Timeouts.Create.ValueString()
+	} else {
+		data.Timeouts.Create = ""
+	}
+
+	// Nested types Timeouts # read
+	if !v.Timeouts.Read.IsNull() && !v.Timeouts.Read.IsUnknown() {
+		data.Timeouts.Read = v.Timeouts.Read.ValueString()
+	} else {
+		data.Timeouts.Read = ""
 	}
 
 	return data

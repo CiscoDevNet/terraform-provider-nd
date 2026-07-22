@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/infra/api"
 	"terraform-provider-nd/internal/infra/resource_backup"
 	helper "terraform-provider-nd/internal/provider/testing"
@@ -21,6 +22,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	nd "github.com/netascode/go-nd"
+)
+
+// Backup resource inputs are test-local; testbed.yaml only supplies the ND connection.
+const (
+	backupTestName          = "tf-backup-acc"
+	backupTestType          = "configOnly"
+	backupTestDestination   = ""
+	backupTestEncryptionKey = "backupKey123"
+	backupTestTelemetryData = false
 )
 
 type backupCreateCase struct {
@@ -48,7 +58,7 @@ func deleteBackupOutsideTerraform(t *testing.T, name string) {
 		t.Fatalf("failed to create ND client for out-of-band backup delete: %v", err)
 	}
 
-	backupAPI := api.NewBackupAPI(&client)
+	backupAPI := api.NewBackupAPI(&client, ndapi.DefaultFabric)
 	backupAPI.Name = name
 
 	res, err := backupAPI.Delete(nil)
@@ -62,7 +72,6 @@ func deleteBackupOutsideTerraform(t *testing.T, name string) {
 // nd_backup import is not supported.
 func TestAccBackupResource(t *testing.T) {
 	cfg := helper.GetConfig("global")
-	bkCfg := cfg.ND.Backup
 
 	x := &map[string]string{
 		"RscType":  "nd_backup",
@@ -75,20 +84,11 @@ func TestAccBackupResource(t *testing.T) {
 
 	tfConfig := new(string)
 
-	name := bkCfg.Name
-	if name == "" {
-		name = "tf-backup-acc"
-	}
-	encryptionKey := bkCfg.EncryptionKey
-	if encryptionKey == "" {
-		encryptionKey = "backupKey123"
-	}
-
 	scpConfigOnlyBackup := backupCreateCase{
 		stepName:           "create_scp_config_only_backup",
-		name:               fmt.Sprintf("%s-scp", name),
-		backupType:         "configOnly",
-		encryptionKey:      encryptionKey,
+		name:               fmt.Sprintf("%s-scp", backupTestName),
+		backupType:         backupTestType,
+		encryptionKey:      backupTestEncryptionKey,
 		destination:        "ubuntu",
 		includeDestination: true,
 	}
@@ -96,15 +96,17 @@ func TestAccBackupResource(t *testing.T) {
 	testCases := []backupCreateCase{
 		{
 			stepName:      "create_nd_local_config_only_backup",
-			name:          name,
-			backupType:    "configOnly",
-			encryptionKey: encryptionKey,
+			name:          backupTestName,
+			backupType:    backupTestType,
+			encryptionKey: backupTestEncryptionKey,
+			destination:   backupTestDestination,
+			telemetryData: backupTestTelemetryData,
 		},
 		{
 			stepName:             "create_nas_full_telemetry_backup",
-			name:                 fmt.Sprintf("%s-nas", name),
+			name:                 fmt.Sprintf("%s-nas", backupTestName),
 			backupType:           "full",
-			encryptionKey:        encryptionKey,
+			encryptionKey:        backupTestEncryptionKey,
 			destination:          "nas",
 			includeDestination:   true,
 			telemetryData:        true,
@@ -173,7 +175,6 @@ func TestAccBackupResource(t *testing.T) {
 
 func TestAccBackupResourceInvalidTelemetryData(t *testing.T) {
 	cfg := helper.GetConfig("global")
-	bkCfg := cfg.ND.Backup
 
 	x := &map[string]string{
 		"RscType":  "nd_backup",
@@ -187,20 +188,11 @@ func TestAccBackupResourceInvalidTelemetryData(t *testing.T) {
 	tfConfig := new(string)
 	backupRsc := new(resource_backup.NDFCBackupModel)
 
-	name := bkCfg.Name
-	if name == "" {
-		name = "tf-backup-acc"
-	}
-	encryptionKey := bkCfg.EncryptionKey
-	if encryptionKey == "" {
-		encryptionKey = "backupKey123"
-	}
-
 	tc := backupCreateCase{
 		stepName:             "create_invalid_scp_config_only_telemetry_backup",
-		name:                 fmt.Sprintf("%s-invalid", name),
-		backupType:           "configOnly",
-		encryptionKey:        encryptionKey,
+		name:                 fmt.Sprintf("%s-invalid", backupTestName),
+		backupType:           backupTestType,
+		encryptionKey:        backupTestEncryptionKey,
 		destination:          "ubuntu",
 		includeDestination:   true,
 		telemetryData:        true,
@@ -243,6 +235,8 @@ func TestAccBackupResourceInvalidTelemetryData(t *testing.T) {
 func backupAdditionalStateChecks(resourceName string, tc backupCreateCase) []resource.TestCheckFunc {
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttr(resourceName, "id", tc.name),
+		resource.TestCheckResourceAttr(resourceName, "timeouts.create", "90m"),
+		resource.TestCheckResourceAttr(resourceName, "timeouts.read", "30s"),
 	}
 
 	if !tc.includeDestination {
