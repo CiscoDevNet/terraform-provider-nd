@@ -19,6 +19,10 @@ resource "nd_backup" "test_resource_backup_1" {
   destination    = "sftp-server"
   encryption_key = "backupKey123"
   telemetry_data = false
+  timeouts = {
+    create = "90m"
+    read   = "30s"
+  }
 }
 ```
 
@@ -34,7 +38,7 @@ resource "nd_backup" "test_resource_backup_1" {
 
 - `destination` (String) The name of the remote location where the backup file will be saved. An empty string indicates a Nexus Dashboard local backup.
 - `telemetry_data` (Boolean) When set to true, telemetry operational data will be collected. Telemetry operational data can only be collected when `type` is `full` and `destination` is a NAS remote storage location.
-- `timeouts` (Attributes) The timeouts for the Nexus Dashboard backup process. (see [below for nested schema](#nestedatt--timeouts))
+- `timeouts` (Attributes) Configures timeouts for the Nexus Dashboard backup process. Changing a timeout value requires resource replacement because the `nd_backup` resource does not support in-place updates and timeout changes cannot be applied to an already submitted backup request. The replacement submits a new backup request using the new timeout values. (see [below for nested schema](#nestedatt--timeouts))
 - `type` (String) The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data. Allowed values: "configOnly" and "full". Default: "configOnly"
 
 ### Read-Only
@@ -47,4 +51,4 @@ resource "nd_backup" "test_resource_backup_1" {
 Optional:
 
 - `create` (String) The maximum time to wait for the Nexus Dashboard backup creation process. Default: "90m".
-- `read` (String) The polling interval used while waiting for Nexus Dashboard backup creation. Default: "30s".
+- `read` (String) The interval between requests used to fetch the Nexus Dashboard backup status while backup creation is in progress. This value is not used as a timeout for Terraform Read operations. Default: "30s".

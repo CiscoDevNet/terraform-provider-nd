@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"terraform-provider-nd/internal/common/ndapi"
+	"terraform-provider-nd/internal/common/utils"
 	"terraform-provider-nd/internal/infra/api"
 
 	frameworktimeouts "github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
@@ -77,7 +78,7 @@ func (r *backupNdResource) waitForBackupCreateCompletion(ctx context.Context, dg
 	id := input.Id.ValueString()
 	backupAPI.Name = id
 
-	err := ndapi.PollUntil(ctx, pollInterval, createTimeout, func(pollCtx context.Context) (bool, error) {
+	err := utils.PollUntil(ctx, pollInterval, createTimeout, func(pollCtx context.Context) (bool, error) {
 		return backupCreateStatusCheck(pollCtx, backupAPI, input)
 	})
 
@@ -85,7 +86,7 @@ func (r *backupNdResource) waitForBackupCreateCompletion(ctx context.Context, dg
 		return true
 	}
 
-	if errors.Is(err, ndapi.ErrPollTimeout) {
+	if errors.Is(err, utils.ErrPollTimeout) {
 		dg.AddError(
 			"Error Creating ND Backup",
 			fmt.Sprintf("Timed out after %s waiting for backup %q creation to complete.", createTimeout, id),

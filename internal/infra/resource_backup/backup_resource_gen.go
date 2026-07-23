@@ -86,8 +86,8 @@ func BackupResourceSchema(ctx context.Context) schema.Schema {
 					"read": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "The polling interval used while waiting for Nexus Dashboard backup creation. Default: \"30s\".",
-						MarkdownDescription: "The polling interval used while waiting for Nexus Dashboard backup creation. Default: \"30s\".",
+						Description:         "The interval between requests used to fetch the Nexus Dashboard backup status while backup creation is in progress. This value is not used as a timeout for Terraform Read operations. Default: \"30s\".",
+						MarkdownDescription: "The interval between requests used to fetch the Nexus Dashboard backup status while backup creation is in progress. This value is not used as a timeout for Terraform Read operations. Default: \"30s\".",
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.RequiresReplace(),
 						},
@@ -104,8 +104,8 @@ func BackupResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Optional:            true,
 				Computed:            true,
-				Description:         "The timeouts for the Nexus Dashboard backup process.",
-				MarkdownDescription: "The timeouts for the Nexus Dashboard backup process.",
+				Description:         "Configures timeouts for the Nexus Dashboard backup process. Changing a timeout value requires resource replacement because the `nd_backup` resource does not support in-place updates and timeout changes cannot be applied to an already submitted backup request. The replacement submits a new backup request using the new timeout values.",
+				MarkdownDescription: "Configures timeouts for the Nexus Dashboard backup process. Changing a timeout value requires resource replacement because the `nd_backup` resource does not support in-place updates and timeout changes cannot be applied to an already submitted backup request. The replacement submits a new backup request using the new timeout values.",
 			},
 			"type": schema.StringAttribute{
 				Optional:            true,

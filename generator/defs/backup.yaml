@@ -65,12 +65,14 @@ resource:
 
   - model_name: timeouts
     tf_name: timeouts
-    description: The timeouts for the Nexus Dashboard backup process.
+    description: Configures timeouts for the Nexus Dashboard backup process. Changing a timeout value requires resource replacement because the `nd_backup` resource does not support in-place updates and timeout changes cannot be applied to an already submitted backup request. The replacement submits a new backup request using the new timeout values.
     type: Struct
     optional: true
     computed: true
     payload_hide: true
     attributes:
+      # Timeout changes must plan resource replacement instead of an unsupported
+      # in-place update. These values only affect a newly submitted backup request.
       - model_name: create
         tf_name: create
         description: 'The maximum time to wait for the Nexus Dashboard backup creation process. Default: "90m".'
@@ -78,11 +80,13 @@ resource:
         default_value: 90m
         validator: 'RegexMatches(regexp.MustCompile(`^[1-9][0-9]*m$`), "must be a positive duration in minutes, such as 90m")'
         tf_requires_replace: true
+        example: "90m"
 
       - model_name: read
         tf_name: read
-        description: 'The polling interval used while waiting for Nexus Dashboard backup creation. Default: "30s".'
+        description: 'The interval between requests used to fetch the Nexus Dashboard backup status while backup creation is in progress. This value is not used as a timeout for Terraform Read operations. Default: "30s".'
         type: String
         default_value: 30s
         validator: 'RegexMatches(regexp.MustCompile(`^[1-9][0-9]*s$`), "must be a positive duration in seconds, such as 30s")'
         tf_requires_replace: true
+        example: "30s"
