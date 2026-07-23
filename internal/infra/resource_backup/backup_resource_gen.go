@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -41,7 +42,7 @@ func BackupResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
-					stringvalidator.LengthBetween(8, 256),
+					stringvalidator.LengthBetween(8, 256), stringvalidator.RegexMatches(regexp.MustCompile(`[A-Za-z]`), "must contain at least one letter"), stringvalidator.RegexMatches(regexp.MustCompile(`[0-9]`), "must contain at least one number"),
 				},
 			},
 			"id": schema.StringAttribute{
@@ -67,6 +68,9 @@ func BackupResourceSchema(ctx context.Context) schema.Schema {
 				Optional:            true,
 				Description:         "When set to true, telemetry operational data will be collected. Telemetry operational data can only be collected when `type` is `full` and `destination` is a NAS remote storage location.",
 				MarkdownDescription: "When set to true, telemetry operational data will be collected. Telemetry operational data can only be collected when `type` is `full` and `destination` is a NAS remote storage location.",
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
 			},
 			"timeouts": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{

@@ -51,7 +51,7 @@ resource:
     mandatory: true
     sensitive: true
     tf_requires_replace: true
-    validator: 'LengthBetween(8, 256)'
+    validator: 'LengthBetween(8, 256), stringvalidator.RegexMatches(regexp.MustCompile(`[A-Za-z]`), "must contain at least one letter"), stringvalidator.RegexMatches(regexp.MustCompile(`[0-9]`), "must contain at least one number")'
     example: backupKey123
 
   - model_name: includeTelemetryOperationalData
