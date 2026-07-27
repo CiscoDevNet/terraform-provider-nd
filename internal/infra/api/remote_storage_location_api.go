@@ -18,8 +18,8 @@ import (
 
 // Remote Storage Location API endpoints
 const (
-	UrlRemoteStorageLocation       = "/infra/remoteStorage"
-	UrlRemoteStorageLocationByName = "/infra/remoteStorage/%s"
+	UrlRemoteStorageLocation     = "/infra/remoteStorage"
+	UrlRemoteStorageLocationById = "/infra/remoteStorage/%s"
 )
 
 const RscNameRemoteStorageLocation = "remote_storage_location"
@@ -30,16 +30,17 @@ type RemoteStorageLocationAPI struct {
 	AcceptHostKey bool
 }
 
-func NewRemoteStorageLocationAPI(client *nd.Client) *RemoteStorageLocationAPI {
+func NewRemoteStorageLocationAPI(client *nd.Client, fabric string) *RemoteStorageLocationAPI {
 	papi := new(RemoteStorageLocationAPI)
 	papi.Client = client
 	papi.NexusDashboardAPI = papi
+	papi.Fabric = fabric
 	return papi
 }
 
 func (c *RemoteStorageLocationAPI) GetUrl() string {
 	if c.Name != "" {
-		return fmt.Sprintf(UrlRemoteStorageLocationByName, c.Name)
+		return fmt.Sprintf(UrlRemoteStorageLocationById, c.Name)
 	}
 	return UrlRemoteStorageLocation
 }
@@ -49,11 +50,11 @@ func (c *RemoteStorageLocationAPI) PostUrl() string {
 }
 
 func (c *RemoteStorageLocationAPI) PutUrl() string {
-	return c.withAcceptHostKeyQuery(fmt.Sprintf(UrlRemoteStorageLocationByName, c.Name))
+	return c.withAcceptHostKeyQuery(fmt.Sprintf(UrlRemoteStorageLocationById, c.Name))
 }
 
 func (c *RemoteStorageLocationAPI) DeleteUrl() string {
-	return fmt.Sprintf(UrlRemoteStorageLocationByName, c.Name)
+	return fmt.Sprintf(UrlRemoteStorageLocationById, c.Name)
 }
 
 // Remote Storage Location Delete API does not support query params.

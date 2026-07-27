@@ -18,6 +18,8 @@ type NDFCRemoteStorageLocationModel struct {
 	AlertThreshold      *int64                  `json:"alertThreshold,omitempty"`
 	Limit               string                  `json:"limit,omitempty"`
 	AcceptHostKey       bool                    `json:"-"`
+	HealthState         string                  `json:"-"`
+	HealthStateMessage  string                  `json:"-"`
 	Authentication      NDFCAuthenticationValue `json:"authentication,omitempty"`
 }
 
@@ -134,6 +136,17 @@ func (v *RemoteStorageLocationModel) SetModelData(jsonData *NDFCRemoteStorageLoc
 	}
 
 	v.AcceptHostKey = types.BoolValue(jsonData.AcceptHostKey)
+	if jsonData.HealthState != "" {
+		v.HealthState = types.StringValue(jsonData.HealthState)
+	} else {
+		v.HealthState = types.StringNull()
+	}
+
+	if jsonData.HealthStateMessage != "" {
+		v.HealthStateMessage = types.StringValue(jsonData.HealthStateMessage)
+	} else {
+		v.HealthStateMessage = types.StringNull()
+	}
 
 	return err
 }

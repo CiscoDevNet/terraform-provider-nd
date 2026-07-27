@@ -29,6 +29,7 @@ type NDFCRemoteStorageLocationTestData struct {
 	SshKey                  string
 	Passphrase              string
 	IgnoreHostKeyValidation *bool
+	AcceptHostKey           *bool
 }
 
 // GenerateRemoteStorageLocationObject builds a fresh
@@ -102,6 +103,9 @@ func applyRemoteStorageLocationValues(
 		case "ignore_host_key_validation":
 			v := val.(bool)
 			rsl.IgnoreHostKeyValidation = &v
+		case "accept_host_key":
+			v := val.(bool)
+			rsl.AcceptHostKey = &v
 		}
 	}
 }

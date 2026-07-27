@@ -30,8 +30,9 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"alert_threshold": schema.Int64Attribute{
 				Optional:            true,
-				Description:         "The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If not specified during creation, the default value is 80. Valid values are between 1 and 100.",
-				MarkdownDescription: "The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If not specified during creation, the default value is 80. Valid values are between 1 and 100.",
+				Computed:            true,
+				Description:         "The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If omitted during creation, it defaults to 80. Valid values are between 1 and 100. Remove this attribute from the configuration to reset it to the default value.",
+				MarkdownDescription: "The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If omitted during creation, it defaults to 80. Valid values are between 1 and 100. Remove this attribute from the configuration to reset it to the default value.",
 				Validators: []validator.Int64{
 					int64validator.Between(1, 100), int64validator.ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation")),
 				},
@@ -43,13 +44,31 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
-				Description:         "The description of the remote storage location.",
-				MarkdownDescription: "The description of the remote storage location.",
+				Description:         "The description of the remote storage location. Remove this attribute from the configuration to reset it to the default value.",
+				MarkdownDescription: "The description of the remote storage location. Remove this attribute from the configuration to reset it to the default value.",
+			},
+			"health_state": schema.StringAttribute{
+				Computed:            true,
+				Description:         "The health state of the remote storage location.",
+				MarkdownDescription: "The health state of the remote storage location.",
+			},
+			"health_state_message": schema.StringAttribute{
+				Computed:            true,
+				Description:         "The health state message of the remote storage location.",
+				MarkdownDescription: "The health state message of the remote storage location.",
 			},
 			"hostname": schema.StringAttribute{
 				Required:            true,
 				Description:         "The hostname or IP address of the remote storage server.",
 				MarkdownDescription: "The hostname or IP address of the remote storage server.",
+			},
+			"id": schema.StringAttribute{
+				Computed:            true,
+				Description:         "The unique identifier of the remote storage location.",
+				MarkdownDescription: "The unique identifier of the remote storage location.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"ignore_host_key_validation": schema.BoolAttribute{
 				Optional:            true,
@@ -120,8 +139,9 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"read_write": schema.BoolAttribute{
 				Optional:            true,
-				Description:         "Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only.",
-				MarkdownDescription: "Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only.",
+				Computed:            true,
+				Description:         "Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.",
+				MarkdownDescription: "Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.",
 			},
 			"ssh_key": schema.StringAttribute{
 				Optional:            true,
@@ -168,7 +188,10 @@ type RemoteStorageLocationModel struct {
 	AlertThreshold          types.Int64  `tfsdk:"alert_threshold"`
 	AuthenticationType      types.String `tfsdk:"authentication_type"`
 	Description             types.String `tfsdk:"description"`
+	HealthState             types.String `tfsdk:"health_state"`
+	HealthStateMessage      types.String `tfsdk:"health_state_message"`
 	Hostname                types.String `tfsdk:"hostname"`
+	Id                      types.String `tfsdk:"id"`
 	IgnoreHostKeyValidation types.Bool   `tfsdk:"ignore_host_key_validation"`
 	Limit                   types.String `tfsdk:"limit"`
 	Name                    types.String `tfsdk:"name"`

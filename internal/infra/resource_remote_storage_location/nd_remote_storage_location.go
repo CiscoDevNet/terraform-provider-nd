@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"terraform-provider-nd/internal/common/ndapi"
-	"terraform-provider-nd/internal/common/utils"
 	"terraform-provider-nd/internal/infra/api"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -25,9 +25,10 @@ func (r *remoteStorageLocationResource) rscCreateRemoteStorageLocation(ctx conte
 		return
 	}
 
-	log.Printf("[INFO] Create nd_remote_storage_location name=%s", input.Name.ValueString())
+	id := input.Id.ValueString()
+	log.Printf("[INFO] Create nd_remote_storage_location id=%s", id)
 
-	remoteStorageAPI := api.NewRemoteStorageLocationAPI(r.infraClient.ApiClient)
+	remoteStorageAPI := api.NewRemoteStorageLocationAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
 	remoteStorageAPI.AcceptHostKey = acceptHostKey(input.AcceptHostKey)
 	payload, err := json.Marshal(input.GetModelData())
 	if err != nil {
@@ -47,21 +48,23 @@ func (r *remoteStorageLocationResource) rscCreateRemoteStorageLocation(ctx conte
 		return
 	}
 
-	if found := r.rscGetRemoteStorageLocation(ctx, dg, input); !found && !dg.HasError() {
+	if r.rscGetRemoteStorageLocation(ctx, dg, input) && !dg.HasError() {
 		dg.AddError(
 			"Error Creating ND Remote Storage Location",
-			fmt.Sprintf("Could not read nd_remote_storage_location %q after create", input.Name.ValueString()),
+			fmt.Sprintf("Could not read nd_remote_storage_location %q after create: resource not found", id),
 		)
 	}
 }
 
-// rscGetRemoteStorageLocation retrieves nd_remote_storage_location information by name.
+// rscGetRemoteStorageLocation retrieves nd_remote_storage_location information by id.
+// It returns true when the remote object was not found.
 func (r *remoteStorageLocationResource) rscGetRemoteStorageLocation(ctx context.Context, dg *diag.Diagnostics, in *RemoteStorageLocationModel) bool {
 	if in == nil {
 		dg.AddError("Invalid Input", "The input model is nil")
 		return false
 	}
-	log.Printf("[INFO] Read nd_remote_storage_location name=%s", in.Name.ValueString())
+	id := in.Id.ValueString()
+	log.Printf("[INFO] Read nd_remote_storage_location id=%s", id)
 
 	preservedPassword := in.Password
 	preservedSshKey := in.SshKey
@@ -85,14 +88,13 @@ func (r *remoteStorageLocationResource) rscGetRemoteStorageLocation(ctx context.
 		preservedAcceptHostKey = types.BoolNull()
 	}
 
-	remoteStorageAPI := api.NewRemoteStorageLocationAPI(r.infraClient.ApiClient)
-	remoteStorageAPI.Name = in.Name.ValueString()
+	remoteStorageAPI := api.NewRemoteStorageLocationAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
+	remoteStorageAPI.Name = id
 
 	respData, err := remoteStorageAPI.Get()
 	if err != nil {
-		if utils.IsNotFoundError(err) {
-			log.Printf("[WARN] nd_remote_storage_location name=%s not found", in.Name.ValueString())
-			return false
+		if strings.Contains(err.Error(), "StatusCode 404") {
+			return true
 		}
 		dg.AddError(
 			"Error Reading ND Remote Storage Location",
@@ -101,8 +103,8 @@ func (r *remoteStorageLocationResource) rscGetRemoteStorageLocation(ctx context.
 		return false
 	}
 	if respData == nil {
-		log.Printf("[WARN] nd_remote_storage_location name=%s not found", in.Name.ValueString())
-		return false
+		log.Printf("[WARN] nd_remote_storage_location id=%s not found: empty response", id)
+		return true
 	}
 
 	var remoteStorageResp NDFCRemoteStorageLocationModel
@@ -115,7 +117,6 @@ func (r *remoteStorageLocationResource) rscGetRemoteStorageLocation(ctx context.
 	}
 
 	in.SetModelData(&remoteStorageResp)
-
 	if remoteStorageResp.Authentication.Password == "" {
 		in.Password = preservedPassword
 	}
@@ -129,7 +130,8 @@ func (r *remoteStorageLocationResource) rscGetRemoteStorageLocation(ctx context.
 		in.IgnoreHostKeyValidation = preservedIgnoreHostKeyValidation
 	}
 	in.AcceptHostKey = preservedAcceptHostKey
-	return true
+	in.Id = in.Name
+	return false
 }
 
 // rscUpdateRemoteStorageLocation updates an nd_remote_storage_location resource.
@@ -139,10 +141,11 @@ func (r *remoteStorageLocationResource) rscUpdateRemoteStorageLocation(ctx conte
 		return
 	}
 
-	log.Printf("[INFO] Update nd_remote_storage_location name=%s", input.Name.ValueString())
+	id := input.Id.ValueString()
+	log.Printf("[INFO] Update nd_remote_storage_location id=%s", id)
 
-	remoteStorageAPI := api.NewRemoteStorageLocationAPI(r.infraClient.ApiClient)
-	remoteStorageAPI.Name = input.Name.ValueString()
+	remoteStorageAPI := api.NewRemoteStorageLocationAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
+	remoteStorageAPI.Name = id
 	remoteStorageAPI.AcceptHostKey = acceptHostKey(input.AcceptHostKey)
 
 	payload, err := json.Marshal(input.GetModelData())
@@ -163,23 +166,27 @@ func (r *remoteStorageLocationResource) rscUpdateRemoteStorageLocation(ctx conte
 		return
 	}
 
-	if found := r.rscGetRemoteStorageLocation(ctx, dg, input); !found && !dg.HasError() {
+	if r.rscGetRemoteStorageLocation(ctx, dg, input) && !dg.HasError() {
 		dg.AddError(
 			"Error Updating ND Remote Storage Location",
-			fmt.Sprintf("Could not read nd_remote_storage_location %q after update", input.Name.ValueString()),
+			fmt.Sprintf("Could not read nd_remote_storage_location %q after update: resource not found", id),
 		)
 	}
 }
 
-// rscDeleteRemoteStorageLocation deletes an nd_remote_storage_location resource by name.
+// rscDeleteRemoteStorageLocation deletes an nd_remote_storage_location resource by id.
 func (r *remoteStorageLocationResource) rscDeleteRemoteStorageLocation(ctx context.Context, dg *diag.Diagnostics, state *RemoteStorageLocationModel) {
-	log.Printf("[INFO] Delete nd_remote_storage_location name=%s", state.Name.ValueString())
+	id := state.Id.ValueString()
+	log.Printf("[INFO] Delete nd_remote_storage_location id=%s", id)
 
-	remoteStorageAPI := api.NewRemoteStorageLocationAPI(r.infraClient.ApiClient)
-	remoteStorageAPI.Name = state.Name.ValueString()
+	remoteStorageAPI := api.NewRemoteStorageLocationAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
+	remoteStorageAPI.Name = id
 
 	res, err := remoteStorageAPI.Delete(nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "StatusCode 404") {
+			return
+		}
 		dg.AddError(
 			"Error Deleting ND Remote Storage Location",
 			fmt.Sprintf("Could not delete nd_remote_storage_location, unexpected error: %v %v", err, res),
