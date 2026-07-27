@@ -1,0 +1,92 @@
+resource:
+  name: backup
+  doc_category: Backup and Restore
+  category: infra
+  generate_tf_resource: true
+  skip_equality: true
+  description: Manages backup for Nexus Dashboard
+  attributes:
+  - model_name: id
+    tf_name: id
+    description: The unique identifier of the backup.
+    type: String
+    id: true
+    computed: true
+    use_state: true
+    payload_hide: true
+
+  - model_name: name
+    tf_name: name
+    description: The name of the backup. Start with a lowercase letter or digit (a-z, 0-9), end with a lowercase letter or digit, may contain lowercase letters, digits, or hyphens in between, and must be at least 1 character long (a single letter/digit is OK).
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    validator: 'LengthBetween(1, 63), stringvalidator.RegexMatches(regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$`), "must start and end with an alphanumeric character and may contain lowercase letters, digits, hyphens, and dots")'
+    example: tf-backup-123
+
+  - model_name: type
+    tf_name: type
+    description: 'The type of the backup. `configOnly` backs up the system configuration only, while `full` backs up the system configuration and operational data. Allowed values: "configOnly" and "full". Default: "configOnly"'
+    type: String
+    tf_requires_replace: true
+    default_value: configOnly
+    enum_values:
+    - configOnly
+    - full
+    example: configOnly
+
+  - model_name: destination
+    tf_name: destination
+    description: The name of the remote location where the backup file will be saved. An empty string indicates a Nexus Dashboard local backup.
+    type: String
+    optional: true
+    include_empty: true
+    tf_requires_replace: true
+    example: "sftp-server"
+
+  - model_name: encryptionKey
+    tf_name: encryption_key
+    description: The encryption key used to encrypt the backup file. Must be at least 8 characters long and contain at least one letter and one number.
+    type: String
+    mandatory: true
+    sensitive: true
+    tf_requires_replace: true
+    validator: 'LengthBetween(8, 256), stringvalidator.RegexMatches(regexp.MustCompile(`[A-Za-z]`), "must contain at least one letter"), stringvalidator.RegexMatches(regexp.MustCompile(`[0-9]`), "must contain at least one number")'
+    example: backupKey123
+
+  - model_name: includeTelemetryOperationalData
+    tf_name: telemetry_data
+    description: When set to true, telemetry operational data will be collected. Telemetry operational data can only be collected when `type` is `full` and `destination` is a NAS remote storage location.
+    type: Bool
+    optional: true
+    ndfc_type: bool
+    tf_requires_replace: true
+    example: false
+
+  - model_name: timeouts
+    tf_name: timeouts
+    description: Configures timeouts for the Nexus Dashboard backup process. Changing a timeout value requires resource replacement because the `nd_backup` resource does not support in-place updates and timeout changes cannot be applied to an already submitted backup request. The replacement submits a new backup request using the new timeout values.
+    type: Struct
+    optional: true
+    computed: true
+    payload_hide: true
+    attributes:
+      # Timeout changes must plan resource replacement instead of an unsupported
+      # in-place update. These values only affect a newly submitted backup request.
+      - model_name: create
+        tf_name: create
+        description: 'The maximum time to wait for the Nexus Dashboard backup creation process. Default: "90m".'
+        type: String
+        default_value: 90m
+        validator: 'RegexMatches(regexp.MustCompile(`^[1-9][0-9]*m$`), "must be a positive duration in minutes, such as 90m")'
+        tf_requires_replace: true
+        example: "90m"
+
+      - model_name: read
+        tf_name: read
+        description: 'The interval between requests used to fetch the Nexus Dashboard backup status while backup creation is in progress. This value is not used as a timeout for Terraform Read operations. Default: "30s".'
+        type: String
+        default_value: 30s
+        validator: 'RegexMatches(regexp.MustCompile(`^[1-9][0-9]*s$`), "must be a positive duration in seconds, such as 30s")'
+        tf_requires_replace: true
+        example: "30s"

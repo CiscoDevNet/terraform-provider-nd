@@ -19,6 +19,7 @@ import (
 	"text/template"
 	"time"
 
+	"terraform-provider-nd/internal/infra/resource_backup"
 	"terraform-provider-nd/internal/infra/resource_local_user"
 	"terraform-provider-nd/internal/infra/resource_multi_cluster_connectivity"
 	"terraform-provider-nd/internal/manage/resource_fabric_common"
@@ -200,6 +201,14 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 				panic(fmt.Sprintf("Failed to execute ND_MULTI_CLUSTER_CONNECTIVITY_RSC template: %v", err))
 			}
 
+		case *resource_backup.NDFCBackupModel:
+			args["Backup"] = v
+			args["RscName"] = rscName
+			err = t.ExecuteTemplate(&output, "ND_BACKUP_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_BACKUP_RSC template: %v", err))
+			}
+
 		default:
 			panic(fmt.Sprintf("Unknown resource type: %T", rsc))
 		}
@@ -224,6 +233,9 @@ func writeSnapshot(testName, content string) {
 		return
 	}
 
+	// Sanitize test name for filename
+	safeName := strings.ReplaceAll(testName, "/", "_")
+	safeName = strings.ReplaceAll(safeName, " ", "_")
 	filePath := SnapshotPath(testName)
 
 	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {

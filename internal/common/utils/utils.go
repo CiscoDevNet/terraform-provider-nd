@@ -8,4 +8,51 @@
 
 package utils
 
+import (
+	"context"
+	"errors"
+	"time"
+)
+
 // This package contains shared utility functions used across all modules
+
+// ErrPollTimeout is returned when PollUntil reaches its total timeout.
+var ErrPollTimeout = errors.New("poll timed out")
+
+// PollUntil runs poll immediately, then waits interval after each incomplete
+// attempt before retrying. The callback receives a context bounded by the total
+// timeout so an in-flight polling request can be canceled.
+func PollUntil(ctx context.Context, interval time.Duration, timeout time.Duration, poll func(context.Context) (bool, error)) error {
+	pollCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	for {
+		done, err := poll(pollCtx)
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if errors.Is(pollCtx.Err(), context.DeadlineExceeded) {
+			return ErrPollTimeout
+		}
+		if err != nil {
+			return err
+		}
+		if done {
+			return nil
+		}
+
+		wait := time.NewTimer(interval)
+		select {
+		case <-ctx.Done():
+			wait.Stop()
+			return ctx.Err()
+		case <-pollCtx.Done():
+			wait.Stop()
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			return ErrPollTimeout
+		case <-wait.C:
+		}
+	}
+}
