@@ -21,7 +21,6 @@ var (
 	_ resource.ResourceWithConfigure      = &remoteStorageLocationResource{}
 	_ resource.ResourceWithImportState    = &remoteStorageLocationResource{}
 	_ resource.ResourceWithValidateConfig = &remoteStorageLocationResource{}
-	_ resource.ResourceWithModifyPlan     = &remoteStorageLocationResource{}
 )
 
 // NewRemoteStorageLocationResource is a helper function to simplify the provider implementation.
@@ -44,86 +43,31 @@ func (r *remoteStorageLocationResource) Schema(ctx context.Context, _ resource.S
 	resp.Schema = RemoteStorageLocationResourceSchema(ctx)
 }
 
-// ValidateConfig enforces authentication field conflicts.
+// ValidateConfig enforces conditional validation that generated schema
+// validators cannot express.
 func (r *remoteStorageLocationResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 	var storageType types.String
 	var readWrite types.Bool
-	var password types.String
-	var sshKey types.String
-	var passphrase types.String
 
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("storage_location_type"), &storageType)...)
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("read_write"), &readWrite)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("password"), &password)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("ssh_key"), &sshKey)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("passphrase"), &passphrase)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if !storageType.IsNull() && !storageType.IsUnknown() &&
-		storageType.ValueString() == "nfs" && readWrite.IsNull() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("read_write"),
-			"Missing required attribute",
-			"Attribute `read_write` must be set when `storage_location_type` is `nfs`.",
-		)
-	}
-
-	isConfigured := func(v types.String) bool {
-		return !v.IsNull() && !v.IsUnknown()
-	}
-
-	if isConfigured(password) && isConfigured(sshKey) {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("password"),
-			"Invalid authentication configuration",
-			"Attributes `password` and `ssh_key` cannot both be set. Configure only one authentication method.",
-		)
-
-		resp.Diagnostics.AddAttributeError(
-			path.Root("ssh_key"),
-			"Invalid authentication configuration",
-			"Attributes `ssh_key` and `password` cannot both be set. Configure only one authentication method.",
-		)
-	}
-
-	if isConfigured(password) && isConfigured(passphrase) {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("password"),
-			"Invalid authentication configuration",
-			"Attributes `password` and `passphrase` cannot both be set.",
-		)
-
-		resp.Diagnostics.AddAttributeError(
-			path.Root("passphrase"),
-			"Invalid authentication configuration",
-			"Attributes `passphrase` and `password` cannot both be set.",
-		)
-	}
-}
-
-// ModifyPlan nulls out attributes that are only meaningful for certain
-// storage_location_type values, so plan and post-apply state agree.
-//
-// `read_write` is only honored by the NFS backend - the API does not echo
-// it back for SCP/SFTP, so we force it to null in the plan to match what
-// the resource will store after a successful apply.
-func (r *remoteStorageLocationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	if req.Plan.Raw.IsNull() {
+	if storageType.IsNull() || storageType.IsUnknown() {
 		return
 	}
 
-	var plan RemoteStorageLocationModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	if !plan.StorageLocationType.IsNull() && !plan.StorageLocationType.IsUnknown() &&
-		plan.StorageLocationType.ValueString() != "nfs" && !plan.ReadWrite.IsNull() {
-		plan.ReadWrite = types.BoolNull()
-		resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
+	storageTypeValue := storageType.ValueString()
+	if storageTypeValue == "scp" || storageTypeValue == "sftp" {
+		if !readWrite.IsNull() && !readWrite.IsUnknown() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("read_write"),
+				"Invalid attribute for storage location type",
+				"Attribute `read_write` can only be set when `storage_location_type` is `nfs`. Remove `read_write` for `scp` or `sftp` remote storage locations.",
+			)
+		}
 	}
 }
 
@@ -164,7 +108,8 @@ func (r *remoteStorageLocationResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	log.Printf("[DEBUG] Creating ND Remote Storage Location: name=%s", in.Name.ValueString())
+	in.Id = in.Name
+	log.Printf("[DEBUG] Creating ND Remote Storage Location: id=%s", in.Id.ValueString())
 
 	r.rscCreateRemoteStorageLocation(ctx, &resp.Diagnostics, &in)
 	if resp.Diagnostics.HasError() {
@@ -172,7 +117,7 @@ func (r *remoteStorageLocationResource) Create(ctx context.Context, req resource
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &in)...)
-	log.Printf("[DEBUG] End create of resource nd_remote_storage_location with name=%s", in.Name.ValueString())
+	log.Printf("[DEBUG] End create of resource nd_remote_storage_location with id=%s", in.Id.ValueString())
 }
 
 // Read refreshes the Terraform state with the latest data.
@@ -185,20 +130,22 @@ func (r *remoteStorageLocationResource) Read(ctx context.Context, req resource.R
 		return
 	}
 
-	log.Printf("[DEBUG] Reading ND Remote Storage Location: name=%s", state.Name.ValueString())
+	if state.Id.IsNull() || state.Id.IsUnknown() || state.Id.ValueString() == "" {
+		state.Id = state.Name
+	}
+	log.Printf("[DEBUG] Reading ND Remote Storage Location: id=%s", state.Id.ValueString())
 
-	found := r.rscGetRemoteStorageLocation(ctx, &resp.Diagnostics, &state)
-	if resp.Diagnostics.HasError() {
+	if r.rscGetRemoteStorageLocation(ctx, &resp.Diagnostics, &state) {
+		resp.State.RemoveResource(ctx)
+		log.Printf("[DEBUG] Removed nd_remote_storage_location id=%s from state because it was not found", state.Id.ValueString())
 		return
 	}
-	if !found {
-		resp.State.RemoveResource(ctx)
-		log.Printf("[DEBUG] Removed nd_remote_storage_location name=%s from state because it was not found", state.Name.ValueString())
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-	log.Printf("[DEBUG] End read of resource nd_remote_storage_location with name=%s", state.Name.ValueString())
+	log.Printf("[DEBUG] End read of resource nd_remote_storage_location with id=%s", state.Id.ValueString())
 }
 
 // Update updates the resource and saves the latest Terraform state.
@@ -211,7 +158,8 @@ func (r *remoteStorageLocationResource) Update(ctx context.Context, req resource
 		return
 	}
 
-	log.Printf("[DEBUG] Updating ND Remote Storage Location: name=%s", in.Name.ValueString())
+	in.Id = in.Name
+	log.Printf("[DEBUG] Updating ND Remote Storage Location: id=%s", in.Id.ValueString())
 
 	r.rscUpdateRemoteStorageLocation(ctx, &resp.Diagnostics, &in)
 	if resp.Diagnostics.HasError() {
@@ -219,7 +167,7 @@ func (r *remoteStorageLocationResource) Update(ctx context.Context, req resource
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &in)...)
-	log.Printf("[DEBUG] End update of resource nd_remote_storage_location with name=%s", in.Name.ValueString())
+	log.Printf("[DEBUG] End update of resource nd_remote_storage_location with id=%s", in.Id.ValueString())
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
@@ -232,29 +180,35 @@ func (r *remoteStorageLocationResource) Delete(ctx context.Context, req resource
 		return
 	}
 
+	if state.Id.IsNull() || state.Id.IsUnknown() || state.Id.ValueString() == "" {
+		state.Id = state.Name
+	}
 	r.rscDeleteRemoteStorageLocation(ctx, &resp.Diagnostics, &state)
-	log.Printf("[DEBUG] End delete of resource nd_remote_storage_location with name=%s", state.Name.ValueString())
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] End delete of resource nd_remote_storage_location with id=%s", state.Id.ValueString())
 }
 
-// ImportState imports an nd_remote_storage_location resource by name.
+// ImportState imports an nd_remote_storage_location resource by id.
 func (r *remoteStorageLocationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	log.Printf("[DEBUG] Start import state of resource: nd_remote_storage_location")
 
 	var state RemoteStorageLocationModel
-	state.Name = types.StringValue(req.ID)
+	state.Id = types.StringValue(req.ID)
+	state.Name = state.Id
 
-	found := r.rscGetRemoteStorageLocation(ctx, &resp.Diagnostics, &state)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	if !found {
+	if r.rscGetRemoteStorageLocation(ctx, &resp.Diagnostics, &state) {
 		resp.Diagnostics.AddError(
 			"Error Importing ND Remote Storage Location",
-			fmt.Sprintf("Could not find nd_remote_storage_location %q", state.Name.ValueString()),
+			fmt.Sprintf("Could not import nd_remote_storage_location with id %q: resource not found", state.Id.ValueString()),
 		)
+		return
+	}
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-	log.Printf("[DEBUG] End import of state resource: nd_remote_storage_location with name=%s", state.Name.ValueString())
+	log.Printf("[DEBUG] End import of state resource: nd_remote_storage_location with id=%s", state.Id.ValueString())
 }

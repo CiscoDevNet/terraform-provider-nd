@@ -40,17 +40,20 @@ resource "nd_remote_storage_location" "test_resource_remote_storage_location_1" 
 ### Optional
 
 - `accept_host_key` (Boolean) Indicates whether to accept host key for the remote storage location when the type is SCP or SFTP.
-- `alert_threshold` (Number) The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If not specified during creation, the default value is 80. Valid values are between 1 and 100.
-- `description` (String) The description of the remote storage location.
+- `alert_threshold` (Number) The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If omitted during creation, it defaults to 80. Valid values are between 1 and 100. Remove this attribute from the configuration to reset it to the default value.
+- `description` (String) The description of the remote storage location. Remove this attribute from the configuration to reset it to the default value.
 - `ignore_host_key_validation` (Boolean) Indicates whether to ignore host key validation for the remote storage location when the type is SCP or SFTP.
 - `limit` (String) The storage capacity limit for the remote storage location. Valid for NFS storage type. The value should be specified in megabytes (MB) or gigabytes (GB), for example, 500GB or 1000MB.
 - `passphrase` (String, Sensitive) The optional passphrase associated with the private key for the remote storage location when the type is SCP or SFTP.
 - `password` (String, Sensitive) The password for the remote storage location when the type is SCP or SFTP.
 - `port` (Number) The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP. The valid range is between 1 and 65535.
-- `read_write` (Boolean) Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only.
+- `read_write` (Boolean) Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.
 - `ssh_key` (String, Sensitive) The private key for the remote storage location when the type is SCP or SFTP.
 - `username` (String) The username for the remote storage location when the type is SCP or SFTP.
 
 ### Read-Only
 
 - `authentication_type` (String) The authentication type for the remote storage location when the type is SCP or SFTP.
+- `health_state` (String) The health state of the remote storage location.
+- `health_state_message` (String) The health state message of the remote storage location.
+- `id` (String) The unique identifier of the remote storage location.

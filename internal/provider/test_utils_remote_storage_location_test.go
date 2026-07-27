@@ -6,83 +6,76 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+// Code generated;  DO NOT EDIT.
+
 package provider
 
 import (
 	"strconv"
-
-	helper "terraform-provider-nd/internal/provider/testing"
+	"terraform-provider-nd/internal/infra/resource_remote_storage_location"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-// RemoteStorageLocationModelHelperStateCheck returns a slice of TestCheckFunc
-// that validates an nd_remote_storage_location resource state matches the
-// values held in the supplied test data model.
-//
-// Sensitive fields (`username`, `password`, `ssh_key`, `passphrase`,
-// `ignore_host_key_validation`) are not returned by the API but the provider
-// preserves them in state from the prior plan/state, so we still verify them
-// here. Callers using ImportState should add these to ImportStateVerifyIgnore
-// because the imported state will not have any prior plan to preserve from.
-func RemoteStorageLocationModelHelperStateCheck(
-	rscName string,
-	c helper.NDFCRemoteStorageLocationTestData,
-	attrPath path.Path,
-) []resource.TestCheckFunc {
+func RemoteStorageLocationModelHelperStateCheck(RscName string, c resource_remote_storage_location.NDFCRemoteStorageLocationModel, attrPath path.Path) []resource.TestCheckFunc {
 	ret := []resource.TestCheckFunc{}
 
 	if c.Name != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("name").String(), c.Name))
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("name").String(), c.Name))
 	}
 	if c.Description != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("description").String(), c.Description))
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("description").String(), c.Description))
 	}
 	if c.StorageLocationType != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("storage_location_type").String(), c.StorageLocationType))
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("storage_location_type").String(), c.StorageLocationType))
 	}
-	// `read_write` is only meaningful for NFS storage. The provider requires
-	// it to be set for NFS and forces it to null for SCP/SFTP because the
-	// API does not honor or echo it for non-NFS storage.
-	switch c.StorageLocationType {
-	case "nfs":
-		if c.ReadWrite == nil {
-			panic("test data: read_write must be set for nfs storage_location_type")
-		}
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("read_write").String(), strconv.FormatBool(*c.ReadWrite)))
-	default:
-		ret = append(ret, resource.TestCheckNoResourceAttr(rscName, attrPath.AtName("read_write").String()))
+	if c.ReadWrite != nil {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("read_write").String(), strconv.FormatBool(*c.ReadWrite)))
 	}
 	if c.Hostname != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("hostname").String(), c.Hostname))
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("hostname").String(), c.Hostname))
 	}
 	if c.Port != nil {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("port").String(), strconv.FormatInt(*c.Port, 10)))
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("port").String(), strconv.Itoa(int(*c.Port))))
 	}
 	if c.Path != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("path").String(), c.Path))
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("path").String(), c.Path))
 	}
 	if c.AlertThreshold != nil {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("alert_threshold").String(), strconv.FormatInt(*c.AlertThreshold, 10)))
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("alert_threshold").String(), strconv.Itoa(int(*c.AlertThreshold))))
 	}
 	if c.Limit != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("limit").String(), c.Limit))
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("limit").String(), c.Limit))
 	}
-	if c.Username != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("username").String(), c.Username))
+	if c.Authentication.Username != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("username").String(), c.Authentication.Username))
 	}
-	if c.Password != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("password").String(), c.Password))
+	if c.Authentication.AuthenticationType != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("authentication_type").String(), c.Authentication.AuthenticationType))
 	}
-	if c.SshKey != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("ssh_key").String(), c.SshKey))
+	if c.Authentication.Password != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("password").String(), c.Authentication.Password))
 	}
-	if c.Passphrase != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("passphrase").String(), c.Passphrase))
+	if c.Authentication.SshKey != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("ssh_key").String(), c.Authentication.SshKey))
 	}
-	if c.IgnoreHostKeyValidation != nil {
-		ret = append(ret, resource.TestCheckResourceAttr(rscName, attrPath.AtName("ignore_host_key_validation").String(), strconv.FormatBool(*c.IgnoreHostKeyValidation)))
+	if c.Authentication.Passphrase != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("passphrase").String(), c.Authentication.Passphrase))
+	}
+	if c.Authentication.IgnoreHostKeyValidation != nil {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("ignore_host_key_validation").String(), strconv.FormatBool(*c.Authentication.IgnoreHostKeyValidation)))
+	}
+	if c.AcceptHostKey {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("accept_host_key").String(), "true"))
+	} else {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("accept_host_key").String(), "false"))
+	}
+	if c.HealthState != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("health_state").String(), c.HealthState))
+	}
+	if c.HealthStateMessage != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("health_state_message").String(), c.HealthStateMessage))
 	}
 	return ret
 }

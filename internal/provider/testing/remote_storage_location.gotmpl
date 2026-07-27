@@ -35,6 +35,9 @@ resource "nd_remote_storage_location" "{{.RscName}}" {
     {{- if ne .IgnoreHostKeyValidation nil }}
     ignore_host_key_validation = {{deref_bool .IgnoreHostKeyValidation}}
     {{- end }}
+    {{- if ne .AcceptHostKey nil }}
+    accept_host_key       = {{deref_bool .AcceptHostKey}}
+    {{- end }}
 {{- end }}
 }
 {{end}}
