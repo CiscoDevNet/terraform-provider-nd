@@ -20,8 +20,8 @@ type NDFCTenantModel struct {
 
 type NDFCFabricAssociationsValue struct {
 	FabricName   string   `json:"fabricName,omitempty"`
-	LocalName    string   `json:"localName,omitempty"`
 	TenantPrefix string   `json:"tenantPrefix,omitempty"`
+	LocalName    string   `json:"localName,omitempty"`
 	AllowedVlans []string `json:"allowedVlans,string,omitempty"`
 }
 
@@ -84,16 +84,16 @@ func (v *FabricAssociationsValue) SetValue(jsonData *NDFCFabricAssociationsValue
 		v.FabricName = types.StringNull()
 	}
 
-	if jsonData.LocalName != "" {
-		v.LocalName = types.StringValue(jsonData.LocalName)
-	} else {
-		v.LocalName = types.StringNull()
-	}
-
 	if jsonData.TenantPrefix != "" {
 		v.TenantPrefix = types.StringValue(jsonData.TenantPrefix)
 	} else {
 		v.TenantPrefix = types.StringNull()
+	}
+
+	if jsonData.LocalName != "" {
+		v.LocalName = types.StringValue(jsonData.LocalName)
+	} else {
+		v.LocalName = types.StringNull()
 	}
 
 	if len(jsonData.AllowedVlans) == 0 {
@@ -122,6 +122,12 @@ func (v TenantModel) GetModelData() *NDFCTenantModel {
 	var data = new(NDFCTenantModel)
 
 	//MARSHAL_BODY
+
+	if !v.Id.IsNull() && !v.Id.IsUnknown() {
+		data.Id = v.Id.ValueString()
+	} else {
+		data.Id = ""
+	}
 
 	if !v.Name.IsNull() && !v.Name.IsUnknown() {
 		data.Name = v.Name.ValueString()
@@ -157,18 +163,18 @@ func (v TenantModel) GetModelData() *NDFCTenantModel {
 				data.FabricAssociations[i1].FabricName = ""
 			}
 
-			if !ele1.LocalName.IsNull() && !ele1.LocalName.IsUnknown() {
-
-				data.FabricAssociations[i1].LocalName = ele1.LocalName.ValueString()
-			} else {
-				data.FabricAssociations[i1].LocalName = ""
-			}
-
 			if !ele1.TenantPrefix.IsNull() && !ele1.TenantPrefix.IsUnknown() {
 
 				data.FabricAssociations[i1].TenantPrefix = ele1.TenantPrefix.ValueString()
 			} else {
 				data.FabricAssociations[i1].TenantPrefix = ""
+			}
+
+			if !ele1.LocalName.IsNull() && !ele1.LocalName.IsUnknown() {
+
+				data.FabricAssociations[i1].LocalName = ele1.LocalName.ValueString()
+			} else {
+				data.FabricAssociations[i1].LocalName = ""
 			}
 
 			if !ele1.AllowedVlans.IsNull() && !ele1.AllowedVlans.IsUnknown() {

@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"slices"
 	"sort"
 	"strings"
 
+	"terraform-provider-nd/internal/common/ndapi"
 	manageapi "terraform-provider-nd/internal/manage/api"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/tidwall/gjson"
 )
 
@@ -25,7 +25,7 @@ type tenantFabricAssociationListResponse struct {
 }
 
 type tenantFabricAssociationItem struct {
-	AllowedVlans []string `json:"allowedVlans"`
+	AllowedVlans []string `json:"allowedVlans,omitempty"`
 	Associate    bool     `json:"associate"`
 	FabricName   string   `json:"fabricName"`
 	LocalName    string   `json:"localName,omitempty"`
@@ -33,11 +33,18 @@ type tenantFabricAssociationItem struct {
 	TenantPrefix string   `json:"tenantPrefix,omitempty"`
 }
 
+// normalizeTenantFabricAssociation makes association comparison deterministic.
+// The manage API and Terraform config can return VLANs in different orders, so
+// this sorts a copy of allowed_vlans before map lookup, diff detection, or
+// payload construction.
 func normalizeTenantFabricAssociation(association NDFCFabricAssociationsValue) NDFCFabricAssociationsValue {
 	association.AllowedVlans = sortedStringCopy(association.AllowedVlans)
 	return association
 }
 
+// sortedStringCopy returns a sorted copy of values and keeps nil as nil.
+// Preserving nil lets Terraform state keep the difference between an omitted
+// allowed_vlans attribute and an explicitly configured empty set.
 func sortedStringCopy(values []string) []string {
 	if values == nil {
 		return nil
@@ -48,6 +55,9 @@ func sortedStringCopy(values []string) []string {
 	return out
 }
 
+// allowedVlansForPayload prepares configured VLAN values for the manage API
+// payload. A nil Terraform value becomes an empty slice, which is omitted from
+// JSON by the request item tag so the backend can apply its default [] value.
 func allowedVlansForPayload(values []string) []string {
 	if values == nil {
 		return []string{}
@@ -56,6 +66,9 @@ func allowedVlansForPayload(values []string) []string {
 	return values
 }
 
+// newTenantFabricAssociationItem maps one Terraform association into the
+// manage API request item. The caller decides the operation with associate:
+// true creates or updates an association, false removes it.
 func newTenantFabricAssociationItem(tenantName string, association NDFCFabricAssociationsValue, associate bool) tenantFabricAssociationItem {
 	association = normalizeTenantFabricAssociation(association)
 	return tenantFabricAssociationItem{
@@ -68,6 +81,23 @@ func newTenantFabricAssociationItem(tenantName string, association NDFCFabricAss
 	}
 }
 
+func tenantFabricAssociationPayloadCounts(payload tenantFabricAssociationPayload) (int, int) {
+	associateTrue := 0
+	associateFalse := 0
+	for _, item := range payload.Items {
+		if item.Associate {
+			associateTrue++
+			continue
+		}
+		associateFalse++
+	}
+	return associateTrue, associateFalse
+}
+
+// tenantFabricAssociationsByFabricName indexes configured associations by
+// fabric_name because a single tenant can have at most one configured
+// association per fabric in Terraform. It rejects empty fabric_name values and
+// duplicate fabric_name values so update/delete logic has a stable key.
 func tenantFabricAssociationsByFabricName(dg *diag.Diagnostics, associations []NDFCFabricAssociationsValue) map[string]NDFCFabricAssociationsValue {
 	result := make(map[string]NDFCFabricAssociationsValue, len(associations))
 	for _, association := range associations {
@@ -93,6 +123,10 @@ func tenantFabricAssociationsByFabricName(dg *diag.Diagnostics, associations []N
 	return result
 }
 
+// tenantFabricAssociationsForModel converts the Terraform nested set into the
+// internal association slice used by create and update helpers.
+// It ignores null or unknown nested objects, preserves omitted allowed_vlans as
+// nil, normalizes VLAN order, and validates uniqueness by fabric_name.
 func tenantFabricAssociationsForModel(ctx context.Context, dg *diag.Diagnostics, model *TenantModel) []NDFCFabricAssociationsValue {
 	if model == nil || model.FabricAssociations.IsNull() || model.FabricAssociations.IsUnknown() {
 		return nil
@@ -134,7 +168,15 @@ func tenantFabricAssociationsForModel(ctx context.Context, dg *diag.Diagnostics,
 	return associations
 }
 
+// rscPostTenantFabricAssociations sends a ready-made association payload and
+// checks the per-item result array. Payload selection is intentionally done by
+// create, update, or delete helpers so this function stays only responsible for
+// POST execution and response failure handling.
 func (r *tenantResource) rscPostTenantFabricAssociations(dg *diag.Diagnostics, payload tenantFabricAssociationPayload) {
+	createCount, deleteCount := tenantFabricAssociationPayloadCounts(payload)
+	log.Printf("[DEBUG] Start rscPostTenantFabricAssociations: items=%d associate_true=%d associate_false=%d", len(payload.Items), createCount, deleteCount)
+	defer log.Printf("[DEBUG] End rscPostTenantFabricAssociations: items=%d associate_true=%d associate_false=%d", len(payload.Items), createCount, deleteCount)
+
 	if len(payload.Items) == 0 {
 		return
 	}
@@ -148,7 +190,7 @@ func (r *tenantResource) rscPostTenantFabricAssociations(dg *diag.Diagnostics, p
 		return
 	}
 
-	tenantFabricAssocAPI := manageapi.NewTenantFabricAssociationAPI(r.infraClient.ApiClient)
+	tenantFabricAssocAPI := manageapi.NewTenantFabricAssociationAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
 	res, err := tenantFabricAssocAPI.Post(payloadBytes, nil)
 	if err != nil {
 		dg.AddError(
@@ -183,7 +225,21 @@ func (r *tenantResource) rscPostTenantFabricAssociations(dg *diag.Diagnostics, p
 	}
 }
 
+// rscGetTenantFabricAssociations reads manage-side tenant fabric associations
+// and filters them for this resource. The first filter always keeps only API
+// objects whose tenantName equals tenantName. When configuredAssociations is
+// provided, a second filter keeps only fabrics present in that set; passing nil
+// skips the fabric filter and returns every association for the tenant. That
+// all-association mode is used to hydrate authoritative nd_tenant state and to
+// remove every association before tenant deletion.
 func (r *tenantResource) rscGetTenantFabricAssociations(dg *diag.Diagnostics, tenantName string, configuredAssociations []NDFCFabricAssociationsValue) []NDFCFabricAssociationsValue {
+	filteredCount := 0
+	filterEnabled := configuredAssociations != nil
+	log.Printf("[DEBUG] Start rscGetTenantFabricAssociations: tenant_name=%s fabric_filter_enabled=%t fabric_filter_count=%d", tenantName, filterEnabled, len(configuredAssociations))
+	defer func() {
+		log.Printf("[DEBUG] End rscGetTenantFabricAssociations: tenant_name=%s filtered_count=%d", tenantName, filteredCount)
+	}()
+
 	configuredByKey := map[string]NDFCFabricAssociationsValue(nil)
 	if configuredAssociations != nil {
 		configuredByKey = tenantFabricAssociationsByFabricName(dg, configuredAssociations)
@@ -192,7 +248,7 @@ func (r *tenantResource) rscGetTenantFabricAssociations(dg *diag.Diagnostics, te
 		}
 	}
 
-	tenantFabricAssocAPI := manageapi.NewTenantFabricAssociationAPI(r.infraClient.ApiClient)
+	tenantFabricAssocAPI := manageapi.NewTenantFabricAssociationAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
 	respData, err := tenantFabricAssocAPI.Get()
 	if err != nil {
 		dg.AddError(
@@ -231,79 +287,45 @@ func (r *tenantResource) rscGetTenantFabricAssociations(dg *diag.Diagnostics, te
 		}))
 	}
 
+	filteredCount = len(filtered)
 	return filtered
 }
 
-func (r *tenantResource) rscReadConfiguredTenantFabricAssociations(ctx context.Context, dg *diag.Diagnostics, state *TenantModel, configuredAssociations []NDFCFabricAssociationsValue) {
-	if configuredAssociations == nil {
-		return
-	}
+// rscReadTenantFabricAssociations injects all backend associations for the
+// tenant into the tenant API model before SetModelData runs. nd_tenant is
+// authoritative for the tenant's fabric_associations set, so normal read and
+// import both preserve every backend association in state and let Terraform
+// surface any out-of-band association as drift.
+func (r *tenantResource) rscReadTenantFabricAssociations(dg *diag.Diagnostics, tenantResp *NDFCTenantModel, tenantName string) {
+	log.Printf("[DEBUG] Start rscReadTenantFabricAssociations: tenant_name=%s", tenantName)
+	defer log.Printf("[DEBUG] End rscReadTenantFabricAssociations: tenant_name=%s", tenantName)
 
-	configuredByKey := tenantFabricAssociationsByFabricName(dg, configuredAssociations)
+	filtered := r.rscGetTenantFabricAssociations(dg, tenantName, nil)
 	if dg.HasError() {
 		return
 	}
 
-	filtered := r.rscGetTenantFabricAssociations(dg, state.Name.ValueString(), configuredAssociations)
-	if dg.HasError() {
-		return
-	}
-
-	values := make([]FabricAssociationsValue, 0, len(filtered))
-	for _, association := range filtered {
-		association = normalizeTenantFabricAssociation(association)
-		if configuredAssociation, ok := configuredByKey[association.FabricName]; ok {
-			association.LocalName = configuredAssociation.LocalName
-			association.TenantPrefix = configuredAssociation.TenantPrefix
-			if configuredAssociation.AllowedVlans == nil {
-				association.AllowedVlans = nil
-			}
-		}
-
-		allowedVlanSet := types.SetNull(types.StringType)
-		if association.AllowedVlans != nil {
-			allowedVlans := make([]attr.Value, 0, len(association.AllowedVlans))
-			for _, vlan := range association.AllowedVlans {
-				allowedVlans = append(allowedVlans, types.StringValue(vlan))
-			}
-
-			var setDiags diag.Diagnostics
-			allowedVlanSet, setDiags = types.SetValue(types.StringType, allowedVlans)
-			dg.Append(setDiags...)
-			if dg.HasError() {
-				return
-			}
-		}
-
-		localName := types.StringNull()
-		if association.LocalName != "" {
-			localName = types.StringValue(association.LocalName)
-		}
-
-		tenantPrefix := types.StringNull()
-		if association.TenantPrefix != "" {
-			tenantPrefix = types.StringValue(association.TenantPrefix)
-		}
-
-		values = append(values, FabricAssociationsValue{
-			AllowedVlans: allowedVlanSet,
-			FabricName:   types.StringValue(association.FabricName),
-			LocalName:    localName,
-			TenantPrefix: tenantPrefix,
-			state:        attr.ValueStateKnown,
-		})
-	}
-
-	associationSet, setDiags := types.SetValueFrom(ctx, FabricAssociationsValue{}.Type(ctx), values)
-	dg.Append(setDiags...)
-	if dg.HasError() {
-		return
-	}
-
-	state.FabricAssociations = associationSet
+	tenantResp.FabricAssociations = filtered
 }
 
+// rscSyncConfiguredTenantFabricAssociations builds one mixed update payload for
+// Terraform changes to fabric_associations. Deletion candidates are current
+// state associations whose fabric_name is absent from the desired plan; normal
+// read hydrates state with every backend association for this tenant, so
+// out-of-band associations are also removed when Terraform applies the desired
+// configuration. Create/update candidates are desired associations that are new
+// or differ by local_name or allowed_vlans. tenant_prefix is immutable in the
+// Tenant Fabric Associations API; a tenant_prefix difference for an existing
+// fabric association is still detected and sent so the API returns the
+// immutability error instead of the provider silently ignoring the requested
+// change. To change tenant_prefix, remove the association first and then create
+// it again. The backend read is filtered by tenantName and old fabric_name
+// values so removals use current API values when available.
 func (r *tenantResource) rscSyncConfiguredTenantFabricAssociations(ctx context.Context, dg *diag.Diagnostics, oldState *TenantModel, tenantModel *TenantModel) {
+	tenantName := tenantModel.Name.ValueString()
+	log.Printf("[DEBUG] Start rscSyncConfiguredTenantFabricAssociations: tenant_name=%s", tenantName)
+	defer log.Printf("[DEBUG] End rscSyncConfiguredTenantFabricAssociations: tenant_name=%s", tenantName)
+
 	oldAssociations := tenantFabricAssociationsForModel(ctx, dg, oldState)
 	if dg.HasError() {
 		return
@@ -331,7 +353,6 @@ func (r *tenantResource) rscSyncConfiguredTenantFabricAssociations(ctx context.C
 		}
 	}
 
-	tenantName := tenantModel.Name.ValueString()
 	payload := tenantFabricAssociationPayload{
 		Items: make([]tenantFabricAssociationItem, 0, len(oldAssociations)+len(desiredAssociations)),
 	}
@@ -366,13 +387,20 @@ func (r *tenantResource) rscSyncConfiguredTenantFabricAssociations(ctx context.C
 	r.rscPostTenantFabricAssociations(dg, payload)
 }
 
+// rscDeleteTenantFabricAssociations removes every backend association for the
+// tenant being deleted. It passes nil configuredAssociations, so
+// rscGetTenantFabricAssociations filters only by tenantName and does not limit
+// deletion to the Terraform-configured fabric_name list.
 func (r *tenantResource) rscDeleteTenantFabricAssociations(dg *diag.Diagnostics, state *TenantModel) {
-	associations := r.rscGetTenantFabricAssociations(dg, state.Name.ValueString(), nil)
+	tenantName := state.Name.ValueString()
+	log.Printf("[DEBUG] Start rscDeleteTenantFabricAssociations: tenant_name=%s", tenantName)
+	defer log.Printf("[DEBUG] End rscDeleteTenantFabricAssociations: tenant_name=%s", tenantName)
+
+	associations := r.rscGetTenantFabricAssociations(dg, tenantName, nil)
 	if dg.HasError() {
 		return
 	}
 
-	tenantName := state.Name.ValueString()
 	payload := tenantFabricAssociationPayload{
 		Items: make([]tenantFabricAssociationItem, 0, len(associations)),
 	}

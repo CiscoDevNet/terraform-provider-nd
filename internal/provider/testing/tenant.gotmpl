@@ -1,0 +1,31 @@
+{{define "ND_TENANT_RSC"}}
+resource "nd_tenant" "{{.RscName}}" {
+{{- if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+{{- end}}
+{{with .Tenant}}
+    name = "{{.Name}}"
+    {{- if .Description}}
+    description = "{{.Description}}"
+    {{- end}}
+    {{- if .FabricAssociations}}
+    fabric_associations = [
+        {{- range .FabricAssociations}}
+        {
+            fabric_name = "{{.FabricName}}"
+            {{- if .TenantPrefix}}
+            tenant_prefix = "{{.TenantPrefix}}"
+            {{- end}}
+            {{- if .LocalName}}
+            local_name = "{{.LocalName}}"
+            {{- end}}
+            {{- if .AllowedVlans}}
+            allowed_vlans = [{{range $i, $v := .AllowedVlans}}{{if $i}}, {{end}}"{{$v}}"{{end}}]
+            {{- end}}
+        },
+        {{- end}}
+    ]
+    {{- end}}
+{{end}}
+}
+{{end}}

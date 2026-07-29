@@ -22,10 +22,11 @@ type TenantFabricAssociationAPI struct {
 	ndapi.NexusDashboardAPICommon
 }
 
-func NewTenantFabricAssociationAPI(client *nd.Client) *TenantFabricAssociationAPI {
+func NewTenantFabricAssociationAPI(client *nd.Client, fabric string) *TenantFabricAssociationAPI {
 	papi := new(TenantFabricAssociationAPI)
 	papi.Client = client
 	papi.NexusDashboardAPI = papi
+	papi.Fabric = fabric
 	return papi
 }
 

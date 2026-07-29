@@ -22,8 +22,8 @@ func TenantResourceSchema(ctx context.Context) schema.Schema {
 		Attributes: map[string]schema.Attribute{
 			"description": schema.StringAttribute{
 				Optional:            true,
-				Description:         "The description of the tenant.",
-				MarkdownDescription: "The description of the tenant.",
+				Description:         "The description of the tenant. Remove this attribute from the configuration to reset it to the default value.",
+				MarkdownDescription: "The description of the tenant. Remove this attribute from the configuration to reset it to the default value.",
 			},
 			"fabric_associations": schema.SetNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
@@ -31,8 +31,8 @@ func TenantResourceSchema(ctx context.Context) schema.Schema {
 						"allowed_vlans": schema.SetAttribute{
 							ElementType:         types.StringType,
 							Optional:            true,
-							Description:         "The list of allowed VLANs for the tenant in the fabric.",
-							MarkdownDescription: "The list of allowed VLANs for the tenant in the fabric.",
+							Description:         "The list of allowed VLANs for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.",
+							MarkdownDescription: "The list of allowed VLANs for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.",
 						},
 						"fabric_name": schema.StringAttribute{
 							Required:            true,
@@ -41,13 +41,13 @@ func TenantResourceSchema(ctx context.Context) schema.Schema {
 						},
 						"local_name": schema.StringAttribute{
 							Optional:            true,
-							Description:         "The local name for the tenant in the fabric.",
-							MarkdownDescription: "The local name for the tenant in the fabric.",
+							Description:         "The local name for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.",
+							MarkdownDescription: "The local name for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.",
 						},
 						"tenant_prefix": schema.StringAttribute{
 							Optional:            true,
-							Description:         "The tenant prefix for ACI fabrics.",
-							MarkdownDescription: "The tenant prefix for ACI fabrics.",
+							Description:         "The tenant prefix for ACI fabrics is immutable. To change it, delete and recreate the fabric association.",
+							MarkdownDescription: "The tenant prefix for ACI fabrics is immutable. To change it, delete and recreate the fabric association.",
 						},
 					},
 					CustomType: FabricAssociationsType{
@@ -57,13 +57,16 @@ func TenantResourceSchema(ctx context.Context) schema.Schema {
 					},
 				},
 				Optional:            true,
-				Description:         "The fabric associations for the tenant.",
-				MarkdownDescription: "The fabric associations for the tenant.",
+				Description:         "The set of fabric associations for the tenant.",
+				MarkdownDescription: "The set of fabric associations for the tenant.",
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
 				Description:         "The unique identifier of the terraform resource.",
 				MarkdownDescription: "The unique identifier of the terraform resource.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Required:            true,
@@ -74,6 +77,8 @@ func TenantResourceSchema(ctx context.Context) schema.Schema {
 				},
 			},
 		},
+		Description:         "Manages tenant and its fabric associations for Nexus Dashboard",
+		MarkdownDescription: "Manages tenant and its fabric associations for Nexus Dashboard",
 	}
 }
 

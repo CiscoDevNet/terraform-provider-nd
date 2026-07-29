@@ -3,12 +3,15 @@ resource:
   generate_tf_resource: true
   skip_equality: true
   category: infra
+  description: Manages tenant and its fabric associations for Nexus Dashboard
+  doc_category: Multi Tenancy
   attributes:
   - model_name: name
     tf_name: id
     description: The unique identifier of the terraform resource.
     type: String
     computed: true
+    use_state: true
     payload_hide: true
 
   - model_name: name
@@ -21,18 +24,17 @@ resource:
 
   - model_name: description
     tf_name: description
-    description: The description of the tenant.
+    description: The description of the tenant. Remove this attribute from the configuration to reset it to the default value.
     type: String
     optional: true
     example: Tenant description
 
   - model_name: fabricAssociations
     tf_name: fabric_associations
-    description: The fabric associations for the tenant.
+    description: The set of fabric associations for the tenant.
     type: Set
     optional: true
     payload_hide: true
-    example: '[{ fabric_name = "ansible_test", local_name = "tf_test_tenant1", tenant_prefix = "tf_", allowed_vlans = ["1", "3"] }]'
     attributes:
     - model_name: fabricName
       tf_name: fabric_name
@@ -40,22 +42,25 @@ resource:
       type: String
       mandatory: true
       example: ansible_test
-    - model_name: localName
-      tf_name: local_name
-      description: The local name for the tenant in the fabric.
-      type: String
-      optional: true
-      example: tf_test_tenant1
+
     - model_name: tenantPrefix
       tf_name: tenant_prefix
-      description: The tenant prefix for ACI fabrics.
+      description: The tenant prefix for ACI fabrics is immutable. To change it, delete and recreate the fabric association.
       type: String
       optional: true
       example: tf_
+
+    - model_name: localName
+      tf_name: local_name
+      description: The local name for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.
+      type: String
+      optional: true
+      example: tf_test_tenant1
+
     - model_name: allowedVlans
       tf_name: allowed_vlans
-      description: The list of allowed VLANs for the tenant in the fabric.
+      description: The list of allowed VLANs for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.
       type: List:String
       ndfc_type: string
       optional: true
-      example: '["1", "3"]'
+      example: '["7", "10-20", "30-40"]'

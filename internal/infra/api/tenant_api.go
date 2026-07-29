@@ -29,10 +29,11 @@ type TenantAPI struct {
 	TenantName string
 }
 
-func NewTenantAPI(client *nd.Client) *TenantAPI {
+func NewTenantAPI(client *nd.Client, fabric string) *TenantAPI {
 	papi := new(TenantAPI)
 	papi.Client = client
 	papi.NexusDashboardAPI = papi
+	papi.Fabric = fabric
 	return papi
 }
 

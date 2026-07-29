@@ -7,26 +7,11 @@ import (
 	"log"
 	"strings"
 
+	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/infra/api"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 )
-
-func isTenantNotFound(respData []byte, err error) bool {
-	if err == nil {
-		return false
-	}
-
-	errMsg := strings.ToLower(err.Error())
-	respMsg := strings.ToLower(string(respData))
-	if strings.Contains(errMsg, "statuscode 404") ||
-		strings.Contains(errMsg, "status code 404") ||
-		strings.Contains(errMsg, "404 not found") {
-		return true
-	}
-
-	return strings.Contains(respMsg, "404") && strings.Contains(respMsg, "not found")
-}
 
 // rscCreateTenant creates a tenant resource.
 func (r *tenantResource) rscCreateTenant(ctx context.Context, dg *diag.Diagnostics, input *TenantModel) {
@@ -38,19 +23,22 @@ func (r *tenantResource) rscCreateTenant(ctx context.Context, dg *diag.Diagnosti
 		return
 	}
 
+	input.Id = input.Name
+	id := input.Id.ValueString()
+
 	desiredAssociations := tenantFabricAssociationsForModel(ctx, dg, input)
 	if dg.HasError() {
 		return
 	}
 
 	inData := input.GetModelData()
-	tenantAPI := api.NewTenantAPI(r.infraClient.ApiClient)
+	tenantAPI := api.NewTenantAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
 
 	tenantPayload, err := json.Marshal(inData)
 	if err != nil {
 		dg.AddError(
 			"Error Creating Tenant",
-			fmt.Sprintf("Could not create tenant, Data Marshall error: %v", err),
+			fmt.Sprintf("Could not create tenant, Data Marshall error: %s", err.Error()),
 		)
 		return
 	}
@@ -59,17 +47,16 @@ func (r *tenantResource) rscCreateTenant(ctx context.Context, dg *diag.Diagnosti
 	if err != nil {
 		dg.AddError(
 			"Error Creating Tenant",
-			fmt.Sprintf("Could not create tenant, unexpected error: %v %v", err, res),
+			fmt.Sprintf("Could not create tenant, unexpected error: %s %s", err.Error(), res.String()),
 		)
 		return
 	}
 
-	tenantName := input.Name.ValueString()
 	associationPayload := tenantFabricAssociationPayload{
 		Items: make([]tenantFabricAssociationItem, 0, len(desiredAssociations)),
 	}
 	for _, association := range desiredAssociations {
-		associationPayload.Items = append(associationPayload.Items, newTenantFabricAssociationItem(tenantName, association, true))
+		associationPayload.Items = append(associationPayload.Items, newTenantFabricAssociationItem(id, association, true))
 	}
 
 	r.rscPostTenantFabricAssociations(dg, associationPayload)
@@ -80,7 +67,7 @@ func (r *tenantResource) rscCreateTenant(ctx context.Context, dg *diag.Diagnosti
 	if r.rscGetTenant(ctx, dg, input) {
 		dg.AddError(
 			"Error Creating Tenant",
-			fmt.Sprintf("Tenant %q was not found after fabric association update", tenantName),
+			fmt.Sprintf("Tenant %q was not found after fabric association update", id),
 		)
 		return
 	}
@@ -96,22 +83,20 @@ func (r *tenantResource) rscGetTenant(ctx context.Context, dg *diag.Diagnostics,
 		return false
 	}
 
-	tenantAPI := api.NewTenantAPI(r.infraClient.ApiClient)
-	tenantAPI.TenantName = state.Name.ValueString()
+	id := state.Id.ValueString()
+	log.Printf("[INFO] Read nd_tenant id=%s", id)
 
-	configuredAssociations := tenantFabricAssociationsForModel(ctx, dg, state)
-	if dg.HasError() {
-		return false
-	}
+	tenantAPI := api.NewTenantAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
+	tenantAPI.TenantName = id
 
 	respData, err := tenantAPI.Get()
 	if err != nil {
-		if isTenantNotFound(respData, err) {
+		if strings.Contains(err.Error(), "StatusCode 404") {
 			return true
 		}
 		dg.AddError(
 			"Error Reading Tenant",
-			fmt.Sprintf("Could not read tenant, unexpected error: %v %v", err, string(respData)),
+			fmt.Sprintf("Could not read tenant, unexpected error: %s %s", err.Error(), string(respData)),
 		)
 		return false
 	}
@@ -121,18 +106,18 @@ func (r *tenantResource) rscGetTenant(ctx context.Context, dg *diag.Diagnostics,
 	if err != nil {
 		dg.AddError(
 			"Error Reading Tenant",
-			fmt.Sprintf("Could not unmarshal tenant response, unexpected error: %v", err),
+			fmt.Sprintf("Could not unmarshal tenant response, unexpected error: %s", err.Error()),
 		)
 		return false
 	}
 
-	tenantResp.Id = state.Name.ValueString()
-	dg.Append(state.SetModelData(&tenantResp)...)
+	tenantResp.Id = id
+	r.rscReadTenantFabricAssociations(dg, &tenantResp, id)
 	if dg.HasError() {
 		return false
 	}
 
-	r.rscReadConfiguredTenantFabricAssociations(ctx, dg, state, configuredAssociations)
+	dg.Append(state.SetModelData(&tenantResp)...)
 	if dg.HasError() {
 		return false
 	}
@@ -150,18 +135,20 @@ func (r *tenantResource) rscUpdateTenant(ctx context.Context, dg *diag.Diagnosti
 		return
 	}
 
+	id := tenantModel.Id.ValueString()
+
 	if oldState != nil && !oldState.Description.Equal(tenantModel.Description) {
 		inData := tenantModel.GetModelData()
-		tenantAPI := api.NewTenantAPI(r.infraClient.ApiClient)
-		tenantAPI.TenantName = tenantModel.Name.ValueString()
+		tenantAPI := api.NewTenantAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
+		tenantAPI.TenantName = id
 
 		inDataBytes, err := json.Marshal(inData)
 		if err != nil {
 			dg.AddError(
 				"Error Updating Tenant",
-				fmt.Sprintf("Could not update tenant, Data Marshall error: %v", err),
+				fmt.Sprintf("Could not update tenant, Data Marshall error: %s", err.Error()),
 			)
-			log.Printf("[ERROR] Error Updating Tenant: error=%s", err.Error())
+			log.Printf("[ERROR] Error Updating Tenant id=%s: error=%s", id, err.Error())
 			return
 		}
 
@@ -169,9 +156,9 @@ func (r *tenantResource) rscUpdateTenant(ctx context.Context, dg *diag.Diagnosti
 		if err != nil {
 			dg.AddError(
 				"Error Updating Tenant",
-				fmt.Sprintf("Could not update tenant, unexpected error: %v %v", err, res),
+				fmt.Sprintf("Could not update tenant, unexpected error: %s %s", err.Error(), res.String()),
 			)
-			log.Printf("[ERROR] Error Updating Tenant: error=%s", err.Error())
+			log.Printf("[ERROR] Error Updating Tenant id=%s: error=%s", id, err.Error())
 			return
 		}
 	}
@@ -184,7 +171,7 @@ func (r *tenantResource) rscUpdateTenant(ctx context.Context, dg *diag.Diagnosti
 	if r.rscGetTenant(ctx, dg, tenantModel) {
 		dg.AddError(
 			"Error Updating Tenant",
-			fmt.Sprintf("Tenant %q was not found after update", tenantModel.Name.ValueString()),
+			fmt.Sprintf("Tenant %q was not found after update", id),
 		)
 		return
 	}
@@ -200,24 +187,27 @@ func (r *tenantResource) rscDeleteTenant(ctx context.Context, dg *diag.Diagnosti
 		return
 	}
 
+	id := state.Id.ValueString()
+	log.Printf("[INFO] Delete nd_tenant id=%s", id)
+
 	r.rscDeleteTenantFabricAssociations(dg, state)
 	if dg.HasError() {
 		return
 	}
 
-	tenantAPI := api.NewTenantAPI(r.infraClient.ApiClient)
-	tenantAPI.TenantName = state.Name.ValueString()
+	tenantAPI := api.NewTenantAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
+	tenantAPI.TenantName = id
 
 	res, err := tenantAPI.Delete()
 	if err != nil {
-		if isTenantNotFound(nil, err) {
+		if strings.Contains(err.Error(), "StatusCode 404") {
 			return
 		}
 		dg.AddError(
 			"Error Deleting Tenant",
-			fmt.Sprintf("Could not delete tenant, unexpected error: %v %v", err, res),
+			fmt.Sprintf("Could not delete tenant, unexpected error: %s %s", err.Error(), res.String()),
 		)
-		log.Printf("[ERROR] Error Deleting Tenant: error=%s", err.Error())
+		log.Printf("[ERROR] Error Deleting Tenant id=%s: error=%s", id, err.Error())
 		return
 	}
 }

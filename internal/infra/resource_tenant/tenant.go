@@ -79,7 +79,8 @@ func (r *tenantResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	log.Printf("[DEBUG] Creating Tenant: name=%s", in.Name.ValueString())
+	in.Id = in.Name
+	log.Printf("[DEBUG] Creating Tenant: id=%s", in.Id.ValueString())
 
 	r.rscCreateTenant(ctx, &resp.Diagnostics, &in)
 	if resp.Diagnostics.HasError() {
@@ -100,10 +101,11 @@ func (r *tenantResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	log.Printf("[DEBUG] Reading Tenant: name=%s", state.Name.ValueString())
+	id := state.Id.ValueString()
+	log.Printf("[DEBUG] Reading Tenant: id=%s", id)
 
 	if r.rscGetTenant(ctx, &resp.Diagnostics, &state) {
-		log.Printf("[DEBUG] Tenant %q not found, removing from state", state.Name.ValueString())
+		log.Printf("[DEBUG] Tenant %q not found, removing from state", id)
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -131,7 +133,8 @@ func (r *tenantResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	log.Printf("[DEBUG] Updating Tenant: name=%s", plan.Name.ValueString())
+	plan.Id = state.Id
+	log.Printf("[DEBUG] Updating Tenant: id=%s", plan.Id.ValueString())
 
 	r.rscUpdateTenant(ctx, &resp.Diagnostics, &state, &plan)
 	if resp.Diagnostics.HasError() {
@@ -152,12 +155,13 @@ func (r *tenantResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
+	id := state.Id.ValueString()
 	r.rscDeleteTenant(ctx, &resp.Diagnostics, &state)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	log.Printf("[DEBUG] End delete of resource nd_tenant with id '%s'", state.Id.ValueString())
+	log.Printf("[DEBUG] End delete of resource nd_tenant with id '%s'", id)
 }
 
 // ImportState imports a tenant resource by name.
@@ -166,6 +170,7 @@ func (r *tenantResource) ImportState(ctx context.Context, req resource.ImportSta
 
 	var state TenantModel
 	state.Name = types.StringValue(req.ID)
+	state.Id = state.Name
 
 	if r.rscGetTenant(ctx, &resp.Diagnostics, &state) {
 		resp.Diagnostics.AddError(
@@ -179,5 +184,5 @@ func (r *tenantResource) ImportState(ctx context.Context, req resource.ImportSta
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-	log.Printf("[DEBUG] End import of state resource: nd_tenant")
+	log.Printf("[DEBUG] End import of state resource nd_tenant with id '%s'", state.Id.ValueString())
 }

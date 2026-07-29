@@ -3,12 +3,12 @@
 page_title: "nd_tenant Resource - terraform-provider-nd"
 subcategory: ""
 description: |-
-  
+  Manages tenant and its fabric associations for Nexus Dashboard
 ---
 
 # nd_tenant (Resource)
 
-
+Manages tenant and its fabric associations for Nexus Dashboard
 
 ## Example Usage
 
@@ -16,6 +16,14 @@ description: |-
 resource "nd_tenant" "test_resource_tenant_1" {
   name        = "tenant1"
   description = "Tenant description"
+  fabric_associations = [
+    {
+      fabric_name   = "ansible_test"
+      tenant_prefix = "tf_"
+      local_name    = "tf_test_tenant1"
+      allowed_vlans = ["7", "10-20", "30-40"]
+    }
+  ]
 }
 ```
 
@@ -28,8 +36,8 @@ resource "nd_tenant" "test_resource_tenant_1" {
 
 ### Optional
 
-- `description` (String) The description of the tenant.
-- `fabric_associations` (Attributes Set) The fabric associations for the tenant. (see [below for nested schema](#nestedatt--fabric_associations))
+- `description` (String) The description of the tenant. Remove this attribute from the configuration to reset it to the default value.
+- `fabric_associations` (Attributes Set) The set of fabric associations for the tenant. (see [below for nested schema](#nestedatt--fabric_associations))
 
 ### Read-Only
 
@@ -44,6 +52,6 @@ Required:
 
 Optional:
 
-- `allowed_vlans` (Set of String) The list of allowed VLANs for the tenant in the fabric.
-- `local_name` (String) The local name for the tenant in the fabric.
-- `tenant_prefix` (String) The tenant prefix for ACI fabrics.
+- `allowed_vlans` (Set of String) The list of allowed VLANs for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.
+- `local_name` (String) The local name for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.
+- `tenant_prefix` (String) The tenant prefix for ACI fabrics is immutable. To change it, delete and recreate the fabric association.
