@@ -3,12 +3,12 @@
 page_title: "nd_remote_storage_location Resource - terraform-provider-nd"
 subcategory: ""
 description: |-
-  
+  Manages remote storage location for Nexus Dashboard
 ---
 
 # nd_remote_storage_location (Resource)
 
-
+Manages remote storage location for Nexus Dashboard
 
 ## Example Usage
 
@@ -17,7 +17,6 @@ resource "nd_remote_storage_location" "test_resource_remote_storage_location_1" 
   name                       = "scp-server"
   description                = "Remote storage location description."
   storage_location_type      = "scp"
-  read_write                 = true
   hostname                   = "192.168.100.100"
   port                       = 22
   path                       = "/export/path/"
@@ -47,7 +46,7 @@ resource "nd_remote_storage_location" "test_resource_remote_storage_location_1" 
 - `passphrase` (String, Sensitive) The optional passphrase associated with the private key for the remote storage location when the type is SCP or SFTP.
 - `password` (String, Sensitive) The password for the remote storage location when the type is SCP or SFTP.
 - `port` (Number) The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP. The valid range is between 1 and 65535.
-- `read_write` (Boolean) Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.
+- `read_write` (Boolean) Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only when type is NFS. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.
 - `ssh_key` (String, Sensitive) The private key for the remote storage location when the type is SCP or SFTP.
 - `username` (String) The username for the remote storage location when the type is SCP or SFTP.
 
@@ -56,4 +55,4 @@ resource "nd_remote_storage_location" "test_resource_remote_storage_location_1" 
 - `authentication_type` (String) The authentication type for the remote storage location when the type is SCP or SFTP.
 - `health_state` (String) The health state of the remote storage location.
 - `health_state_message` (String) The health state message of the remote storage location.
-- `id` (String) The unique identifier of the remote storage location.
+- `id` (String) The unique identifier for the resource, it is the name of the remote storage location (for example, scp-server).
