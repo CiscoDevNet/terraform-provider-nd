@@ -64,8 +64,8 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
-				Description:         "The unique identifier of the remote storage location.",
-				MarkdownDescription: "The unique identifier of the remote storage location.",
+				Description:         "The unique identifier for the resource, it is the name of the remote storage location (for example, scp-server).",
+				MarkdownDescription: "The unique identifier for the resource, it is the name of the remote storage location (for example, scp-server).",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -140,8 +140,8 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 			"read_write": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.",
-				MarkdownDescription: "Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.",
+				Description:         "Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only when type is NFS. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.",
+				MarkdownDescription: "Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only when type is NFS. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.",
 			},
 			"ssh_key": schema.StringAttribute{
 				Optional:            true,
@@ -180,6 +180,8 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 				},
 			},
 		},
+		Description:         "Manages remote storage location for Nexus Dashboard",
+		MarkdownDescription: "Manages remote storage location for Nexus Dashboard",
 	}
 }
 

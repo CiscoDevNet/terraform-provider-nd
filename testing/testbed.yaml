@@ -28,17 +28,17 @@ nd:
 
   # nd_remote_storage_location test configuration
   remote_storage:
-    hostname: "198.18.134.22"
-    username: "cisco"
-    password: "C1sco12345"
-    passphrase: "123"
+    hostname: "1.1.1.1"
+    username: "admin"
+    password: "*********"
+    passphrase: "***********"
     ssh_key: |
       -----BEGIN OPENSSH PRIVATE KEY-----
-      b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABC2QK7iJP
-      2GlCO7otdQCgOpAAAAGAAAAAEAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIPOzH1RnXXP2g6U8
+      b3BlbnNzaC1rZXktdjE*****CmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABC2QK7iJP
+      2GlCO7otdQCgOpAAAAG*****EAAAAzAAAAC3NzaC1lZDI1NTE5AAAAIPOzH1RnXXP2g6U8
       DFf8BeevKpZlziy6+O3ESpAPKHFXAAAAkP+OFVWzzFfRFYbrQNQ9f/944l3EXujEKhWvLj
       cYoFX0TJr7UKQqF1U0AlCyBoeU6oUmufobzUvkbtriuL8vGz99KfhBP0gJai6RmZ5a00CU
-      8UCOcoUUaUoP8xMyInhgWO7Glrov2WoQa2o0lYc9us+w2lzsN0fLVooYcupIRmCatSr67U
+      8UCOcoUUaUoP8xMyInhgWO7Glrov2WoQa2o0lYc9us+***************************
       gLDDk1mntCy423+A==
       -----END OPENSSH PRIVATE KEY-----
 

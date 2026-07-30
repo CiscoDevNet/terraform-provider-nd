@@ -4,10 +4,11 @@ resource:
   category: infra
   generate_tf_resource: true
   skip_equality: true
+  description: Manages remote storage location for Nexus Dashboard
   attributes:
   - model_name: id
     tf_name: id
-    description: The unique identifier of the remote storage location.
+    description: The unique identifier for the resource, it is the name of the remote storage location (for example, scp-server).
     type: String
     id: true
     computed: true
@@ -42,12 +43,11 @@ resource:
   # Intentionally omit use_state for attribute `read_write` because the backend default depends on storage_location_type.
   - model_name: readWrite
     tf_name: read_write
-    description: Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.
+    description: Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only when type is NFS. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.
     type: Bool
     optional: true
     computed: true
     ndfc_type: bool
-    example: true
 
   - model_name: hostname
     tf_name: hostname
