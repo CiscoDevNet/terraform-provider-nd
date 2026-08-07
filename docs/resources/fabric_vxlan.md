@@ -14,32 +14,36 @@ description: |-
 
 ```terraform
 resource "nd_fabric_vxlan" "test_resource_fabric_vxlan_1" {
-  fabric_name                                     = "my_fabric"
-  license_tier                                    = "premier"
-  controller_status                               = "enabled"
-  telemetry_status                                = "enabled"
-  orchestration_status                            = "enabled"
-  trap_forwarder_status                           = "enabled"
-  telemetry_collection                            = false
-  telemetry_collection_type                       = "outOfBand"
-  telemetry_streaming_protocol                    = "ipv4"
-  telemetry_source_interface                      = "eth0"
-  telemetry_source_vrf                            = "vrf1"
-  security_domain                                 = "all"
-  fabric_type                                     = "vxlanIbgp"
-  bgp_asn                                         = "55000"
-  super_spine_bgp_as                              = "65000"
-  leaf_bgp_as                                     = "65001"
-  border_bgp_as                                   = "65002"
-  bgp_as_mode                                     = "multiAS"
-  target_subnet_mask                              = 30
-  anycast_gateway_mac                             = "2020.0000.00aa"
-  performance_monitoring                          = false
-  replication_mode                                = "multicast"
-  multicast_group_subnet                          = "239.1.1.0/25"
-  tenant_routed_multicast                         = false
-  rendezvous_point_count                          = 2
-  category                                        = "fabric"
+  fabric_name                  = "my_fabric"
+  license_tier                 = "premier"
+  controller_status            = "enabled"
+  telemetry_status             = "enabled"
+  orchestration_status         = "enabled"
+  trap_forwarder_status        = "enabled"
+  telemetry_collection         = false
+  telemetry_collection_type    = "outOfBand"
+  telemetry_streaming_protocol = "ipv4"
+  telemetry_source_interface   = "eth0"
+  telemetry_source_vrf         = "vrf1"
+  security_domain              = "all"
+  fabric_type                  = "vxlanIbgp"
+  bgp_asn                      = "55000"
+  super_spine_bgp_as           = "65000"
+  leaf_bgp_as                  = "65001"
+  border_bgp_as                = "65002"
+  bgp_as_mode                  = "multiAS"
+  target_subnet_mask           = 30
+  anycast_gateway_mac          = "2020.0000.00aa"
+  performance_monitoring       = false
+  replication_mode             = "multicast"
+  multicast_group_subnet       = "239.1.1.0/25"
+  tenant_routed_multicast      = false
+  rendezvous_point_count       = 2
+  category                     = "fabric"
+  location = {
+    latitude  = 42.0
+    longitude = 42.0
+  }
   alert_suspend                                   = "disabled"
   rendezvous_point_loopback_id                    = 254
   vpc_peer_link_vlan                              = "3600"
@@ -254,25 +258,118 @@ resource "nd_fabric_vxlan" "test_resource_fabric_vxlan_1" {
   un_numbered_dhcp_end_address                    = "192.168.1.1"
   heartbeat_interval                              = 190
   netflow_enable                                  = false
-  traffic_analytics                               = "enabled"
-  net_flow                                        = false
-  s_flow                                          = false
-  flow_telemetry                                  = false
-  traffic_analytics_rules_enabled                 = true
-  traffic_analytics_mode                          = "full"
-  udp_categorization                              = "supported"
-  traffic_analytics_filter_rules                  = "supported"
-  operating_mode                                  = "flowTelemetry"
-  udp_categorization_support                      = "supported"
-  microburst                                      = false
-  sensitivity                                     = "low"
-  analysis_settings_is_enabled                    = false
-  server                                          = "stream-server-1"
-  export_type                                     = "full"
-  export_format                                   = "json"
-  syslog_servers                                  = ["example_servers_item"]
-  syslog_facility                                 = "local7"
-  syslog_anomalies                                = ["critical"]
+  netflow_exporter_collection = [
+    {
+      exporter_name         = "exporter1"
+      exporter_ip           = "192.168.1.1"
+      vrf                   = "default"
+      source_interface_name = "loopback0"
+      udp_port              = 1
+    }
+  ]
+  netflow_record_collection = [
+    {
+      record_name     = "record1"
+      record_template = "netflowIpv4Record"
+      layer2_record   = false
+    }
+  ]
+  netflow_monitor_collection = [
+    {
+      monitor_name        = "monitor1"
+      monitor_record_name = "record1"
+      exporter1_name      = "exporter1"
+      exporter2_name      = "exporter2"
+    }
+  ]
+  netflow_sampler_collection = [
+    {
+      sampler_name  = "sampler1"
+      num_samples   = 1
+      sampling_rate = 1
+    }
+  ]
+  traffic_analytics = "enabled"
+  net_flow          = false
+  s_flow            = false
+  flow_telemetry    = false
+  vrf_flow_rules = [
+    {
+      vrf_flow_rule_name    = "rule1"
+      vrf_flow_rule_uuid    = "67b140d39bbd5b6f18af0af8"
+      vrf_flow_rule_tenant  = "tenant1"
+      vrf_flow_rule_vrf     = "default"
+      vrf_flow_rule_subnets = ["example_subnets_item"]
+    }
+  ]
+  interface_flow_rules = [
+    {
+      interface_flow_rule_name    = "rule1"
+      interface_flow_rule_uuid    = "67b140d39bbd5b6f18af0af8"
+      interface_flow_rule_type    = "physical"
+      interface_flow_rule_subnets = ["example_subnets_item"]
+    }
+  ]
+  l3_out_flow_rules = [
+    {
+      l3_out_flow_rule_name    = "rule1"
+      l3_out_flow_rule_uuid    = "67b140d39bbd5b6f18af0af8"
+      l3_out_flow_rule_type    = "subInterface"
+      l3_out_flow_rule_subnets = ["example_subnets_item"]
+    }
+  ]
+  traffic_analytics_rules_enabled = true
+  interface_rules = [
+    {
+      interface_rule_name                       = "TAInterfaceRule1"
+      interface_rule_enabled                    = true
+      interface_rule_enable_fabric_interconnect = true
+      interface_rule_enable_l3_out              = true
+      interface_rule_uuid                       = "67b140d39bbd5b6f18af0af8"
+      interface_rule_subnets                    = ["10.0.0.0/24"]
+    }
+  ]
+  traffic_analytics_mode         = "full"
+  udp_categorization             = "supported"
+  traffic_analytics_filter_rules = "supported"
+  operating_mode                 = "flowTelemetry"
+  udp_categorization_support     = "supported"
+  microburst                     = false
+  sensitivity                    = "low"
+  analysis_settings_is_enabled   = false
+  server                         = "stream-server-1"
+  export_type                    = "full"
+  export_format                  = "json"
+  cost                           = 1.2
+  email = [
+    {
+      name                         = "rule1"
+      receiver_email               = "example@example.com"
+      format                       = "html"
+      start_date                   = "2023-01-01T00:00:00Z"
+      collection_frequency_in_days = 42
+      collection_type              = "basic"
+      anomalies                    = ["critical"]
+      advisories                   = ["critical"]
+      risk_and_conformance_reports = ["software"]
+      only_include_active_alerts   = false
+    }
+  ]
+  syslog_servers   = ["example_servers_item"]
+  syslog_facility  = "local7"
+  syslog_anomalies = ["critical"]
+  message_bus = [
+    {
+      server                              = "stream-server-1"
+      collection_type                     = "alertsAndEvents"
+      collection_settings_collection_type = "basic"
+      anomalies                           = ["critical"]
+      advisories                          = ["critical"]
+      statistics                          = ["interfaces"]
+      faults                              = ["critical"]
+      audit_logs                          = ["creation"]
+    }
+  ]
 }
 ```
 
