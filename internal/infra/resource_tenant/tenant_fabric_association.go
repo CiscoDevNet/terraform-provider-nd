@@ -1,3 +1,11 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+// SPDX-License-Identifier: MPL-2.0
+
 package resource_tenant
 
 import (
@@ -79,6 +87,16 @@ func newTenantFabricAssociationItem(tenantName string, association NDFCFabricAss
 		TenantName:   tenantName,
 		TenantPrefix: association.TenantPrefix,
 	}
+}
+
+func tenantFabricAssociationsEqual(existing, desired NDFCFabricAssociationsValue) bool {
+	existing = normalizeTenantFabricAssociation(existing)
+	desired = normalizeTenantFabricAssociation(desired)
+
+	return existing.FabricName == desired.FabricName &&
+		existing.LocalName == desired.LocalName &&
+		existing.TenantPrefix == desired.TenantPrefix &&
+		slices.Equal(existing.AllowedVlans, desired.AllowedVlans)
 }
 
 func tenantFabricAssociationPayloadCounts(payload tenantFabricAssociationPayload) (int, int) {
@@ -374,12 +392,60 @@ func (r *tenantResource) rscSyncConfiguredTenantFabricAssociations(ctx context.C
 		desiredAssociation = normalizeTenantFabricAssociation(desiredAssociation)
 		key := desiredAssociation.FabricName
 		oldAssociation, ok := oldByKey[key]
-		oldAssociation = normalizeTenantFabricAssociation(oldAssociation)
-		if !ok ||
-			oldAssociation.FabricName != desiredAssociation.FabricName ||
-			oldAssociation.LocalName != desiredAssociation.LocalName ||
-			oldAssociation.TenantPrefix != desiredAssociation.TenantPrefix ||
-			!slices.Equal(oldAssociation.AllowedVlans, desiredAssociation.AllowedVlans) {
+		if !ok || !tenantFabricAssociationsEqual(oldAssociation, desiredAssociation) {
+			payload.Items = append(payload.Items, newTenantFabricAssociationItem(tenantName, desiredAssociation, true))
+		}
+	}
+
+	r.rscPostTenantFabricAssociations(dg, payload)
+}
+
+// rscRestoreTenantFabricAssociations restores the complete association set
+// from the previous Terraform state after a multi-item update partially fails.
+// It reads the actual backend state first so rollback only reverses operations
+// that were applied and recreates associations that were successfully removed.
+func (r *tenantResource) rscRestoreTenantFabricAssociations(ctx context.Context, dg *diag.Diagnostics, previousState *TenantModel) {
+	if previousState == nil {
+		dg.AddError(
+			"Error Restoring Tenant Fabric Associations",
+			"The previous tenant state is nil.",
+		)
+		return
+	}
+
+	tenantName := previousState.Name.ValueString()
+	log.Printf("[DEBUG] Start rscRestoreTenantFabricAssociations: tenant_name=%s", tenantName)
+	defer log.Printf("[DEBUG] End rscRestoreTenantFabricAssociations: tenant_name=%s", tenantName)
+
+	desiredAssociations := tenantFabricAssociationsForModel(ctx, dg, previousState)
+	if dg.HasError() {
+		return
+	}
+
+	currentAssociations := r.rscGetTenantFabricAssociations(dg, tenantName, nil)
+	if dg.HasError() {
+		return
+	}
+
+	desiredByKey := tenantFabricAssociationsByFabricName(dg, desiredAssociations)
+	currentByKey := tenantFabricAssociationsByFabricName(dg, currentAssociations)
+	if dg.HasError() {
+		return
+	}
+
+	payload := tenantFabricAssociationPayload{
+		Items: make([]tenantFabricAssociationItem, 0, len(currentAssociations)+len(desiredAssociations)),
+	}
+
+	for _, currentAssociation := range currentAssociations {
+		if _, ok := desiredByKey[currentAssociation.FabricName]; !ok {
+			payload.Items = append(payload.Items, newTenantFabricAssociationItem(tenantName, currentAssociation, false))
+		}
+	}
+
+	for _, desiredAssociation := range desiredAssociations {
+		currentAssociation, ok := currentByKey[desiredAssociation.FabricName]
+		if !ok || !tenantFabricAssociationsEqual(currentAssociation, desiredAssociation) {
 			payload.Items = append(payload.Items, newTenantFabricAssociationItem(tenantName, desiredAssociation, true))
 		}
 	}

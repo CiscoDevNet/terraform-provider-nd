@@ -6,9 +6,9 @@ resource:
   description: Manages tenant and its fabric associations for Nexus Dashboard
   doc_category: Multi Tenancy
   attributes:
-  - model_name: name
+  - model_name: id
     tf_name: id
-    description: The unique identifier of the terraform resource.
+    description: The unique identifier for the resource, it is the name of the tenant (for example, tenant1).
     type: String
     computed: true
     use_state: true
@@ -45,7 +45,7 @@ resource:
 
     - model_name: tenantPrefix
       tf_name: tenant_prefix
-      description: The tenant prefix for ACI fabrics is immutable. To change it, delete and recreate the fabric association.
+      description: The tenant prefix for ACI fabrics. This attribute is immutable. To change it, delete and recreate the fabric association.
       type: String
       optional: true
       example: tf_

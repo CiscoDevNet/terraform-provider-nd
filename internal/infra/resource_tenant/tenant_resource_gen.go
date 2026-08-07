@@ -46,8 +46,8 @@ func TenantResourceSchema(ctx context.Context) schema.Schema {
 						},
 						"tenant_prefix": schema.StringAttribute{
 							Optional:            true,
-							Description:         "The tenant prefix for ACI fabrics is immutable. To change it, delete and recreate the fabric association.",
-							MarkdownDescription: "The tenant prefix for ACI fabrics is immutable. To change it, delete and recreate the fabric association.",
+							Description:         "The tenant prefix for ACI fabrics. This attribute is immutable. To change it, delete and recreate the fabric association.",
+							MarkdownDescription: "The tenant prefix for ACI fabrics. This attribute is immutable. To change it, delete and recreate the fabric association.",
 						},
 					},
 					CustomType: FabricAssociationsType{
@@ -62,8 +62,8 @@ func TenantResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
-				Description:         "The unique identifier of the terraform resource.",
-				MarkdownDescription: "The unique identifier of the terraform resource.",
+				Description:         "The unique identifier for the resource, it is the name of the tenant (for example, tenant1).",
+				MarkdownDescription: "The unique identifier for the resource, it is the name of the tenant (for example, tenant1).",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},

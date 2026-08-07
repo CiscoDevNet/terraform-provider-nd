@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -30,7 +31,8 @@ import (
 )
 
 const (
-	tenantFabricOne = "ansible_test"
+	tenantFabricOne = "tf_apic1"
+	// tenantFabricOne = "ansible_test"
 	tenantFabricTwo = "ansible_test_2"
 )
 
@@ -496,6 +498,203 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 	})
 }
 
+// TestAccTenantResourceAssociationRollback verifies that partial multi-status
+// association failures do not leave a partially created or updated tenant.
+func TestAccTenantResourceAssociationRollback(t *testing.T) {
+	cfg := helper.GetConfig("global")
+	suffix := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
+
+	createTenantName := fmt.Sprintf("tf_create_rollback_%s", suffix)
+	updateTenantName := fmt.Sprintf("tf_update_rollback_%s", suffix)
+	missingFabricName := fmt.Sprintf("tf_missing_fabric_%s", suffix)
+	originalDescription := "Tenant rollback acceptance test"
+	updatedDescription := "Tenant rollback description must not be applied"
+	originalPrefix := fmt.Sprintf("tn_rollback_%s", suffix)
+	invalidPrefix := fmt.Sprintf("tn_changed_%s", suffix)
+	originalLocalName := fmt.Sprintf("local_rollback_%s", suffix)
+	updatedLocalName := fmt.Sprintf("local_rollback_updated_%s", suffix)
+	originalVlans := []string{"1", "5-10"}
+	updatedVlans := []string{"11-20", "30"}
+
+	createValidAssociation := resource_tenant.NDFCFabricAssociationsValue{
+		FabricName: tenantFabricOne,
+	}
+	createInvalidAssociation := resource_tenant.NDFCFabricAssociationsValue{
+		FabricName: missingFabricName,
+	}
+	originalAssociationOne := resource_tenant.NDFCFabricAssociationsValue{
+		FabricName:   tenantFabricOne,
+		LocalName:    originalLocalName,
+		AllowedVlans: originalVlans,
+	}
+	originalAssociationTwo := resource_tenant.NDFCFabricAssociationsValue{
+		FabricName:   tenantFabricTwo,
+		TenantPrefix: originalPrefix,
+	}
+	updatedAssociationOne := resource_tenant.NDFCFabricAssociationsValue{
+		FabricName:   tenantFabricOne,
+		LocalName:    updatedLocalName,
+		AllowedVlans: updatedVlans,
+	}
+	invalidAssociationTwo := resource_tenant.NDFCFabricAssociationsValue{
+		FabricName:   tenantFabricTwo,
+		TenantPrefix: invalidPrefix,
+	}
+
+	createTenant := new(resource_tenant.NDFCTenantModel)
+	helper.GenerateTenantObject(&createTenant, createTenantName, map[string]interface{}{
+		"fabric_associations": []resource_tenant.NDFCFabricAssociationsValue{
+			createValidAssociation,
+			createInvalidAssociation,
+		},
+	})
+
+	originalUpdateTenant := new(resource_tenant.NDFCTenantModel)
+	helper.GenerateTenantObject(&originalUpdateTenant, updateTenantName, map[string]interface{}{
+		"description": originalDescription,
+		"fabric_associations": []resource_tenant.NDFCFabricAssociationsValue{
+			originalAssociationOne,
+			originalAssociationTwo,
+		},
+	})
+
+	failedUpdateTenant := new(resource_tenant.NDFCTenantModel)
+	helper.GenerateTenantObject(&failedUpdateTenant, updateTenantName, map[string]interface{}{
+		"description": updatedDescription,
+		"fabric_associations": []resource_tenant.NDFCFabricAssociationsValue{
+			updatedAssociationOne,
+			invalidAssociationTwo,
+		},
+	})
+
+	createConfigArgs := &map[string]string{
+		"RscType":  "nd_tenant",
+		"RscName":  "tenant_create_rollback",
+		"User":     cfg.ND.User,
+		"Password": cfg.ND.Password,
+		"Host":     cfg.ND.URL,
+		"Insecure": cfg.ND.Insecure,
+	}
+	updateConfigArgs := &map[string]string{
+		"RscType":  "nd_tenant",
+		"RscName":  "tenant_update_rollback",
+		"User":     cfg.ND.User,
+		"Password": cfg.ND.Password,
+		"Host":     cfg.ND.URL,
+		"Insecure": cfg.ND.Insecure,
+	}
+
+	createConfig := new(string)
+	originalUpdateConfig := new(string)
+	failedUpdateConfig := new(string)
+	destroyConfig := new(string)
+	s1 := &helper.StepInfo{
+		Index: 1,
+		Name:  fmt.Sprintf("%s_1_create_partial_association_failure", t.Name()),
+	}
+	s2 := &helper.StepInfo{
+		Index: 2,
+		Name:  fmt.Sprintf("%s_2_create_update_rollback_baseline", t.Name()),
+	}
+	s3 := &helper.StepInfo{
+		Index: 3,
+		Name:  fmt.Sprintf("%s_3_update_partial_association_failure", t.Name()),
+	}
+	s4 := &helper.StepInfo{
+		Index: 4,
+		Name:  fmt.Sprintf("%s_4_verify_update_rollback_and_destroy", t.Name()),
+	}
+	helper.GetTFConfigWithSingleResource(
+		s1.Name,
+		*createConfigArgs,
+		[]interface{}{createTenant},
+		&createConfig,
+	)
+	s1.Cfg = *createConfig
+	helper.GetTFConfigWithSingleResource(
+		s2.Name,
+		*updateConfigArgs,
+		[]interface{}{originalUpdateTenant},
+		&originalUpdateConfig,
+	)
+	s2.Cfg = *originalUpdateConfig
+	helper.GetTFConfigWithSingleResource(
+		s3.Name,
+		*updateConfigArgs,
+		[]interface{}{failedUpdateTenant},
+		&failedUpdateConfig,
+	)
+	s3.Cfg = *failedUpdateConfig
+	helper.GetTFConfigWithSingleResource(
+		s4.Name,
+		*updateConfigArgs,
+		[]interface{}{originalUpdateTenant},
+		&destroyConfig,
+	)
+	s4.Cfg = *destroyConfig
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// An association API failure after tenant creation must trigger rollback.
+			// Rollback removes any associations the API applied and deletes the tenant.
+			{
+				Config:      *createConfig,
+				PreConfig:   func() { helper.LogStep(t, s1.Index, s1.Name, s1.Cfg) },
+				ExpectError: regexp.MustCompile(`(?is)(tenant fabric association request failed|fabric.*not\s+found|fabric.*does\s+not\s+exist)`),
+			},
+			// Assert rollback directly against the APIs before Terraform can
+			// perform another operation, then create the update-test baseline.
+			{
+				PreConfig: func() {
+					helper.LogStep(t, s2.Index, s2.Name, s2.Cfg)
+					assertTenantAndAssociationsAbsentOutsideTerraform(t, createTenantName)
+				},
+				Config: *originalUpdateConfig,
+				Check: resource.ComposeTestCheckFunc(
+					append(
+						TenantModelHelperStateCheck(
+							"nd_tenant.tenant_update_rollback",
+							*originalUpdateTenant,
+							path.Empty(),
+						),
+						tenantAssociationStateChecks(
+							"nd_tenant.tenant_update_rollback",
+							originalAssociationOne,
+							originalAssociationTwo,
+						)...,
+					)...,
+				),
+			},
+			// The first association update is valid and the tenant_prefix change
+			// is rejected. Update rollback must restore the complete old set and
+			// must not post the planned description.
+			{
+				Config:    *failedUpdateConfig,
+				PreConfig: func() { helper.LogStep(t, s3.Index, s3.Name, s3.Cfg) },
+				ExpectError: regexp.MustCompile(
+					`(?is)tenant\s+prefix\s+cannot\s+be\s+changed\s+unless\s+this\s+association\s+is\s+deleted\s+and\s+re-created`,
+				),
+			},
+			{
+				PreConfig: func() {
+					helper.LogStep(t, s4.Index, s4.Name, s4.Cfg)
+					assertTenantConfigurationOutsideTerraform(
+						t,
+						updateTenantName,
+						originalDescription,
+						originalAssociationOne,
+						originalAssociationTwo,
+					)
+				},
+				Config:  *destroyConfig,
+				Destroy: true,
+			},
+		},
+	})
+}
+
 func tenantAssociationStateChecks(resourceName string, associations ...resource_tenant.NDFCFabricAssociationsValue) []resource.TestCheckFunc {
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttr(resourceName, "fabric_associations.#", fmt.Sprintf("%d", len(associations))),
@@ -590,6 +789,108 @@ func newTenantTestClient(t *testing.T) nd.Client {
 	return client
 }
 
+func readTenantFabricAssociationsOutsideTerraform(t *testing.T, client *nd.Client, name string) []tenantFabricAssociationTestItem {
+	t.Helper()
+
+	tenantFabricAssocAPI := manageapi.NewTenantFabricAssociationAPI(client, ndapi.DefaultFabric)
+	respData, err := tenantFabricAssocAPI.Get()
+	if err != nil {
+		t.Fatalf("failed to read tenant fabric associations for tenant %q: %v %s", name, err, string(respData))
+	}
+
+	var associationResp tenantFabricAssociationTestListResponse
+	err = json.Unmarshal(respData, &associationResp)
+	if err != nil {
+		t.Fatalf("failed to unmarshal tenant fabric associations for tenant %q: %v", name, err)
+	}
+
+	associations := make([]tenantFabricAssociationTestItem, 0)
+	for _, association := range associationResp.TenantFabricAssociations {
+		if association.TenantName == name {
+			associations = append(associations, association)
+		}
+	}
+
+	return associations
+}
+
+func assertTenantAndAssociationsAbsentOutsideTerraform(t *testing.T, name string) {
+	t.Helper()
+
+	client := newTenantTestClient(t)
+	tenantAPI := api.NewTenantAPI(&client, ndapi.DefaultFabric)
+	tenantAPI.TenantName = name
+
+	respData, err := tenantAPI.Get()
+	if err == nil {
+		t.Fatalf("tenant %q still exists after create rollback: %s", name, string(respData))
+	}
+	if !isTenantNotFoundAPIError(err, string(respData), name) {
+		t.Fatalf("failed to verify tenant %q was removed after create rollback: %v %s", name, err, string(respData))
+	}
+
+	associations := readTenantFabricAssociationsOutsideTerraform(t, &client, name)
+	if len(associations) != 0 {
+		t.Fatalf("tenant %q still has fabric associations after create rollback: %+v", name, associations)
+	}
+}
+
+func assertTenantConfigurationOutsideTerraform(
+	t *testing.T,
+	name string,
+	expectedDescription string,
+	expectedAssociations ...resource_tenant.NDFCFabricAssociationsValue,
+) {
+	t.Helper()
+
+	client := newTenantTestClient(t)
+	tenantAPI := api.NewTenantAPI(&client, ndapi.DefaultFabric)
+	tenantAPI.TenantName = name
+
+	respData, err := tenantAPI.Get()
+	if err != nil {
+		t.Fatalf("failed to read tenant %q after update rollback: %v %s", name, err, string(respData))
+	}
+
+	var tenantResp resource_tenant.NDFCTenantModel
+	if err := json.Unmarshal(respData, &tenantResp); err != nil {
+		t.Fatalf("failed to unmarshal tenant %q after update rollback: %v", name, err)
+	}
+	if tenantResp.Description != expectedDescription {
+		t.Fatalf("tenant %q description after update rollback: expected %q, got %q", name, expectedDescription, tenantResp.Description)
+	}
+
+	actualAssociations := readTenantFabricAssociationsOutsideTerraform(t, &client, name)
+	actualByFabric := make(map[string]tenantFabricAssociationTestItem, len(actualAssociations))
+	for _, association := range actualAssociations {
+		if _, ok := actualByFabric[association.FabricName]; ok {
+			t.Fatalf("tenant %q has duplicate backend associations for fabric %q", name, association.FabricName)
+		}
+		actualByFabric[association.FabricName] = association
+	}
+
+	if len(actualByFabric) != len(expectedAssociations) {
+		t.Fatalf("tenant %q association count after update rollback: expected %d, got %d (%+v)", name, len(expectedAssociations), len(actualByFabric), actualAssociations)
+	}
+
+	for _, expected := range expectedAssociations {
+		actual, ok := actualByFabric[expected.FabricName]
+		if !ok {
+			t.Fatalf("tenant %q is missing association for fabric %q after update rollback", name, expected.FabricName)
+		}
+
+		actualVlans := append([]string(nil), actual.AllowedVlans...)
+		expectedVlans := append([]string(nil), expected.AllowedVlans...)
+		slices.Sort(actualVlans)
+		slices.Sort(expectedVlans)
+		if actual.LocalName != expected.LocalName ||
+			actual.TenantPrefix != expected.TenantPrefix ||
+			!slices.Equal(actualVlans, expectedVlans) {
+			t.Fatalf("tenant %q association for fabric %q after update rollback: expected %+v, got %+v", name, expected.FabricName, expected, actual)
+		}
+	}
+}
+
 func deleteTenantOutsideTerraform(t *testing.T, name string) {
 	t.Helper()
 
@@ -614,23 +915,9 @@ func deleteTenantOutsideTerraformRaw(t *testing.T, name string) (string, error) 
 func deleteTenantFabricAssociationsOutsideTerraform(t *testing.T, client *nd.Client, name string) {
 	t.Helper()
 
-	tenantFabricAssocAPI := manageapi.NewTenantFabricAssociationAPI(client, ndapi.DefaultFabric)
-	respData, err := tenantFabricAssocAPI.Get()
-	if err != nil {
-		t.Fatalf("failed to read tenant fabric associations before deleting tenant %q outside Terraform: %v %s", name, err, string(respData))
-	}
-
-	var associationResp tenantFabricAssociationTestListResponse
-	err = json.Unmarshal(respData, &associationResp)
-	if err != nil {
-		t.Fatalf("failed to unmarshal tenant fabric associations before deleting tenant %q outside Terraform: %v", name, err)
-	}
-
+	associations := readTenantFabricAssociationsOutsideTerraform(t, client, name)
 	payload := tenantFabricAssociationTestPayload{}
-	for _, association := range associationResp.TenantFabricAssociations {
-		if association.TenantName != name {
-			continue
-		}
+	for _, association := range associations {
 		association.Associate = false
 		payload.Items = append(payload.Items, association)
 	}
@@ -643,6 +930,7 @@ func deleteTenantFabricAssociationsOutsideTerraform(t *testing.T, client *nd.Cli
 		t.Fatalf("failed to marshal tenant fabric association delete payload for tenant %q: %v", name, err)
 	}
 
+	tenantFabricAssocAPI := manageapi.NewTenantFabricAssociationAPI(client, ndapi.DefaultFabric)
 	res, err := tenantFabricAssocAPI.Post(payloadBytes, nil)
 	if err != nil {
 		t.Fatalf("failed to delete tenant fabric associations for tenant %q outside Terraform: %v %s", name, err, res.String())

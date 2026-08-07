@@ -41,7 +41,7 @@ resource "nd_tenant" "test_resource_tenant_1" {
 
 ### Read-Only
 
-- `id` (String) The unique identifier of the terraform resource.
+- `id` (String) The unique identifier for the resource, it is the name of the tenant (for example, tenant1).
 
 <a id="nestedatt--fabric_associations"></a>
 ### Nested Schema for `fabric_associations`
@@ -54,4 +54,4 @@ Optional:
 
 - `allowed_vlans` (Set of String) The list of allowed VLANs for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.
 - `local_name` (String) The local name for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.
-- `tenant_prefix` (String) The tenant prefix for ACI fabrics is immutable. To change it, delete and recreate the fabric association.
+- `tenant_prefix` (String) The tenant prefix for ACI fabrics. This attribute is immutable. To change it, delete and recreate the fabric association.

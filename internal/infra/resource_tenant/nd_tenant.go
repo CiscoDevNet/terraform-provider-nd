@@ -1,3 +1,11 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+// SPDX-License-Identifier: MPL-2.0
+
 package resource_tenant
 
 import (
@@ -13,7 +21,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 )
 
-// rscCreateTenant creates a tenant resource.
+// rscCreateTenant posts the tenant first, followed by its fabric associations.
+// If any association fails, it removes all tenant associations and deletes the
+// newly created tenant so the resource is not left partially created.
 func (r *tenantResource) rscCreateTenant(ctx context.Context, dg *diag.Diagnostics, input *TenantModel) {
 	if input == nil {
 		dg.AddError(
@@ -59,8 +69,28 @@ func (r *tenantResource) rscCreateTenant(ctx context.Context, dg *diag.Diagnosti
 		associationPayload.Items = append(associationPayload.Items, newTenantFabricAssociationItem(id, association, true))
 	}
 
-	r.rscPostTenantFabricAssociations(dg, associationPayload)
-	if dg.HasError() {
+	var associationDiags diag.Diagnostics
+	r.rscPostTenantFabricAssociations(&associationDiags, associationPayload)
+	if associationDiags.HasError() {
+		log.Printf("[ERROR] Fabric association creation failed for tenant id=%s; rolling back tenant creation", id)
+
+		// Use separate diagnostics for rollback. The association diagnostics
+		// already contain an error, and passing them to the delete helpers would
+		// cause their HasError checks to stop cleanup before the tenant is deleted.
+		var rollbackDiags diag.Diagnostics
+		r.rscDeleteTenant(ctx, &rollbackDiags, input)
+
+		dg.Append(associationDiags...)
+		if rollbackDiags.HasError() {
+			dg.AddError(
+				"Error Rolling Back Tenant Creation",
+				fmt.Sprintf("Tenant %q was created, but fabric association creation failed and the tenant could not be completely removed. Manual cleanup may be required.", id),
+			)
+			dg.Append(rollbackDiags...)
+			return
+		}
+
+		log.Printf("[INFO] Rolled back tenant creation after fabric association failure: id=%s", id)
 		return
 	}
 
@@ -125,7 +155,36 @@ func (r *tenantResource) rscGetTenant(ctx context.Context, dg *diag.Diagnostics,
 	return false
 }
 
-// rscUpdateTenant updates a tenant resource.
+// rscPutTenant updates the tenant fields handled by the infra tenant API.
+func (r *tenantResource) rscPutTenant(dg *diag.Diagnostics, tenantModel *TenantModel, errorSummary string) {
+	id := tenantModel.Id.ValueString()
+	inData := tenantModel.GetModelData()
+	tenantAPI := api.NewTenantAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
+	tenantAPI.TenantName = id
+
+	inDataBytes, err := json.Marshal(inData)
+	if err != nil {
+		dg.AddError(
+			errorSummary,
+			fmt.Sprintf("Could not update tenant, Data Marshall error: %s", err.Error()),
+		)
+		log.Printf("[ERROR] %s id=%s: error=%s", errorSummary, id, err.Error())
+		return
+	}
+
+	res, err := tenantAPI.Put(inDataBytes, nil)
+	if err != nil {
+		dg.AddError(
+			errorSummary,
+			fmt.Sprintf("Could not update tenant, unexpected error: %s %s", err.Error(), res.String()),
+		)
+		log.Printf("[ERROR] %s id=%s: error=%s", errorSummary, id, err.Error())
+	}
+}
+
+// rscUpdateTenant posts fabric association changes before updating description.
+// If any association fails, it restores the complete previous association set
+// and returns without changing the tenant description.
 func (r *tenantResource) rscUpdateTenant(ctx context.Context, dg *diag.Diagnostics, oldState *TenantModel, tenantModel *TenantModel) {
 	if tenantModel == nil {
 		dg.AddError(
@@ -137,35 +196,36 @@ func (r *tenantResource) rscUpdateTenant(ctx context.Context, dg *diag.Diagnosti
 
 	id := tenantModel.Id.ValueString()
 
-	if oldState != nil && !oldState.Description.Equal(tenantModel.Description) {
-		inData := tenantModel.GetModelData()
-		tenantAPI := api.NewTenantAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
-		tenantAPI.TenantName = id
+	var associationDiags diag.Diagnostics
+	r.rscSyncConfiguredTenantFabricAssociations(ctx, &associationDiags, oldState, tenantModel)
+	if associationDiags.HasError() {
+		log.Printf("[ERROR] Fabric association update failed for tenant id=%s; rolling back tenant update", id)
 
-		inDataBytes, err := json.Marshal(inData)
-		if err != nil {
+		// The association endpoint can partially apply a multi-item request. Read
+		// the backend and reconcile it to the complete association set from the
+		// previous Terraform state.
+		var associationRollbackDiags diag.Diagnostics
+		r.rscRestoreTenantFabricAssociations(ctx, &associationRollbackDiags, oldState)
+
+		dg.Append(associationDiags...)
+		if associationRollbackDiags.HasError() {
 			dg.AddError(
-				"Error Updating Tenant",
-				fmt.Sprintf("Could not update tenant, Data Marshall error: %s", err.Error()),
+				"Error Rolling Back Tenant Fabric Associations",
+				fmt.Sprintf("The fabric association update for tenant %q failed and the previous association configuration could not be completely restored. Manual cleanup may be required.", id),
 			)
-			log.Printf("[ERROR] Error Updating Tenant id=%s: error=%s", id, err.Error())
+			dg.Append(associationRollbackDiags...)
 			return
 		}
 
-		res, err := tenantAPI.Put(inDataBytes, nil)
-		if err != nil {
-			dg.AddError(
-				"Error Updating Tenant",
-				fmt.Sprintf("Could not update tenant, unexpected error: %s %s", err.Error(), res.String()),
-			)
-			log.Printf("[ERROR] Error Updating Tenant id=%s: error=%s", id, err.Error())
-			return
-		}
+		log.Printf("[INFO] Rolled back tenant fabric associations after update failure: id=%s", id)
+		return
 	}
 
-	r.rscSyncConfiguredTenantFabricAssociations(ctx, dg, oldState, tenantModel)
-	if dg.HasError() {
-		return
+	if oldState != nil && !oldState.Description.Equal(tenantModel.Description) {
+		r.rscPutTenant(dg, tenantModel, "Error Updating Tenant")
+		if dg.HasError() {
+			return
+		}
 	}
 
 	if r.rscGetTenant(ctx, dg, tenantModel) {
@@ -177,7 +237,9 @@ func (r *tenantResource) rscUpdateTenant(ctx context.Context, dg *diag.Diagnosti
 	}
 }
 
-// rscDeleteTenant deletes a tenant resource by name.
+// rscDeleteTenant removes all backend fabric associations before deleting the tenant.
+// If association removal fails, it returns without deleting the tenant; otherwise,
+// it deletes the tenant and treats an already-missing tenant as successfully removed.
 func (r *tenantResource) rscDeleteTenant(ctx context.Context, dg *diag.Diagnostics, state *TenantModel) {
 	if state == nil {
 		dg.AddError(
