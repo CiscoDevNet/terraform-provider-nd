@@ -3,32 +3,32 @@
 page_title: "nd_fabric_aci Resource - terraform-provider-nd"
 subcategory: ""
 description: |-
-  
+  Manages Fabric ACI for Nexus Dashboard.
+  Environment variables use the uppercase fabric_name with hyphens replaced by underscores as the prefix; for example, tf-apic1 becomes TF_APIC1. <FABRIC_PREFIX>_FORCE is a Boolean for forced destroy (default: false).
 ---
 
 # nd_fabric_aci (Resource)
 
+Manages Fabric ACI for Nexus Dashboard.
 
+Environment variables use the uppercase `fabric_name` with hyphens replaced by underscores as the prefix; for example, `tf-apic1` becomes `TF_APIC1`. `<FABRIC_PREFIX>_FORCE` is a Boolean for forced destroy (default: `false`).
 
 ## Example Usage
 
 ```terraform
 resource "nd_fabric_aci" "test_resource_fabric_aci_1" {
-  hostname                     = "198.18.133.101"
-  latitude                     = 37.3
-  longitude                    = -121.8
-  username                     = "admin"
-  password                     = "C1sco12345"
-  login_domain                 = "DefaultAuth"
-  fabric_name                  = "apic1"
-  license_tier                 = "essentials"
-  telemetry_status             = "enabled"
-  telemetry_network            = "outband"
-  telemetry_epg                = "uni/tn-mgmt/mgmtp-default/inb-nd-inb-mgmt"
-  telemetry_streaming_protocol = "ipv4"
-  orchestration_status         = "disabled"
-  security_domain              = "all"
-  verify_ca                    = false
+  hostname             = "1.1.1.1"
+  latitude             = 37.3
+  longitude            = -121.8
+  username             = "admin"
+  password             = "**********"
+  login_domain         = "DefaultAuth"
+  fabric_name          = "apic1"
+  license_tier         = "premier"
+  telemetry_status     = "disabled"
+  orchestration_status = "disabled"
+  security_domain      = "all"
+  verify_ca            = false
 }
 ```
 
@@ -38,24 +38,44 @@ resource "nd_fabric_aci" "test_resource_fabric_aci_1" {
 ### Required
 
 - `fabric_name` (String) The name of the APIC cluster.
-- `hostname` (String) The IP address or Hostname of the APIC cluster.
-- `password` (String, Sensitive) The password of the APIC cluster.
-- `username` (String, Sensitive) The username of the APIC cluster.
+- `hostname` (String) The IP address or hostname of the APIC cluster. Do not include the protocol (`http://` or `https://`) in the value.
+- `password` (String, Sensitive) The APIC password. The API does not return this value during import, so set `<FABRIC_PREFIX>_PASSWORD` to store it in state. If unset during import, run `terraform apply` before destroy.
+- `username` (String, Sensitive) The APIC username. The API does not return this value during import, so set `<FABRIC_PREFIX>_USERNAME` to store it in state. If unset during import, run `terraform apply` before destroy.
 
 ### Optional
 
 - `latitude` (Number) The latitude coordinate of the APIC cluster.
-- `license_tier` (String) The license tier of the APIC cluster. Allowed values are essentials, or advantage, or premier.
-- `login_domain` (String, Sensitive) The login domain of the APIC cluster.
+- `license_tier` (String) The license tier of the APIC cluster. Allowed values are `essentials`, or `advantage`, or `premier`.
+- `login_domain` (String, Sensitive) The APIC login domain. The API does not return this value during import, so set `<FABRIC_PREFIX>_LOGIN_DOMAIN` to store it in state. If unset during import, run `terraform apply` before destroy when the configured login domain is required.
 - `longitude` (Number) The longitude coordinate of the APIC cluster.
-- `orchestration_status` (String) The status of the orchestration feature for the APIC cluster. Allowed values are enabled or disabled. Defaults to disabled when unset during creation.
-- `security_domain` (String) The name of the security domain for the APIC cluster. Defaults to all when unset during creation.
-- `telemetry_epg` (String) The APIC End Point Group (EPG) Distinguished Name (DN) used by inband telemetry.
-- `telemetry_network` (String) The network type for telemetry collection. Allowed values are inband or outband.
-- `telemetry_status` (String) The status of telemetry collection for the APIC cluster. Allowed values are enabled or disabled. Defaults to disabled when unset during creation.
-- `telemetry_streaming_protocol` (String) The streaming protocol used for telemetry collection. Allowed values are ipv4 or ipv6. Defaults to ipv4 when unset during creation.
-- `verify_ca` (Boolean) This validates that connected host certificates are signed by a trusted Certificate Authority (CA). Defaults to false when unset during creation.
+- `orchestration_status` (String) The status of the orchestration feature for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when unset during creation.
+- `security_domain` (String) The name of the security domain for the APIC cluster. Defaults to `all` when unset during creation.
+- `telemetry_epg` (String) The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.
+- `telemetry_network` (String) The network type for telemetry collection. Allowed values are `inband` or `outband`.
+- `telemetry_status` (String) The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when unset during creation.
+- `telemetry_streaming_protocol` (String) The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Defaults to `ipv4` when unset during creation.
+- `verify_ca` (Boolean) This validates that connected host certificates are signed by a trusted Certificate Authority (CA). Defaults to `false` when not specified in the configuration.
 
 ### Read-Only
 
-- `id` (String) The unique identifier of the terraform resource.
+- `id` (String) The unique identifier for the resource, it is the name of the fabric aci (for example, apic1).
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Import by fabric_name. Environment variables use its uppercase value with
+# hyphens replaced by underscores; for example, apic1 uses APIC1.
+# Credential variables are optional and, when set, are stored in imported state.
+# export APIC1_USERNAME="admin"
+# export APIC1_PASSWORD="<password>"
+# export APIC1_LOGIN_DOMAIN="DefaultAuth"
+#
+# If username or password is omitted, configure it and run terraform apply
+# before destroy. For forced destroy, set this Boolean and unset it afterward:
+# export APIC1_FORCE="true"
+terraform import nd_fabric_aci.test_resource_fabric_aci_1 apic1
+```

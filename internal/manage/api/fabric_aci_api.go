@@ -32,10 +32,11 @@ type FabricAciAPI struct {
 	Delete      bool
 }
 
-func NewFabricAciAPI(client *nd.Client) *FabricAciAPI {
+func NewFabricAciAPI(client *nd.Client, fabric string) *FabricAciAPI {
 	papi := new(FabricAciAPI)
 	papi.Client = client
 	papi.NexusDashboardAPI = papi
+	papi.Fabric = fabric
 	return papi
 }
 

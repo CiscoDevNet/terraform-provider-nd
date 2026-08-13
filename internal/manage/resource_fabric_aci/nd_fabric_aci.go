@@ -14,10 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-type aciClusterListResponse struct {
-	Clusters []aciClusterResponse `json:"clusters,omitempty"`
-}
-
 type aciClusterResponse struct {
 	Spec aciClusterResponseSpec `json:"spec,omitempty"`
 }
@@ -27,9 +23,13 @@ type aciClusterResponseSpec struct {
 	FabricName string `json:"name,omitempty"`
 }
 
+type aciClusterCreatePayload struct {
+	Spec NDFCSpecValue `json:"spec,omitempty"`
+}
+
 type aciClusterRemovePayload struct {
 	Credentials NDFCSpecCredentialsValue `json:"credentials"`
-	Force       bool                     `json:"force,omitempty"`
+	Force       bool                     `json:"force"`
 }
 
 func (r aciClusterResponse) modelData() NDFCFabricAciModel {
@@ -43,21 +43,17 @@ func (r aciClusterResponse) modelData() NDFCFabricAciModel {
 }
 
 // rscCreateFabricAci creates a fabric ACI resource.
-func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Diagnostics, input *FabricAciModel) {
-	if input == nil {
-		dg.AddError(
-			"Invalid Input",
-			"The input model is nil",
-		)
-		return
-	}
+func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Diagnostics, fabricAciModel *FabricAciModel) {
+	id := fabricAciModel.Id.ValueString()
+	log.Printf("[INFO] Create nd_fabric_aci id=%s", id)
 
-	inData := input.GetModelData()
+	inData := fabricAciModel.GetModelData()
 	inData.Spec.ClusterType = "APIC"
+	createPayload := aciClusterCreatePayload{Spec: inData.Spec}
 
-	clusterAPI := api.NewFabricAciAPI(r.manageClient.ApiClient)
+	clusterAPI := api.NewFabricAciAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 
-	clusterPayload, err := json.Marshal(inData)
+	clusterPayload, err := json.Marshal(createPayload)
 	if err != nil {
 		dg.AddError(
 			"Error Creating Fabric ACI",
@@ -66,7 +62,7 @@ func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Dia
 		return
 	}
 
-	res, err := clusterAPI.Post(clusterPayload, &ndapi.APIOptions{DisablePayloadLog: true})
+	res, err := clusterAPI.Post(clusterPayload, &ndapi.APIOptions{DisablePayloadLog: false})
 	if err != nil {
 		dg.AddError(
 			"Error Creating Fabric ACI",
@@ -75,29 +71,38 @@ func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Dia
 		return
 	}
 
-	if r.rscGetFabricAci(ctx, dg, input) {
+	if r.rscGetFabricAci(ctx, dg, fabricAciModel) && !dg.HasError() {
 		dg.AddError(
 			"Error Reading Fabric ACI",
-			"Could not read fabric ACI after create because it was not found.",
+			fmt.Sprintf("Could not read nd_fabric_aci %q after create: resource not found", id),
 		)
 	}
 }
 
-// rscGetFabricAci retrieves fabric ACI information by name.
-func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagnostics, in *FabricAciModel) bool {
-	preservedUsername := in.Username
-	preservedPassword := in.Password
-	preservedLoginDomain := in.LoginDomain
+// rscGetFabricAci retrieves fabric ACI information by id.
+// It returns true when the remote object was not found.
+func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagnostics, fabricAciModel *FabricAciModel) bool {
+	id := fabricAciModel.Id.ValueString()
+	log.Printf("[INFO] Read nd_fabric_aci id=%s", id)
+
+	preservedUsername := fabricAciModel.Username
+	preservedPassword := fabricAciModel.Password
+	preservedLoginDomain := fabricAciModel.LoginDomain
 	if preservedLoginDomain.IsUnknown() {
 		preservedLoginDomain = types.StringNull()
 	}
 
-	clusterAPI := api.NewFabricAciAPI(r.manageClient.ApiClient)
-	clusterAPI.ClusterName = in.FabricName.ValueString()
+	preservedVerifyCa := fabricAciModel.VerifyCa
+	if preservedVerifyCa.IsUnknown() {
+		preservedVerifyCa = types.BoolNull()
+	}
+
+	clusterAPI := api.NewFabricAciAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
+	clusterAPI.ClusterName = id
 	respData, err := clusterAPI.Get()
 
 	if err != nil {
-		if isNotFoundError(err) {
+		if strings.Contains(err.Error(), "StatusCode 404") {
 			return true
 		}
 		dg.AddError(
@@ -106,36 +111,9 @@ func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagno
 		)
 		return false
 	}
-
-	if clusterAPI.ClusterName == "" {
-		var clustersResp aciClusterListResponse
-		err = json.Unmarshal(respData, &clustersResp)
-		if err != nil {
-			dg.AddError(
-				"Error Reading Fabric ACI",
-				fmt.Sprintf("Could not unmarshal fabric ACI response, unexpected error: %v", err),
-			)
-			return false
-		}
-
-		hostname := in.Hostname.ValueString()
-		for _, cluster := range clustersResp.Clusters {
-			modelData := cluster.modelData()
-			if modelData.Spec.Hostname == hostname && modelData.Spec.ClusterType == "APIC" {
-				in.SetModelData(&modelData)
-				in.NormalizeTelemetryNetworkState()
-				in.Username = preservedUsername
-				in.Password = preservedPassword
-				in.LoginDomain = preservedLoginDomain
-				return false
-			}
-		}
-
-		dg.AddError(
-			"Error Reading Fabric ACI",
-			fmt.Sprintf("Could not find cluster with onboardUrl %q and clusterType APIC in the response", hostname),
-		)
-		return false
+	if respData == nil {
+		log.Printf("[WARN] nd_fabric_aci id=%s not found: empty response", id)
+		return true
 	}
 
 	var clusterResp aciClusterResponse
@@ -149,37 +127,29 @@ func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagno
 	}
 
 	modelData := clusterResp.modelData()
-	in.SetModelData(&modelData)
-	in.NormalizeTelemetryNetworkState()
+	dg.Append(fabricAciModel.SetModelData(&modelData)...)
+	if dg.HasError() {
+		return false
+	}
+	fabricAciModel.NormalizeTelemetryNetworkState()
 
-	in.Username = preservedUsername
-	in.Password = preservedPassword
-	in.LoginDomain = preservedLoginDomain
+	fabricAciModel.Username = preservedUsername
+	fabricAciModel.Password = preservedPassword
+	fabricAciModel.LoginDomain = preservedLoginDomain
+	fabricAciModel.VerifyCa = preservedVerifyCa
+	fabricAciModel.Id = types.StringValue(id)
 	return false
 }
 
 // rscUpdateFabricAci updates a fabric ACI resource.
-func (r *fabricAciResource) rscUpdateFabricAci(ctx context.Context, dg *diag.Diagnostics, clusterModel *FabricAciModel) {
-	if clusterModel == nil {
-		dg.AddError(
-			"Invalid Input",
-			"The input model is nil",
-		)
-		return
-	}
+func (r *fabricAciResource) rscUpdateFabricAci(ctx context.Context, dg *diag.Diagnostics, plan *FabricAciModel) {
+	id := plan.Id.ValueString()
+	log.Printf("[INFO] Update nd_fabric_aci id=%s", id)
 
-	if clusterModel.FabricName.IsNull() || clusterModel.FabricName.IsUnknown() || clusterModel.FabricName.ValueString() == "" {
-		dg.AddError(
-			"Invalid Input",
-			"The fabric_name value is required to update fabric ACI.",
-		)
-		return
-	}
+	inData := plan.GetManageModelData()
 
-	inData := clusterModel.GetManageModelData()
-
-	clusterAPI := api.NewFabricAciAPI(r.manageClient.ApiClient)
-	clusterAPI.ClusterName = clusterModel.FabricName.ValueString()
+	clusterAPI := api.NewFabricAciAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
+	clusterAPI.ClusterName = id
 
 	inDataBytes, err := json.Marshal(inData)
 	if err != nil {
@@ -187,7 +157,7 @@ func (r *fabricAciResource) rscUpdateFabricAci(ctx context.Context, dg *diag.Dia
 			"Error Updating Fabric ACI",
 			fmt.Sprintf("Could not update fabric ACI, Data Marshall error: %v", err),
 		)
-		log.Printf("[ERROR] Error Updating Fabric ACI: error=%s", err.Error())
+		log.Printf("[ERROR] Error Updating Fabric ACI id=%s: error=%s", id, err.Error())
 		return
 	}
 
@@ -197,34 +167,31 @@ func (r *fabricAciResource) rscUpdateFabricAci(ctx context.Context, dg *diag.Dia
 			"Error Updating Fabric ACI",
 			fmt.Sprintf("Could not update fabric ACI, unexpected error: %v %v", err, res),
 		)
-		log.Printf("[ERROR] Error Updating Fabric ACI: error=%s", err.Error())
+		log.Printf("[ERROR] Error Updating Fabric ACI id=%s: error=%s", id, err.Error())
 		return
 	}
 
-	if r.rscGetFabricAci(ctx, dg, clusterModel) {
+	if r.rscGetFabricAci(ctx, dg, plan) && !dg.HasError() {
 		dg.AddError(
 			"Error Reading Fabric ACI",
-			"Could not read fabric ACI after update because it was not found.",
+			fmt.Sprintf("Could not read nd_fabric_aci %q after update: resource not found", id),
 		)
 	}
 }
 
-// rscDeleteFabricAci deletes a fabric ACI resource by name.
-func (r *fabricAciResource) rscDeleteFabricAci(_ context.Context, dg *diag.Diagnostics, state *FabricAciModel) {
+// rscDeleteFabricAci deletes a fabric ACI resource by id.
+func (r *fabricAciResource) rscDeleteFabricAci(_ context.Context, dg *diag.Diagnostics, fabricAciModel *FabricAciModel, force bool) {
+	id := fabricAciModel.Id.ValueString()
+	log.Printf("[INFO] Delete nd_fabric_aci id=%s", id)
 
-	clusterAPI := api.NewFabricAciAPI(r.manageClient.ApiClient)
-	clusterAPI.ClusterName = state.FabricName.ValueString()
+	clusterAPI := api.NewFabricAciAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
+	clusterAPI.ClusterName = id
 	clusterAPI.Delete = true
 
+	modelData := fabricAciModel.GetModelData()
 	removePayload := aciClusterRemovePayload{
-		Credentials: NDFCSpecCredentialsValue{
-			Username: state.Username.ValueString(),
-			Password: state.Password.ValueString(),
-		},
-	}
-
-	if !state.LoginDomain.IsNull() && !state.LoginDomain.IsUnknown() {
-		removePayload.Credentials.LoginDomain = state.LoginDomain.ValueString()
+		Credentials: modelData.Spec.Credentials,
+		Force:       force,
 	}
 
 	payload, err := json.Marshal(removePayload)
@@ -236,17 +203,16 @@ func (r *fabricAciResource) rscDeleteFabricAci(_ context.Context, dg *diag.Diagn
 		return
 	}
 
-	res, err := clusterAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true})
+	res, err := clusterAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: false})
 	if err != nil {
+		if strings.Contains(err.Error(), "StatusCode 404") {
+			return
+		}
 		dg.AddError(
 			"Error Deleting Fabric ACI",
 			fmt.Sprintf("Could not delete fabric ACI, unexpected error: %v %v", err, res),
 		)
-		log.Printf("[ERROR] Error Deleting Fabric ACI: error=%s", err.Error())
+		log.Printf("[ERROR] Error Deleting Fabric ACI id=%s: error=%s", id, err.Error())
 		return
 	}
-}
-
-func isNotFoundError(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "StatusCode 404")
 }

@@ -5,11 +5,13 @@ package resource_fabric_aci
 import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
@@ -27,16 +29,19 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"hostname": schema.StringAttribute{
 				Required:            true,
-				Description:         "The IP address or Hostname of the APIC cluster.",
-				MarkdownDescription: "The IP address or Hostname of the APIC cluster.",
+				Description:         "The IP address or hostname of the APIC cluster. Do not include the protocol (`http://` or `https://`) in the value.",
+				MarkdownDescription: "The IP address or hostname of the APIC cluster. Do not include the protocol (`http://` or `https://`) in the value.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`^[^/]+$`), "must be an IP address or hostname without http:// or https://"),
 				},
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
-				Description:         "The unique identifier of the terraform resource.",
-				MarkdownDescription: "The unique identifier of the terraform resource.",
+				Description:         "The unique identifier for the resource, it is the name of the fabric aci (for example, apic1).",
+				MarkdownDescription: "The unique identifier for the resource, it is the name of the fabric aci (for example, apic1).",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -50,8 +55,8 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 			"license_tier": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "The license tier of the APIC cluster. Allowed values are essentials, or advantage, or premier.",
-				MarkdownDescription: "The license tier of the APIC cluster. Allowed values are essentials, or advantage, or premier.",
+				Description:         "The license tier of the APIC cluster. Allowed values are `essentials`, or `advantage`, or `premier`.",
+				MarkdownDescription: "The license tier of the APIC cluster. Allowed values are `essentials`, or `advantage`, or `premier`.",
 				Validators: []validator.String{
 					stringvalidator.OneOf("essentials", "advantage", "premier"),
 				},
@@ -60,8 +65,8 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 				Optional:            true,
 				Computed:            true,
 				Sensitive:           true,
-				Description:         "The login domain of the APIC cluster.",
-				MarkdownDescription: "The login domain of the APIC cluster.",
+				Description:         "The APIC login domain. The API does not return this value during import, so set `<FABRIC_PREFIX>_LOGIN_DOMAIN` to store it in state. If unset during import, run `terraform apply` before destroy when the configured login domain is required.",
+				MarkdownDescription: "The APIC login domain. The API does not return this value during import, so set `<FABRIC_PREFIX>_LOGIN_DOMAIN` to store it in state. If unset during import, run `terraform apply` before destroy when the configured login domain is required.",
 			},
 			"longitude": schema.Float64Attribute{
 				Optional:            true,
@@ -72,8 +77,8 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 			"orchestration_status": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "The status of the orchestration feature for the APIC cluster. Allowed values are enabled or disabled. Defaults to disabled when unset during creation.",
-				MarkdownDescription: "The status of the orchestration feature for the APIC cluster. Allowed values are enabled or disabled. Defaults to disabled when unset during creation.",
+				Description:         "The status of the orchestration feature for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when unset during creation.",
+				MarkdownDescription: "The status of the orchestration feature for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when unset during creation.",
 				Validators: []validator.String{
 					stringvalidator.OneOf("enabled", "disabled"),
 				},
@@ -82,30 +87,27 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 			"password": schema.StringAttribute{
 				Required:            true,
 				Sensitive:           true,
-				Description:         "The password of the APIC cluster.",
-				MarkdownDescription: "The password of the APIC cluster.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
+				Description:         "The APIC password. The API does not return this value during import, so set `<FABRIC_PREFIX>_PASSWORD` to store it in state. If unset during import, run `terraform apply` before destroy.",
+				MarkdownDescription: "The APIC password. The API does not return this value during import, so set `<FABRIC_PREFIX>_PASSWORD` to store it in state. If unset during import, run `terraform apply` before destroy.",
 			},
 			"security_domain": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "The name of the security domain for the APIC cluster. Defaults to all when unset during creation.",
-				MarkdownDescription: "The name of the security domain for the APIC cluster. Defaults to all when unset during creation.",
+				Description:         "The name of the security domain for the APIC cluster. Defaults to `all` when unset during creation.",
+				MarkdownDescription: "The name of the security domain for the APIC cluster. Defaults to `all` when unset during creation.",
 				Default:             stringdefault.StaticString("all"),
 			},
 			"telemetry_epg": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "The APIC End Point Group (EPG) Distinguished Name (DN) used by inband telemetry.",
-				MarkdownDescription: "The APIC End Point Group (EPG) Distinguished Name (DN) used by inband telemetry.",
+				Description:         "The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.",
+				MarkdownDescription: "The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.",
 			},
 			"telemetry_network": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "The network type for telemetry collection. Allowed values are inband or outband.",
-				MarkdownDescription: "The network type for telemetry collection. Allowed values are inband or outband.",
+				Description:         "The network type for telemetry collection. Allowed values are `inband` or `outband`.",
+				MarkdownDescription: "The network type for telemetry collection. Allowed values are `inband` or `outband`.",
 				Validators: []validator.String{
 					stringvalidator.OneOf("inband", "outband"),
 				},
@@ -113,8 +115,8 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 			"telemetry_status": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "The status of telemetry collection for the APIC cluster. Allowed values are enabled or disabled. Defaults to disabled when unset during creation.",
-				MarkdownDescription: "The status of telemetry collection for the APIC cluster. Allowed values are enabled or disabled. Defaults to disabled when unset during creation.",
+				Description:         "The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when unset during creation.",
+				MarkdownDescription: "The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when unset during creation.",
 				Validators: []validator.String{
 					stringvalidator.OneOf("enabled", "disabled"),
 				},
@@ -123,8 +125,8 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 			"telemetry_streaming_protocol": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "The streaming protocol used for telemetry collection. Allowed values are ipv4 or ipv6. Defaults to ipv4 when unset during creation.",
-				MarkdownDescription: "The streaming protocol used for telemetry collection. Allowed values are ipv4 or ipv6. Defaults to ipv4 when unset during creation.",
+				Description:         "The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Defaults to `ipv4` when unset during creation.",
+				MarkdownDescription: "The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Defaults to `ipv4` when unset during creation.",
 				Validators: []validator.String{
 					stringvalidator.OneOf("ipv4", "ipv6"),
 				},
@@ -132,19 +134,19 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 			"username": schema.StringAttribute{
 				Required:            true,
 				Sensitive:           true,
-				Description:         "The username of the APIC cluster.",
-				MarkdownDescription: "The username of the APIC cluster.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
+				Description:         "The APIC username. The API does not return this value during import, so set `<FABRIC_PREFIX>_USERNAME` to store it in state. If unset during import, run `terraform apply` before destroy.",
+				MarkdownDescription: "The APIC username. The API does not return this value during import, so set `<FABRIC_PREFIX>_USERNAME` to store it in state. If unset during import, run `terraform apply` before destroy.",
 			},
 			"verify_ca": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "This validates that connected host certificates are signed by a trusted Certificate Authority (CA). Defaults to false when unset during creation.",
-				MarkdownDescription: "This validates that connected host certificates are signed by a trusted Certificate Authority (CA). Defaults to false when unset during creation.",
+				Description:         "This validates that connected host certificates are signed by a trusted Certificate Authority (CA). Defaults to `false` when not specified in the configuration.",
+				MarkdownDescription: "This validates that connected host certificates are signed by a trusted Certificate Authority (CA). Defaults to `false` when not specified in the configuration.",
+				Default:             booldefault.StaticBool(false),
 			},
 		},
+		Description:         "Manages Fabric ACI for Nexus Dashboard.\n\nEnvironment variables use the uppercase `fabric_name` with hyphens replaced by underscores as the prefix; for example, `tf-apic1` becomes `TF_APIC1`. `<FABRIC_PREFIX>_FORCE` is a Boolean for forced destroy (default: `false`).\n",
+		MarkdownDescription: "Manages Fabric ACI for Nexus Dashboard.\n\nEnvironment variables use the uppercase `fabric_name` with hyphens replaced by underscores as the prefix; for example, `tf-apic1` becomes `TF_APIC1`. `<FABRIC_PREFIX>_FORCE` is a Boolean for forced destroy (default: `false`).\n",
 	}
 }
 

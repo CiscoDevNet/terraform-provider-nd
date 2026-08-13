@@ -1,0 +1,28 @@
+{{define "ND_FABRIC_ACI_RSC"}}
+resource "nd_fabric_aci" "{{.RscName}}" {
+{{with .FabricAci}}
+    fabric_name = "{{.Spec.Aci.FabricName}}"
+    hostname = "{{.Spec.Hostname}}"
+    username = "{{.Spec.Credentials.Username}}"
+    password = "{{.Spec.Credentials.Password}}"
+    {{- if .Spec.Location.Latitude}}
+    latitude = {{deref_float64 .Spec.Location.Latitude}}
+    {{- end}}
+    {{- if .Spec.Location.Longitude}}
+    longitude = {{deref_float64 .Spec.Location.Longitude}}
+    {{- end}}
+    {{- if .Spec.Aci.VerifyCa}}
+    verify_ca = {{deref_bool .Spec.Aci.VerifyCa}}
+    {{- end}}
+    {{- if .Spec.Aci.SecurityDomain}}
+    security_domain = "{{.Spec.Aci.SecurityDomain}}"
+    {{- end}}
+    {{- if .Spec.Aci.LicenseTier}}
+    license_tier = "{{.Spec.Aci.LicenseTier}}"
+    {{- end}}
+    {{- if .Spec.Aci.Orchestration.OrchestrationStatus}}
+    orchestration_status = "{{.Spec.Aci.Orchestration.OrchestrationStatus}}"
+    {{- end}}
+{{end}}
+}
+{{end}}

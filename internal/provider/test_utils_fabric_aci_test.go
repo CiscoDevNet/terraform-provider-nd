@@ -65,6 +65,8 @@ func FabricAciModelHelperStateCheck(RscName string, c resource_fabric_aci.NDFCFa
 	}
 	if c.Spec.Aci.VerifyCa != nil {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("verify_ca").String(), strconv.FormatBool(*c.Spec.Aci.VerifyCa)))
+	} else {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("verify_ca").String(), "false"))
 	}
 	return ret
 }

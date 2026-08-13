@@ -3,7 +3,6 @@ package resource_fabric_aci
 import (
 	"terraform-provider-nd/internal/common/utils"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -80,48 +79,6 @@ func (v FabricAciModel) GetManageModelData() *NDFCFabricAciManageModel {
 	}
 
 	return data
-}
-
-func (v *FabricAciModel) SetManageModelData(jsonData *NDFCFabricAciManageModel) diag.Diagnostics {
-	var diags diag.Diagnostics
-	if jsonData == nil {
-		return diags
-	}
-
-	if jsonData.FabricName != "" {
-		v.FabricName = types.StringValue(jsonData.FabricName)
-	}
-	if jsonData.LicenseTier != "" {
-		v.LicenseTier = types.StringValue(jsonData.LicenseTier)
-	}
-	if jsonData.SecurityDomain != "" {
-		v.SecurityDomain = types.StringValue(jsonData.SecurityDomain)
-	}
-	if jsonData.TelemetryCollection != nil {
-		v.TelemetryStatus = types.StringValue(utils.BoolToEnabledDisabled(*jsonData.TelemetryCollection))
-	}
-	if jsonData.TelemetryCollectionType != "" {
-		v.TelemetryNetwork = types.StringValue(normalizeTelemetryNetworkState(jsonData.TelemetryCollectionType))
-	}
-	if jsonData.TelemetryStreamingProtocol != "" {
-		v.TelemetryStreamingProtocol = types.StringValue(jsonData.TelemetryStreamingProtocol)
-	}
-	if jsonData.Location != nil && jsonData.Location.Latitude != nil {
-		v.Latitude = types.Float64Value(*jsonData.Location.Latitude)
-	}
-	if jsonData.Location != nil && jsonData.Location.Longitude != nil {
-		v.Longitude = types.Float64Value(*jsonData.Location.Longitude)
-	}
-	if jsonData.Management != nil && jsonData.Management.Orchestration != nil {
-		v.OrchestrationStatus = types.StringValue(utils.BoolToEnabledDisabled(*jsonData.Management.Orchestration))
-	}
-	if jsonData.Management != nil && jsonData.Management.Epg != "" {
-		v.TelemetryEpg = types.StringValue(jsonData.Management.Epg)
-	}
-
-	v.NormalizeTelemetryNetworkState()
-
-	return diags
 }
 
 func (v *FabricAciModel) NormalizeTelemetryNetworkState() {

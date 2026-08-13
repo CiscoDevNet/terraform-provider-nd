@@ -23,6 +23,43 @@ type StepInfo struct {
 	Cfg   string
 }
 
+// StepTracker ensures acceptance-test steps only run after the preceding step
+// has completed successfully.
+type StepTracker struct {
+	t             testing.TB
+	completedStep int
+}
+
+// NewStepTracker creates a sequential acceptance-test step tracker.
+func NewStepTracker(t testing.TB) *StepTracker {
+	t.Helper()
+	return &StepTracker{t: t}
+}
+
+// RequirePrevious fails the test unless the step immediately before step has
+// completed successfully.
+func (s *StepTracker) RequirePrevious(step int) {
+	s.t.Helper()
+
+	expectedPreviousStep := step - 1
+	if s.completedStep != expectedPreviousStep {
+		s.t.Fatalf(
+			"Step %d cannot run because step %d did not complete successfully; last completed step: %d",
+			step,
+			expectedPreviousStep,
+			s.completedStep,
+		)
+	}
+}
+
+// Complete marks step as complete after confirming all preceding steps have
+// completed successfully.
+func (s *StepTracker) Complete(step int) {
+	s.t.Helper()
+	s.RequirePrevious(step)
+	s.completedStep = step
+}
+
 // LogStep emits the per-step log block (header, snapshot path, optional HCL
 // echo) at the moment the acceptance test framework is about to apply that
 // step. Call it from a TestStep's PreConfig so the Go test output shows the
