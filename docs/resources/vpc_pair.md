@@ -17,7 +17,36 @@ resource "nd_vpc_pair" "test_resource_vpc_pair_1" {
   switch_id_1          = "9FRGGCZT8LR"
   switch_id_2          = "96E0DGXYPV2"
   use_virtual_peerlink = false
-  deploy               = true
+  vpc_pair_details = {
+    template_type                   = "default"
+    admin_state                     = true
+    allowed_vlans                   = "all"
+    domain_id                       = 5
+    enable_mirror_config            = false
+    fabric_path_switch_id           = 100
+    is_vpc_plus                     = false
+    is_vteps                        = true
+    keep_alive_hold_timeout         = 3
+    keep_alive_vrf                  = "management"
+    loopback_secondary_ip           = "10.3.0.2"
+    nve_interface                   = 1
+    peer_switch_keep_alive_local_ip = "192.168.10.102"
+    peer_switch_member_interfaces   = ["e1/2"]
+    peer_switch_native_vlan         = 3600
+    peer_switch_po_description      = "vpc-peer-link leaf1--leaf2"
+    peer_switch_po_id               = 500
+    peer_switch_primary_ip          = "10.3.0.4"
+    peer_switch_source_loopback     = 1
+    po_mode                         = "active"
+    switch_keep_alive_local_ip      = "192.168.10.101"
+    switch_member_interfaces        = ["e1/2"]
+    switch_native_vlan              = 3600
+    switch_po_description           = "vpc-peer-link leaf1--leaf2"
+    switch_po_id                    = 500
+    switch_primary_ip               = "10.3.0.3"
+    switch_source_loopback          = 1
+  }
+  deploy = true
 }
 ```
 
@@ -33,11 +62,49 @@ resource "nd_vpc_pair" "test_resource_vpc_pair_1" {
 
 - `deploy` (Boolean) Deploy vPC pair
 - `use_virtual_peerlink` (Boolean) Set to true to use virtual peer link
+- `vpc_pair_details` (Attributes) Default vPC pair template details for fabrics that accept explicit peer-link configuration, such as external fabrics. (see [below for nested schema](#nestedatt--vpc_pair_details))
 
 ### Read-Only
 
 - `fabric_name` (String) Name of the fabric resolved from the switch inventory
 - `id` (String) The Terraform Unique Identifier for the vPC pair resource `<fabric_name>/<switch1_serial_number>:<switch2_serial_number>`
+
+<a id="nestedatt--vpc_pair_details"></a>
+### Nested Schema for `vpc_pair_details`
+
+Optional:
+
+- `admin_state` (Boolean) Administrative state of the default vPC pair template.
+- `allowed_vlans` (String) VLAN range allowed on the vPC peer-link interfaces.
+- `domain_id` (Number) vPC domain identifier configured for the pair.
+- `enable_mirror_config` (Boolean) Enables mirrored configuration generation for the vPC pair template.
+- `fabric_path_switch_id` (Number) Fabric path switch identifier used by ND for the vPC pair template.
+- `is_vpc_plus` (Boolean) Indicates whether vPC+ mode is enabled for the pair.
+- `is_vteps` (Boolean) Indicates whether the paired switches operate as VTEPs.
+- `keep_alive_hold_timeout` (Number) Hold timeout value for the vPC peer keepalive session.
+- `keep_alive_vrf` (String) VRF used for the vPC peer keepalive session.
+- `loopback_secondary_ip` (String) Secondary loopback IP address associated with the vPC pair template.
+- `nve_interface` (Number) NVE interface identifier associated with the vPC pair.
+- `peer_switch_domain_config` (String) Additional vPC domain configuration rendered for the peer switch.
+- `peer_switch_keep_alive_local_ip` (String) Local keepalive source IP address used on the peer switch.
+- `peer_switch_member_interfaces` (Set of String) Member interfaces on the peer switch that form the vPC peer-link port channel.
+- `peer_switch_native_vlan` (Number) Native VLAN configured on the peer switch peer-link interfaces.
+- `peer_switch_po_config` (String) Additional port-channel configuration rendered for the peer switch.
+- `peer_switch_po_description` (String) Description applied to the peer switch peer-link port channel.
+- `peer_switch_po_id` (Number) Port-channel identifier used for the peer switch side of the vPC peer-link.
+- `peer_switch_primary_ip` (String) Primary IP address associated with the peer switch in the vPC template.
+- `peer_switch_source_loopback` (Number) Source loopback interface number used by the peer switch for keepalive traffic.
+- `po_mode` (String) Port-channel mode configured for the vPC peer-link, such as active or on.
+- `switch_domain_config` (String) Additional vPC domain configuration rendered for the primary switch.
+- `switch_keep_alive_local_ip` (String) Local keepalive source IP address used on the primary switch.
+- `switch_member_interfaces` (Set of String) Member interfaces on the primary switch that form the vPC peer-link port channel.
+- `switch_native_vlan` (Number) Native VLAN configured on the primary switch peer-link interfaces.
+- `switch_po_config` (String) Additional port-channel configuration rendered for the primary switch.
+- `switch_po_description` (String) Description applied to the primary switch peer-link port channel.
+- `switch_po_id` (Number) Port-channel identifier used for the primary switch side of the vPC peer-link.
+- `switch_primary_ip` (String) Primary IP address associated with the primary switch in the vPC template.
+- `switch_source_loopback` (Number) Source loopback interface number used by the primary switch for keepalive traffic.
+- `template_type` (String) Template type used for the default vPC pair configuration returned by ND.
 
 ## Import
 

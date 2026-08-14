@@ -48,6 +48,236 @@ resource:
       ndfc_type: bool
       type: Bool
       example: false
+    # Optional - default template details used by fabrics that accept explicit peer-link configuration
+    - model_name: vpcPairDetails
+      tf_name: vpc_pair_details
+      type: Struct
+      optional: true
+      computed: true
+      description: Default vPC pair template details for fabrics that accept explicit peer-link configuration, such as external fabrics.
+      attributes:
+      - model_name: type
+        tf_name: template_type
+        type: String
+        optional: true
+        computed: true
+        description: Template type used for the default vPC pair configuration returned by ND.
+        example: default
+      - model_name: adminState
+        tf_name: admin_state
+        type: Bool
+        ndfc_type: bool
+        optional: true
+        computed: true
+        description: Administrative state of the default vPC pair template.
+        example: true
+      - model_name: allowedVlans
+        tf_name: allowed_vlans
+        type: String
+        optional: true
+        computed: true
+        description: VLAN range allowed on the vPC peer-link interfaces.
+        example: all
+      - model_name: domainId
+        tf_name: domain_id
+        type: Int64
+        optional: true
+        computed: true
+        description: vPC domain identifier configured for the pair.
+        example: 5
+      - model_name: enableMirrorConfig
+        tf_name: enable_mirror_config
+        type: Bool
+        ndfc_type: bool
+        optional: true
+        computed: true
+        description: Enables mirrored configuration generation for the vPC pair template.
+        example: false
+      - model_name: fabricPathSwitchId
+        tf_name: fabric_path_switch_id
+        type: Int64
+        optional: true
+        computed: true
+        description: Fabric path switch identifier used by ND for the vPC pair template.
+        example: 100
+      - model_name: isVpcPlus
+        tf_name: is_vpc_plus
+        type: Bool
+        ndfc_type: bool
+        optional: true
+        computed: true
+        description: Indicates whether vPC+ mode is enabled for the pair.
+        example: false
+      - model_name: isVteps
+        tf_name: is_vteps
+        type: Bool
+        ndfc_type: bool
+        optional: true
+        computed: true
+        description: Indicates whether the paired switches operate as VTEPs.
+        example: true
+      - model_name: keepAliveHoldTimeout
+        tf_name: keep_alive_hold_timeout
+        type: Int64
+        optional: true
+        computed: true
+        description: Hold timeout value for the vPC peer keepalive session.
+        example: 3
+      - model_name: keepAliveVrf
+        tf_name: keep_alive_vrf
+        type: String
+        optional: true
+        computed: true
+        description: VRF used for the vPC peer keepalive session.
+        example: management
+      - model_name: loopbackSecondaryIp
+        tf_name: loopback_secondary_ip
+        type: String
+        optional: true
+        computed: true
+        description: Secondary loopback IP address associated with the vPC pair template.
+        example: 10.3.0.2
+      - model_name: nveInterface
+        tf_name: nve_interface
+        type: Int64
+        optional: true
+        computed: true
+        description: NVE interface identifier associated with the vPC pair.
+        example: 1
+      - model_name: peerSwitchKeepAliveLocalIp
+        tf_name: peer_switch_keep_alive_local_ip
+        type: String
+        optional: true
+        computed: true
+        description: Local keepalive source IP address used on the peer switch.
+        example: 192.168.10.102
+      - model_name: peerSwitchDomainConfig
+        tf_name: peer_switch_domain_config
+        type: String
+        optional: true
+        computed: true
+        description: Additional vPC domain configuration rendered for the peer switch.
+        example: ""
+      - model_name: peerSwitchMemberInterfaces
+        tf_name: peer_switch_member_interfaces
+        type: List:String
+        optional: true
+        computed: true
+        description: Member interfaces on the peer switch that form the vPC peer-link port channel.
+        example: '["e1/2"]'
+      - model_name: peerSwitchNativeVlan
+        tf_name: peer_switch_native_vlan
+        type: Int64
+        optional: true
+        computed: true
+        description: Native VLAN configured on the peer switch peer-link interfaces.
+        example: 3600
+      - model_name: peerSwitchPoDescription
+        tf_name: peer_switch_po_description
+        type: String
+        optional: true
+        computed: true
+        description: Description applied to the peer switch peer-link port channel.
+        example: vpc-peer-link leaf1--leaf2
+      - model_name: peerSwitchPoConfig
+        tf_name: peer_switch_po_config
+        type: String
+        optional: true
+        computed: true
+        description: Additional port-channel configuration rendered for the peer switch.
+        example: ""
+      - model_name: peerSwitchPoId
+        tf_name: peer_switch_po_id
+        type: Int64
+        optional: true
+        computed: true
+        description: Port-channel identifier used for the peer switch side of the vPC peer-link.
+        example: 500
+      - model_name: peerSwitchPrimaryIp
+        tf_name: peer_switch_primary_ip
+        type: String
+        optional: true
+        computed: true
+        description: Primary IP address associated with the peer switch in the vPC template.
+        example: 10.3.0.4
+      - model_name: peerSwitchSourceLoopback
+        tf_name: peer_switch_source_loopback
+        type: Int64
+        optional: true
+        computed: true
+        description: Source loopback interface number used by the peer switch for keepalive traffic.
+        example: 1
+      - model_name: poMode
+        tf_name: po_mode
+        type: String
+        optional: true
+        computed: true
+        description: Port-channel mode configured for the vPC peer-link, such as active or on.
+        example: active
+      - model_name: switchKeepAliveLocalIp
+        tf_name: switch_keep_alive_local_ip
+        type: String
+        optional: true
+        computed: true
+        description: Local keepalive source IP address used on the primary switch.
+        example: 192.168.10.101
+      - model_name: switchDomainConfig
+        tf_name: switch_domain_config
+        type: String
+        optional: true
+        computed: true
+        description: Additional vPC domain configuration rendered for the primary switch.
+        example: ""
+      - model_name: switchMemberInterfaces
+        tf_name: switch_member_interfaces
+        type: List:String
+        optional: true
+        computed: true
+        description: Member interfaces on the primary switch that form the vPC peer-link port channel.
+        example: '["e1/2"]'
+      - model_name: switchNativeVlan
+        tf_name: switch_native_vlan
+        type: Int64
+        optional: true
+        computed: true
+        description: Native VLAN configured on the primary switch peer-link interfaces.
+        example: 3600
+      - model_name: switchPoDescription
+        tf_name: switch_po_description
+        type: String
+        optional: true
+        computed: true
+        description: Description applied to the primary switch peer-link port channel.
+        example: vpc-peer-link leaf1--leaf2
+      - model_name: switchPoConfig
+        tf_name: switch_po_config
+        type: String
+        optional: true
+        computed: true
+        description: Additional port-channel configuration rendered for the primary switch.
+        example: ""
+      - model_name: switchPoId
+        tf_name: switch_po_id
+        type: Int64
+        optional: true
+        computed: true
+        description: Port-channel identifier used for the primary switch side of the vPC peer-link.
+        example: 500
+      - model_name: switchPrimaryIp
+        tf_name: switch_primary_ip
+        type: String
+        optional: true
+        computed: true
+        description: Primary IP address associated with the primary switch in the vPC template.
+        example: 10.3.0.3
+      - model_name: switchSourceLoopback
+        tf_name: switch_source_loopback
+        type: Int64
+        optional: true
+        computed: true
+        description: Source loopback interface number used by the primary switch for keepalive traffic.
+        example: 1
+
     # Optional - vPC action
     - model_name: vpcAction
       tf_name: vpc_action

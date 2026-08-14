@@ -73,11 +73,117 @@ func loadVpcPairTestctx(t *testing.T) *vpcPairTestctx {
 	return vpcPairTestctx
 }
 
+func loadExternalVpcPairTestctx(t *testing.T) *vpcPairTestctx {
+	t.Helper()
+
+	vpcPairTestctx := loadVpcPairTestctx(t)
+	cfg := helper.GetConfig("global")
+	if cfg.ND.VpcPair == nil || cfg.ND.VpcPair.External == nil {
+		return vpcPairTestctx
+	}
+
+	external := cfg.ND.VpcPair.External
+	if external.Fabric != "" {
+		vpcPairTestctx.fabricName = external.Fabric
+	}
+
+	switch {
+	case external.PeerSwitchID != "" && external.SwitchID != "":
+		vpcPairTestctx.leafSwitches = []string{external.PeerSwitchID, external.SwitchID}
+	case len(external.Switches) >= 2:
+		vpcPairTestctx.leafSwitches = external.Switches[:2]
+	}
+
+	return vpcPairTestctx
+}
+
 func requireLeafPair(t *testing.T, vpcPairTestctx *vpcPairTestctx) {
 	t.Helper()
 
 	if len(vpcPairTestctx.leafSwitches) < 2 {
 		t.Skip("Need nd.vpc_pair.switches with at least 2 inventory leaf switches for vPC pair acceptance tests")
+	}
+}
+
+func boolPtr(v bool) *bool {
+	return &v
+}
+
+func int64Ptr(v int64) *int64 {
+	return &v
+}
+
+func buildDefaultVpcPairDetailsPayload(fabricName string) resource_vpc_pair.NDFCVpcPairDetailsValue {
+	return resource_vpc_pair.NDFCVpcPairDetailsValue{
+		TemplateType:               "default",
+		AdminState:                 boolPtr(true),
+		AllowedVlans:               "all",
+		DomainId:                   int64Ptr(5),
+		EnableMirrorConfig:         boolPtr(false),
+		FabricPathSwitchId:         int64Ptr(100),
+		IsVpcPlus:                  boolPtr(false),
+		IsVteps:                    boolPtr(true),
+		KeepAliveHoldTimeout:       int64Ptr(3),
+		KeepAliveVrf:               "management",
+		LoopbackSecondaryIp:        "10.3.0.2",
+		NveInterface:               int64Ptr(1),
+		PeerSwitchKeepAliveLocalIp: "192.168.10.102",
+		PeerSwitchMemberInterfaces: []string{"e1/2"},
+		PeerSwitchNativeVlan:       int64Ptr(3600),
+		PeerSwitchPoDescription:    "vpc-peer-link leaf1--leaf2",
+		PeerSwitchPoId:             int64Ptr(500),
+		PeerSwitchPrimaryIp:        "10.3.0.4",
+		PeerSwitchSourceLoopback:   int64Ptr(1),
+		PoMode:                     "active",
+		SwitchKeepAliveLocalIp:     "192.168.10.101",
+		SwitchMemberInterfaces:     []string{"e1/2"},
+		SwitchNativeVlan:           int64Ptr(3600),
+		SwitchPoDescription:        "vpc-peer-link leaf1--leaf2",
+		SwitchPoId:                 int64Ptr(500),
+		SwitchPrimaryIp:            "10.3.0.3",
+		SwitchSourceLoopback:       int64Ptr(1),
+	}
+}
+
+func buildUpdatedVpcPairDetailsPayload(fabricName string) resource_vpc_pair.NDFCVpcPairDetailsValue {
+	updated := buildDefaultVpcPairDetailsPayload(fabricName)
+	updated.PeerSwitchPoDescription = "vpc-peer-link leaf1--leaf2 updated"
+	updated.SwitchPoDescription = "vpc-peer-link leaf1--leaf2 updated"
+	updated.KeepAliveHoldTimeout = int64Ptr(4)
+	return updated
+}
+
+func vpcPairDetailsStateCheck(rscName string, details resource_vpc_pair.NDFCVpcPairDetailsValue) []resource.TestCheckFunc {
+	return []resource.TestCheckFunc{
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.template_type", details.TemplateType),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.admin_state", strconv.FormatBool(*details.AdminState)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.allowed_vlans", details.AllowedVlans),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.domain_id", strconv.FormatInt(*details.DomainId, 10)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.enable_mirror_config", strconv.FormatBool(*details.EnableMirrorConfig)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.fabric_path_switch_id", strconv.FormatInt(*details.FabricPathSwitchId, 10)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.is_vpc_plus", strconv.FormatBool(*details.IsVpcPlus)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.is_vteps", strconv.FormatBool(*details.IsVteps)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.keep_alive_hold_timeout", strconv.FormatInt(*details.KeepAliveHoldTimeout, 10)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.keep_alive_vrf", details.KeepAliveVrf),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.loopback_secondary_ip", details.LoopbackSecondaryIp),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.nve_interface", strconv.FormatInt(*details.NveInterface, 10)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.peer_switch_keep_alive_local_ip", details.PeerSwitchKeepAliveLocalIp),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.peer_switch_member_interfaces.0", details.PeerSwitchMemberInterfaces[0]),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.peer_switch_native_vlan", strconv.FormatInt(*details.PeerSwitchNativeVlan, 10)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.peer_switch_po_description", details.PeerSwitchPoDescription),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.peer_switch_po_id", strconv.FormatInt(*details.PeerSwitchPoId, 10)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.peer_switch_primary_ip", details.PeerSwitchPrimaryIp),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.peer_switch_source_loopback", strconv.FormatInt(*details.PeerSwitchSourceLoopback, 10)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.po_mode", details.PoMode),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.switch_keep_alive_local_ip", details.SwitchKeepAliveLocalIp),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.switch_member_interfaces.0", details.SwitchMemberInterfaces[0]),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.switch_native_vlan", strconv.FormatInt(*details.SwitchNativeVlan, 10)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.switch_po_description", details.SwitchPoDescription),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.switch_po_id", strconv.FormatInt(*details.SwitchPoId, 10)),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.switch_primary_ip", details.SwitchPrimaryIp),
+		resource.TestCheckResourceAttr(rscName, "vpc_pair_details.switch_source_loopback", strconv.FormatInt(*details.SwitchSourceLoopback, 10)),
+		resource.TestCheckResourceAttrSet(rscName, "id"),
+		resource.TestCheckResourceAttrSet(rscName, "fabric_name"),
 	}
 }
 
@@ -233,6 +339,140 @@ func TestAccVpcPairResourceUpdateDeploy(t *testing.T) {
 						"nd_vpc_pair.vpc_pair_test",
 						*vpcPairRsc,
 						path.Empty(),
+					)...,
+				),
+			},
+		},
+	})
+}
+
+func TestAccVpcPairResourceCreateReadWithVpcPairDetails(t *testing.T) {
+	vpcPairTestctx := loadExternalVpcPairTestctx(t)
+	requireLeafPair(t, vpcPairTestctx)
+
+	stepCount := 0
+	vpcPairRsc := new(resource_vpc_pair.NDFCVpcPairModel)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1 creates the pair with an explicit vpc_pair_details payload
+			// and confirms the provider reads the discovered pair back into state.
+			{
+				Config: func() string {
+					helper.GenerateVpcPairObject(
+						&vpcPairRsc,
+						vpcPairTestctx.fabricName,
+						vpcPairTestctx.leafSwitches[0],
+						vpcPairTestctx.leafSwitches[1],
+						false,
+						true,
+					)
+					vpcPairRsc.VpcPairDetails = buildDefaultVpcPairDetailsPayload(vpcPairTestctx.fabricName)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
+				}(),
+				Check: resource.ComposeTestCheckFunc(
+					append(
+						VpcPairModelHelperStateCheck(
+							"nd_vpc_pair.vpc_pair_test",
+							*vpcPairRsc,
+							path.Empty(),
+						),
+						vpcPairDetailsStateCheck(
+							"nd_vpc_pair.vpc_pair_test",
+							vpcPairRsc.VpcPairDetails,
+						)...,
+					)...,
+				),
+			},
+			// Step 2 reapplies unchanged config to prove the discovered state
+			// stays stable after a read/refresh cycle with nested payload fields.
+			{
+				Config: vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc),
+				Check: resource.ComposeTestCheckFunc(
+					append(
+						VpcPairModelHelperStateCheck(
+							"nd_vpc_pair.vpc_pair_test",
+							*vpcPairRsc,
+							path.Empty(),
+						),
+						vpcPairDetailsStateCheck(
+							"nd_vpc_pair.vpc_pair_test",
+							vpcPairRsc.VpcPairDetails,
+						)...,
+					)...,
+				),
+			},
+		},
+	})
+}
+
+func TestAccVpcPairResourceUpdateVpcPairDetails(t *testing.T) {
+	vpcPairTestctx := loadExternalVpcPairTestctx(t)
+	requireLeafPair(t, vpcPairTestctx)
+
+	stepCount := 0
+	vpcPairRsc := new(resource_vpc_pair.NDFCVpcPairModel)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1 creates the external-fabric pair with a baseline
+			// vpc_pair_details payload. This gives the next step an existing
+			// resource to update instead of re-testing only create/read.
+			{
+				Config: func() string {
+					helper.GenerateVpcPairObject(
+						&vpcPairRsc,
+						vpcPairTestctx.fabricName,
+						vpcPairTestctx.leafSwitches[0],
+						vpcPairTestctx.leafSwitches[1],
+						false,
+						true,
+					)
+					vpcPairRsc.VpcPairDetails = buildDefaultVpcPairDetailsPayload(vpcPairTestctx.fabricName)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
+				}(),
+				Check: resource.ComposeTestCheckFunc(
+					append(
+						VpcPairModelHelperStateCheck(
+							"nd_vpc_pair.vpc_pair_test",
+							*vpcPairRsc,
+							path.Empty(),
+						),
+						vpcPairDetailsStateCheck(
+							"nd_vpc_pair.vpc_pair_test",
+							vpcPairRsc.VpcPairDetails,
+						)...,
+					)...,
+				),
+			},
+			// Step 2 changes a few mutable nested vpc_pair_details fields
+			// in place:
+			// - keep_alive_hold_timeout: 3 -> 4
+			// - peer_switch_po_description: append "updated"
+			// - switch_po_description: append "updated"
+			//
+			// The check proves the provider sends the updated nested payload
+			// to ND and then reads those changed values back into state.
+			{
+				Config: func() string {
+					vpcPairRsc.VpcPairDetails = buildUpdatedVpcPairDetailsPayload(vpcPairTestctx.fabricName)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
+				}(),
+				Check: resource.ComposeTestCheckFunc(
+					append(
+						VpcPairModelHelperStateCheck(
+							"nd_vpc_pair.vpc_pair_test",
+							*vpcPairRsc,
+							path.Empty(),
+						),
+						vpcPairDetailsStateCheck(
+							"nd_vpc_pair.vpc_pair_test",
+							vpcPairRsc.VpcPairDetails,
+						)...,
 					)...,
 				),
 			},

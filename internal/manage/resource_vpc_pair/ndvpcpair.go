@@ -104,6 +104,8 @@ func (r *vpcPairResource) rscCreateVpcPair(ctx context.Context, dg *diag.Diagnos
 	// set action to pair for create operation and use PUT method .
 	inData.VpcAction = "pair"
 
+	// Marshal the full model so any vpcPairDetails fields present in the schema,
+	// including newly added peer/switch config fields, are sent to the ND API.
 	payload, err := json.Marshal(inData)
 	if err != nil {
 		tflog.Error(ctx, "Failed to marshal vPC pair create payload", map[string]interface{}{

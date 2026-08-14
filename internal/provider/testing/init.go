@@ -82,7 +82,16 @@ type InventorySwitch struct {
 
 // VpcPairConfig represents the acceptance-test switch selection for vPC pair tests.
 type VpcPairConfig struct {
-	Switches []string `yaml:"switches"`
+	Switches []string             `yaml:"switches"`
+	External *VpcPairTargetConfig `yaml:"external"`
+}
+
+// VpcPairTargetConfig represents a specific vPC pair test target.
+type VpcPairTargetConfig struct {
+	Fabric       string   `yaml:"fabric"`
+	PeerSwitchID string   `yaml:"peer_switch_id"`
+	SwitchID     string   `yaml:"switch_id"`
+	Switches     []string `yaml:"switches"`
 }
 
 // IntegratedConfig represents the integration test configuration

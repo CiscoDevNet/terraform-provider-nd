@@ -4,9 +4,15 @@ package resource_vpc_pair
 
 import (
 	"context"
+	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
@@ -50,6 +56,207 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "Set to true to use virtual peer link",
 				MarkdownDescription: "Set to true to use virtual peer link",
 			},
+			"vpc_pair_details": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"admin_state": schema.BoolAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Administrative state of the default vPC pair template.",
+						MarkdownDescription: "Administrative state of the default vPC pair template.",
+					},
+					"allowed_vlans": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "VLAN range allowed on the vPC peer-link interfaces.",
+						MarkdownDescription: "VLAN range allowed on the vPC peer-link interfaces.",
+					},
+					"domain_id": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "vPC domain identifier configured for the pair.",
+						MarkdownDescription: "vPC domain identifier configured for the pair.",
+					},
+					"enable_mirror_config": schema.BoolAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Enables mirrored configuration generation for the vPC pair template.",
+						MarkdownDescription: "Enables mirrored configuration generation for the vPC pair template.",
+					},
+					"fabric_path_switch_id": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Fabric path switch identifier used by ND for the vPC pair template.",
+						MarkdownDescription: "Fabric path switch identifier used by ND for the vPC pair template.",
+					},
+					"is_vpc_plus": schema.BoolAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Indicates whether vPC+ mode is enabled for the pair.",
+						MarkdownDescription: "Indicates whether vPC+ mode is enabled for the pair.",
+					},
+					"is_vteps": schema.BoolAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Indicates whether the paired switches operate as VTEPs.",
+						MarkdownDescription: "Indicates whether the paired switches operate as VTEPs.",
+					},
+					"keep_alive_hold_timeout": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Hold timeout value for the vPC peer keepalive session.",
+						MarkdownDescription: "Hold timeout value for the vPC peer keepalive session.",
+					},
+					"keep_alive_vrf": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "VRF used for the vPC peer keepalive session.",
+						MarkdownDescription: "VRF used for the vPC peer keepalive session.",
+					},
+					"loopback_secondary_ip": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Secondary loopback IP address associated with the vPC pair template.",
+						MarkdownDescription: "Secondary loopback IP address associated with the vPC pair template.",
+					},
+					"nve_interface": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "NVE interface identifier associated with the vPC pair.",
+						MarkdownDescription: "NVE interface identifier associated with the vPC pair.",
+					},
+					"peer_switch_domain_config": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Additional vPC domain configuration rendered for the peer switch.",
+						MarkdownDescription: "Additional vPC domain configuration rendered for the peer switch.",
+					},
+					"peer_switch_keep_alive_local_ip": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Local keepalive source IP address used on the peer switch.",
+						MarkdownDescription: "Local keepalive source IP address used on the peer switch.",
+					},
+					"peer_switch_member_interfaces": schema.SetAttribute{
+						ElementType:         types.StringType,
+						Optional:            true,
+						Computed:            true,
+						Description:         "Member interfaces on the peer switch that form the vPC peer-link port channel.",
+						MarkdownDescription: "Member interfaces on the peer switch that form the vPC peer-link port channel.",
+					},
+					"peer_switch_native_vlan": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Native VLAN configured on the peer switch peer-link interfaces.",
+						MarkdownDescription: "Native VLAN configured on the peer switch peer-link interfaces.",
+					},
+					"peer_switch_po_config": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Additional port-channel configuration rendered for the peer switch.",
+						MarkdownDescription: "Additional port-channel configuration rendered for the peer switch.",
+					},
+					"peer_switch_po_description": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Description applied to the peer switch peer-link port channel.",
+						MarkdownDescription: "Description applied to the peer switch peer-link port channel.",
+					},
+					"peer_switch_po_id": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Port-channel identifier used for the peer switch side of the vPC peer-link.",
+						MarkdownDescription: "Port-channel identifier used for the peer switch side of the vPC peer-link.",
+					},
+					"peer_switch_primary_ip": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Primary IP address associated with the peer switch in the vPC template.",
+						MarkdownDescription: "Primary IP address associated with the peer switch in the vPC template.",
+					},
+					"peer_switch_source_loopback": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Source loopback interface number used by the peer switch for keepalive traffic.",
+						MarkdownDescription: "Source loopback interface number used by the peer switch for keepalive traffic.",
+					},
+					"po_mode": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Port-channel mode configured for the vPC peer-link, such as active or on.",
+						MarkdownDescription: "Port-channel mode configured for the vPC peer-link, such as active or on.",
+					},
+					"switch_domain_config": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Additional vPC domain configuration rendered for the primary switch.",
+						MarkdownDescription: "Additional vPC domain configuration rendered for the primary switch.",
+					},
+					"switch_keep_alive_local_ip": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Local keepalive source IP address used on the primary switch.",
+						MarkdownDescription: "Local keepalive source IP address used on the primary switch.",
+					},
+					"switch_member_interfaces": schema.SetAttribute{
+						ElementType:         types.StringType,
+						Optional:            true,
+						Computed:            true,
+						Description:         "Member interfaces on the primary switch that form the vPC peer-link port channel.",
+						MarkdownDescription: "Member interfaces on the primary switch that form the vPC peer-link port channel.",
+					},
+					"switch_native_vlan": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Native VLAN configured on the primary switch peer-link interfaces.",
+						MarkdownDescription: "Native VLAN configured on the primary switch peer-link interfaces.",
+					},
+					"switch_po_config": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Additional port-channel configuration rendered for the primary switch.",
+						MarkdownDescription: "Additional port-channel configuration rendered for the primary switch.",
+					},
+					"switch_po_description": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Description applied to the primary switch peer-link port channel.",
+						MarkdownDescription: "Description applied to the primary switch peer-link port channel.",
+					},
+					"switch_po_id": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Port-channel identifier used for the primary switch side of the vPC peer-link.",
+						MarkdownDescription: "Port-channel identifier used for the primary switch side of the vPC peer-link.",
+					},
+					"switch_primary_ip": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Primary IP address associated with the primary switch in the vPC template.",
+						MarkdownDescription: "Primary IP address associated with the primary switch in the vPC template.",
+					},
+					"switch_source_loopback": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Source loopback interface number used by the primary switch for keepalive traffic.",
+						MarkdownDescription: "Source loopback interface number used by the primary switch for keepalive traffic.",
+					},
+					"template_type": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Template type used for the default vPC pair configuration returned by ND.",
+						MarkdownDescription: "Template type used for the default vPC pair configuration returned by ND.",
+					},
+				},
+				CustomType: VpcPairDetailsType{
+					ObjectType: types.ObjectType{
+						AttrTypes: VpcPairDetailsValue{}.AttributeTypes(ctx),
+					},
+				},
+				Optional:            true,
+				Computed:            true,
+				Description:         "Default vPC pair template details for fabrics that accept explicit peer-link configuration, such as external fabrics.",
+				MarkdownDescription: "Default vPC pair template details for fabrics that accept explicit peer-link configuration, such as external fabrics.",
+			},
 		},
 		Description:         "Resource to configure vPC pair on a switch. Note only VXLAN EVPN fabric is supported",
 		MarkdownDescription: "Resource to configure vPC pair on a switch. Note only VXLAN EVPN fabric is supported",
@@ -57,10 +264,2101 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 }
 
 type VpcPairModel struct {
-	Deploy             types.Bool   `tfsdk:"deploy"`
-	FabricName         types.String `tfsdk:"fabric_name"`
-	Id                 types.String `tfsdk:"id"`
-	SwitchId1          types.String `tfsdk:"switch_id_1"`
-	SwitchId2          types.String `tfsdk:"switch_id_2"`
-	UseVirtualPeerlink types.Bool   `tfsdk:"use_virtual_peerlink"`
+	Deploy             types.Bool          `tfsdk:"deploy"`
+	FabricName         types.String        `tfsdk:"fabric_name"`
+	Id                 types.String        `tfsdk:"id"`
+	SwitchId1          types.String        `tfsdk:"switch_id_1"`
+	SwitchId2          types.String        `tfsdk:"switch_id_2"`
+	UseVirtualPeerlink types.Bool          `tfsdk:"use_virtual_peerlink"`
+	VpcPairDetails     VpcPairDetailsValue `tfsdk:"vpc_pair_details"`
+}
+
+var _ basetypes.ObjectTypable = VpcPairDetailsType{}
+
+type VpcPairDetailsType struct {
+	basetypes.ObjectType
+}
+
+func (t VpcPairDetailsType) Equal(o attr.Type) bool {
+	other, ok := o.(VpcPairDetailsType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t VpcPairDetailsType) String() string {
+	return "VpcPairDetailsType"
+}
+
+func (t VpcPairDetailsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	adminStateAttribute, ok := attributes["admin_state"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`admin_state is missing from object`)
+
+		return nil, diags
+	}
+
+	adminStateVal, ok := adminStateAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`admin_state expected to be basetypes.BoolValue, was: %T`, adminStateAttribute))
+	}
+
+	allowedVlansAttribute, ok := attributes["allowed_vlans"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`allowed_vlans is missing from object`)
+
+		return nil, diags
+	}
+
+	allowedVlansVal, ok := allowedVlansAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`allowed_vlans expected to be basetypes.StringValue, was: %T`, allowedVlansAttribute))
+	}
+
+	domainIdAttribute, ok := attributes["domain_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`domain_id is missing from object`)
+
+		return nil, diags
+	}
+
+	domainIdVal, ok := domainIdAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`domain_id expected to be basetypes.Int64Value, was: %T`, domainIdAttribute))
+	}
+
+	enableMirrorConfigAttribute, ok := attributes["enable_mirror_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`enable_mirror_config is missing from object`)
+
+		return nil, diags
+	}
+
+	enableMirrorConfigVal, ok := enableMirrorConfigAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`enable_mirror_config expected to be basetypes.BoolValue, was: %T`, enableMirrorConfigAttribute))
+	}
+
+	fabricPathSwitchIdAttribute, ok := attributes["fabric_path_switch_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`fabric_path_switch_id is missing from object`)
+
+		return nil, diags
+	}
+
+	fabricPathSwitchIdVal, ok := fabricPathSwitchIdAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`fabric_path_switch_id expected to be basetypes.Int64Value, was: %T`, fabricPathSwitchIdAttribute))
+	}
+
+	isVpcPlusAttribute, ok := attributes["is_vpc_plus"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_vpc_plus is missing from object`)
+
+		return nil, diags
+	}
+
+	isVpcPlusVal, ok := isVpcPlusAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_vpc_plus expected to be basetypes.BoolValue, was: %T`, isVpcPlusAttribute))
+	}
+
+	isVtepsAttribute, ok := attributes["is_vteps"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_vteps is missing from object`)
+
+		return nil, diags
+	}
+
+	isVtepsVal, ok := isVtepsAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_vteps expected to be basetypes.BoolValue, was: %T`, isVtepsAttribute))
+	}
+
+	keepAliveHoldTimeoutAttribute, ok := attributes["keep_alive_hold_timeout"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`keep_alive_hold_timeout is missing from object`)
+
+		return nil, diags
+	}
+
+	keepAliveHoldTimeoutVal, ok := keepAliveHoldTimeoutAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`keep_alive_hold_timeout expected to be basetypes.Int64Value, was: %T`, keepAliveHoldTimeoutAttribute))
+	}
+
+	keepAliveVrfAttribute, ok := attributes["keep_alive_vrf"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`keep_alive_vrf is missing from object`)
+
+		return nil, diags
+	}
+
+	keepAliveVrfVal, ok := keepAliveVrfAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`keep_alive_vrf expected to be basetypes.StringValue, was: %T`, keepAliveVrfAttribute))
+	}
+
+	loopbackSecondaryIpAttribute, ok := attributes["loopback_secondary_ip"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`loopback_secondary_ip is missing from object`)
+
+		return nil, diags
+	}
+
+	loopbackSecondaryIpVal, ok := loopbackSecondaryIpAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`loopback_secondary_ip expected to be basetypes.StringValue, was: %T`, loopbackSecondaryIpAttribute))
+	}
+
+	nveInterfaceAttribute, ok := attributes["nve_interface"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`nve_interface is missing from object`)
+
+		return nil, diags
+	}
+
+	nveInterfaceVal, ok := nveInterfaceAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`nve_interface expected to be basetypes.Int64Value, was: %T`, nveInterfaceAttribute))
+	}
+
+	peerSwitchDomainConfigAttribute, ok := attributes["peer_switch_domain_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_domain_config is missing from object`)
+
+		return nil, diags
+	}
+
+	peerSwitchDomainConfigVal, ok := peerSwitchDomainConfigAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_domain_config expected to be basetypes.StringValue, was: %T`, peerSwitchDomainConfigAttribute))
+	}
+
+	peerSwitchKeepAliveLocalIpAttribute, ok := attributes["peer_switch_keep_alive_local_ip"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_keep_alive_local_ip is missing from object`)
+
+		return nil, diags
+	}
+
+	peerSwitchKeepAliveLocalIpVal, ok := peerSwitchKeepAliveLocalIpAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_keep_alive_local_ip expected to be basetypes.StringValue, was: %T`, peerSwitchKeepAliveLocalIpAttribute))
+	}
+
+	peerSwitchMemberInterfacesAttribute, ok := attributes["peer_switch_member_interfaces"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_member_interfaces is missing from object`)
+
+		return nil, diags
+	}
+
+	peerSwitchMemberInterfacesVal, ok := peerSwitchMemberInterfacesAttribute.(basetypes.SetValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_member_interfaces expected to be basetypes.SetValue, was: %T`, peerSwitchMemberInterfacesAttribute))
+	}
+
+	peerSwitchNativeVlanAttribute, ok := attributes["peer_switch_native_vlan"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_native_vlan is missing from object`)
+
+		return nil, diags
+	}
+
+	peerSwitchNativeVlanVal, ok := peerSwitchNativeVlanAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_native_vlan expected to be basetypes.Int64Value, was: %T`, peerSwitchNativeVlanAttribute))
+	}
+
+	peerSwitchPoConfigAttribute, ok := attributes["peer_switch_po_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_po_config is missing from object`)
+
+		return nil, diags
+	}
+
+	peerSwitchPoConfigVal, ok := peerSwitchPoConfigAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_po_config expected to be basetypes.StringValue, was: %T`, peerSwitchPoConfigAttribute))
+	}
+
+	peerSwitchPoDescriptionAttribute, ok := attributes["peer_switch_po_description"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_po_description is missing from object`)
+
+		return nil, diags
+	}
+
+	peerSwitchPoDescriptionVal, ok := peerSwitchPoDescriptionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_po_description expected to be basetypes.StringValue, was: %T`, peerSwitchPoDescriptionAttribute))
+	}
+
+	peerSwitchPoIdAttribute, ok := attributes["peer_switch_po_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_po_id is missing from object`)
+
+		return nil, diags
+	}
+
+	peerSwitchPoIdVal, ok := peerSwitchPoIdAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_po_id expected to be basetypes.Int64Value, was: %T`, peerSwitchPoIdAttribute))
+	}
+
+	peerSwitchPrimaryIpAttribute, ok := attributes["peer_switch_primary_ip"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_primary_ip is missing from object`)
+
+		return nil, diags
+	}
+
+	peerSwitchPrimaryIpVal, ok := peerSwitchPrimaryIpAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_primary_ip expected to be basetypes.StringValue, was: %T`, peerSwitchPrimaryIpAttribute))
+	}
+
+	peerSwitchSourceLoopbackAttribute, ok := attributes["peer_switch_source_loopback"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_source_loopback is missing from object`)
+
+		return nil, diags
+	}
+
+	peerSwitchSourceLoopbackVal, ok := peerSwitchSourceLoopbackAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_source_loopback expected to be basetypes.Int64Value, was: %T`, peerSwitchSourceLoopbackAttribute))
+	}
+
+	poModeAttribute, ok := attributes["po_mode"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`po_mode is missing from object`)
+
+		return nil, diags
+	}
+
+	poModeVal, ok := poModeAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`po_mode expected to be basetypes.StringValue, was: %T`, poModeAttribute))
+	}
+
+	switchDomainConfigAttribute, ok := attributes["switch_domain_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_domain_config is missing from object`)
+
+		return nil, diags
+	}
+
+	switchDomainConfigVal, ok := switchDomainConfigAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_domain_config expected to be basetypes.StringValue, was: %T`, switchDomainConfigAttribute))
+	}
+
+	switchKeepAliveLocalIpAttribute, ok := attributes["switch_keep_alive_local_ip"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_keep_alive_local_ip is missing from object`)
+
+		return nil, diags
+	}
+
+	switchKeepAliveLocalIpVal, ok := switchKeepAliveLocalIpAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_keep_alive_local_ip expected to be basetypes.StringValue, was: %T`, switchKeepAliveLocalIpAttribute))
+	}
+
+	switchMemberInterfacesAttribute, ok := attributes["switch_member_interfaces"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_member_interfaces is missing from object`)
+
+		return nil, diags
+	}
+
+	switchMemberInterfacesVal, ok := switchMemberInterfacesAttribute.(basetypes.SetValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_member_interfaces expected to be basetypes.SetValue, was: %T`, switchMemberInterfacesAttribute))
+	}
+
+	switchNativeVlanAttribute, ok := attributes["switch_native_vlan"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_native_vlan is missing from object`)
+
+		return nil, diags
+	}
+
+	switchNativeVlanVal, ok := switchNativeVlanAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_native_vlan expected to be basetypes.Int64Value, was: %T`, switchNativeVlanAttribute))
+	}
+
+	switchPoConfigAttribute, ok := attributes["switch_po_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_po_config is missing from object`)
+
+		return nil, diags
+	}
+
+	switchPoConfigVal, ok := switchPoConfigAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_po_config expected to be basetypes.StringValue, was: %T`, switchPoConfigAttribute))
+	}
+
+	switchPoDescriptionAttribute, ok := attributes["switch_po_description"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_po_description is missing from object`)
+
+		return nil, diags
+	}
+
+	switchPoDescriptionVal, ok := switchPoDescriptionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_po_description expected to be basetypes.StringValue, was: %T`, switchPoDescriptionAttribute))
+	}
+
+	switchPoIdAttribute, ok := attributes["switch_po_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_po_id is missing from object`)
+
+		return nil, diags
+	}
+
+	switchPoIdVal, ok := switchPoIdAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_po_id expected to be basetypes.Int64Value, was: %T`, switchPoIdAttribute))
+	}
+
+	switchPrimaryIpAttribute, ok := attributes["switch_primary_ip"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_primary_ip is missing from object`)
+
+		return nil, diags
+	}
+
+	switchPrimaryIpVal, ok := switchPrimaryIpAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_primary_ip expected to be basetypes.StringValue, was: %T`, switchPrimaryIpAttribute))
+	}
+
+	switchSourceLoopbackAttribute, ok := attributes["switch_source_loopback"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_source_loopback is missing from object`)
+
+		return nil, diags
+	}
+
+	switchSourceLoopbackVal, ok := switchSourceLoopbackAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_source_loopback expected to be basetypes.Int64Value, was: %T`, switchSourceLoopbackAttribute))
+	}
+
+	templateTypeAttribute, ok := attributes["template_type"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`template_type is missing from object`)
+
+		return nil, diags
+	}
+
+	templateTypeVal, ok := templateTypeAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`template_type expected to be basetypes.StringValue, was: %T`, templateTypeAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return VpcPairDetailsValue{
+		AdminState:                 adminStateVal,
+		AllowedVlans:               allowedVlansVal,
+		DomainId:                   domainIdVal,
+		EnableMirrorConfig:         enableMirrorConfigVal,
+		FabricPathSwitchId:         fabricPathSwitchIdVal,
+		IsVpcPlus:                  isVpcPlusVal,
+		IsVteps:                    isVtepsVal,
+		KeepAliveHoldTimeout:       keepAliveHoldTimeoutVal,
+		KeepAliveVrf:               keepAliveVrfVal,
+		LoopbackSecondaryIp:        loopbackSecondaryIpVal,
+		NveInterface:               nveInterfaceVal,
+		PeerSwitchDomainConfig:     peerSwitchDomainConfigVal,
+		PeerSwitchKeepAliveLocalIp: peerSwitchKeepAliveLocalIpVal,
+		PeerSwitchMemberInterfaces: peerSwitchMemberInterfacesVal,
+		PeerSwitchNativeVlan:       peerSwitchNativeVlanVal,
+		PeerSwitchPoConfig:         peerSwitchPoConfigVal,
+		PeerSwitchPoDescription:    peerSwitchPoDescriptionVal,
+		PeerSwitchPoId:             peerSwitchPoIdVal,
+		PeerSwitchPrimaryIp:        peerSwitchPrimaryIpVal,
+		PeerSwitchSourceLoopback:   peerSwitchSourceLoopbackVal,
+		PoMode:                     poModeVal,
+		SwitchDomainConfig:         switchDomainConfigVal,
+		SwitchKeepAliveLocalIp:     switchKeepAliveLocalIpVal,
+		SwitchMemberInterfaces:     switchMemberInterfacesVal,
+		SwitchNativeVlan:           switchNativeVlanVal,
+		SwitchPoConfig:             switchPoConfigVal,
+		SwitchPoDescription:        switchPoDescriptionVal,
+		SwitchPoId:                 switchPoIdVal,
+		SwitchPrimaryIp:            switchPrimaryIpVal,
+		SwitchSourceLoopback:       switchSourceLoopbackVal,
+		TemplateType:               templateTypeVal,
+		state:                      attr.ValueStateKnown,
+	}, diags
+}
+
+func NewVpcPairDetailsValueNull() VpcPairDetailsValue {
+	return VpcPairDetailsValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewVpcPairDetailsValueUnknown() VpcPairDetailsValue {
+	return VpcPairDetailsValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewVpcPairDetailsValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (VpcPairDetailsValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing VpcPairDetailsValue Attribute Value",
+				"While creating a VpcPairDetailsValue value, a missing attribute value was detected. "+
+					"A VpcPairDetailsValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("VpcPairDetailsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid VpcPairDetailsValue Attribute Type",
+				"While creating a VpcPairDetailsValue value, an invalid attribute value was detected. "+
+					"A VpcPairDetailsValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("VpcPairDetailsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("VpcPairDetailsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra VpcPairDetailsValue Attribute Value",
+				"While creating a VpcPairDetailsValue value, an extra attribute value was detected. "+
+					"A VpcPairDetailsValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra VpcPairDetailsValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	adminStateAttribute, ok := attributes["admin_state"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`admin_state is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	adminStateVal, ok := adminStateAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`admin_state expected to be basetypes.BoolValue, was: %T`, adminStateAttribute))
+	}
+
+	allowedVlansAttribute, ok := attributes["allowed_vlans"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`allowed_vlans is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	allowedVlansVal, ok := allowedVlansAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`allowed_vlans expected to be basetypes.StringValue, was: %T`, allowedVlansAttribute))
+	}
+
+	domainIdAttribute, ok := attributes["domain_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`domain_id is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	domainIdVal, ok := domainIdAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`domain_id expected to be basetypes.Int64Value, was: %T`, domainIdAttribute))
+	}
+
+	enableMirrorConfigAttribute, ok := attributes["enable_mirror_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`enable_mirror_config is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	enableMirrorConfigVal, ok := enableMirrorConfigAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`enable_mirror_config expected to be basetypes.BoolValue, was: %T`, enableMirrorConfigAttribute))
+	}
+
+	fabricPathSwitchIdAttribute, ok := attributes["fabric_path_switch_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`fabric_path_switch_id is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	fabricPathSwitchIdVal, ok := fabricPathSwitchIdAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`fabric_path_switch_id expected to be basetypes.Int64Value, was: %T`, fabricPathSwitchIdAttribute))
+	}
+
+	isVpcPlusAttribute, ok := attributes["is_vpc_plus"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_vpc_plus is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	isVpcPlusVal, ok := isVpcPlusAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_vpc_plus expected to be basetypes.BoolValue, was: %T`, isVpcPlusAttribute))
+	}
+
+	isVtepsAttribute, ok := attributes["is_vteps"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_vteps is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	isVtepsVal, ok := isVtepsAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_vteps expected to be basetypes.BoolValue, was: %T`, isVtepsAttribute))
+	}
+
+	keepAliveHoldTimeoutAttribute, ok := attributes["keep_alive_hold_timeout"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`keep_alive_hold_timeout is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	keepAliveHoldTimeoutVal, ok := keepAliveHoldTimeoutAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`keep_alive_hold_timeout expected to be basetypes.Int64Value, was: %T`, keepAliveHoldTimeoutAttribute))
+	}
+
+	keepAliveVrfAttribute, ok := attributes["keep_alive_vrf"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`keep_alive_vrf is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	keepAliveVrfVal, ok := keepAliveVrfAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`keep_alive_vrf expected to be basetypes.StringValue, was: %T`, keepAliveVrfAttribute))
+	}
+
+	loopbackSecondaryIpAttribute, ok := attributes["loopback_secondary_ip"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`loopback_secondary_ip is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	loopbackSecondaryIpVal, ok := loopbackSecondaryIpAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`loopback_secondary_ip expected to be basetypes.StringValue, was: %T`, loopbackSecondaryIpAttribute))
+	}
+
+	nveInterfaceAttribute, ok := attributes["nve_interface"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`nve_interface is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	nveInterfaceVal, ok := nveInterfaceAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`nve_interface expected to be basetypes.Int64Value, was: %T`, nveInterfaceAttribute))
+	}
+
+	peerSwitchDomainConfigAttribute, ok := attributes["peer_switch_domain_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_domain_config is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	peerSwitchDomainConfigVal, ok := peerSwitchDomainConfigAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_domain_config expected to be basetypes.StringValue, was: %T`, peerSwitchDomainConfigAttribute))
+	}
+
+	peerSwitchKeepAliveLocalIpAttribute, ok := attributes["peer_switch_keep_alive_local_ip"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_keep_alive_local_ip is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	peerSwitchKeepAliveLocalIpVal, ok := peerSwitchKeepAliveLocalIpAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_keep_alive_local_ip expected to be basetypes.StringValue, was: %T`, peerSwitchKeepAliveLocalIpAttribute))
+	}
+
+	peerSwitchMemberInterfacesAttribute, ok := attributes["peer_switch_member_interfaces"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_member_interfaces is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	peerSwitchMemberInterfacesVal, ok := peerSwitchMemberInterfacesAttribute.(basetypes.SetValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_member_interfaces expected to be basetypes.SetValue, was: %T`, peerSwitchMemberInterfacesAttribute))
+	}
+
+	peerSwitchNativeVlanAttribute, ok := attributes["peer_switch_native_vlan"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_native_vlan is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	peerSwitchNativeVlanVal, ok := peerSwitchNativeVlanAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_native_vlan expected to be basetypes.Int64Value, was: %T`, peerSwitchNativeVlanAttribute))
+	}
+
+	peerSwitchPoConfigAttribute, ok := attributes["peer_switch_po_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_po_config is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	peerSwitchPoConfigVal, ok := peerSwitchPoConfigAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_po_config expected to be basetypes.StringValue, was: %T`, peerSwitchPoConfigAttribute))
+	}
+
+	peerSwitchPoDescriptionAttribute, ok := attributes["peer_switch_po_description"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_po_description is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	peerSwitchPoDescriptionVal, ok := peerSwitchPoDescriptionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_po_description expected to be basetypes.StringValue, was: %T`, peerSwitchPoDescriptionAttribute))
+	}
+
+	peerSwitchPoIdAttribute, ok := attributes["peer_switch_po_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_po_id is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	peerSwitchPoIdVal, ok := peerSwitchPoIdAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_po_id expected to be basetypes.Int64Value, was: %T`, peerSwitchPoIdAttribute))
+	}
+
+	peerSwitchPrimaryIpAttribute, ok := attributes["peer_switch_primary_ip"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_primary_ip is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	peerSwitchPrimaryIpVal, ok := peerSwitchPrimaryIpAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_primary_ip expected to be basetypes.StringValue, was: %T`, peerSwitchPrimaryIpAttribute))
+	}
+
+	peerSwitchSourceLoopbackAttribute, ok := attributes["peer_switch_source_loopback"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`peer_switch_source_loopback is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	peerSwitchSourceLoopbackVal, ok := peerSwitchSourceLoopbackAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`peer_switch_source_loopback expected to be basetypes.Int64Value, was: %T`, peerSwitchSourceLoopbackAttribute))
+	}
+
+	poModeAttribute, ok := attributes["po_mode"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`po_mode is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	poModeVal, ok := poModeAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`po_mode expected to be basetypes.StringValue, was: %T`, poModeAttribute))
+	}
+
+	switchDomainConfigAttribute, ok := attributes["switch_domain_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_domain_config is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	switchDomainConfigVal, ok := switchDomainConfigAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_domain_config expected to be basetypes.StringValue, was: %T`, switchDomainConfigAttribute))
+	}
+
+	switchKeepAliveLocalIpAttribute, ok := attributes["switch_keep_alive_local_ip"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_keep_alive_local_ip is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	switchKeepAliveLocalIpVal, ok := switchKeepAliveLocalIpAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_keep_alive_local_ip expected to be basetypes.StringValue, was: %T`, switchKeepAliveLocalIpAttribute))
+	}
+
+	switchMemberInterfacesAttribute, ok := attributes["switch_member_interfaces"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_member_interfaces is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	switchMemberInterfacesVal, ok := switchMemberInterfacesAttribute.(basetypes.SetValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_member_interfaces expected to be basetypes.SetValue, was: %T`, switchMemberInterfacesAttribute))
+	}
+
+	switchNativeVlanAttribute, ok := attributes["switch_native_vlan"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_native_vlan is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	switchNativeVlanVal, ok := switchNativeVlanAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_native_vlan expected to be basetypes.Int64Value, was: %T`, switchNativeVlanAttribute))
+	}
+
+	switchPoConfigAttribute, ok := attributes["switch_po_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_po_config is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	switchPoConfigVal, ok := switchPoConfigAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_po_config expected to be basetypes.StringValue, was: %T`, switchPoConfigAttribute))
+	}
+
+	switchPoDescriptionAttribute, ok := attributes["switch_po_description"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_po_description is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	switchPoDescriptionVal, ok := switchPoDescriptionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_po_description expected to be basetypes.StringValue, was: %T`, switchPoDescriptionAttribute))
+	}
+
+	switchPoIdAttribute, ok := attributes["switch_po_id"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_po_id is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	switchPoIdVal, ok := switchPoIdAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_po_id expected to be basetypes.Int64Value, was: %T`, switchPoIdAttribute))
+	}
+
+	switchPrimaryIpAttribute, ok := attributes["switch_primary_ip"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_primary_ip is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	switchPrimaryIpVal, ok := switchPrimaryIpAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_primary_ip expected to be basetypes.StringValue, was: %T`, switchPrimaryIpAttribute))
+	}
+
+	switchSourceLoopbackAttribute, ok := attributes["switch_source_loopback"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`switch_source_loopback is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	switchSourceLoopbackVal, ok := switchSourceLoopbackAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`switch_source_loopback expected to be basetypes.Int64Value, was: %T`, switchSourceLoopbackAttribute))
+	}
+
+	templateTypeAttribute, ok := attributes["template_type"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`template_type is missing from object`)
+
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	templateTypeVal, ok := templateTypeAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`template_type expected to be basetypes.StringValue, was: %T`, templateTypeAttribute))
+	}
+
+	if diags.HasError() {
+		return NewVpcPairDetailsValueUnknown(), diags
+	}
+
+	return VpcPairDetailsValue{
+		AdminState:                 adminStateVal,
+		AllowedVlans:               allowedVlansVal,
+		DomainId:                   domainIdVal,
+		EnableMirrorConfig:         enableMirrorConfigVal,
+		FabricPathSwitchId:         fabricPathSwitchIdVal,
+		IsVpcPlus:                  isVpcPlusVal,
+		IsVteps:                    isVtepsVal,
+		KeepAliveHoldTimeout:       keepAliveHoldTimeoutVal,
+		KeepAliveVrf:               keepAliveVrfVal,
+		LoopbackSecondaryIp:        loopbackSecondaryIpVal,
+		NveInterface:               nveInterfaceVal,
+		PeerSwitchDomainConfig:     peerSwitchDomainConfigVal,
+		PeerSwitchKeepAliveLocalIp: peerSwitchKeepAliveLocalIpVal,
+		PeerSwitchMemberInterfaces: peerSwitchMemberInterfacesVal,
+		PeerSwitchNativeVlan:       peerSwitchNativeVlanVal,
+		PeerSwitchPoConfig:         peerSwitchPoConfigVal,
+		PeerSwitchPoDescription:    peerSwitchPoDescriptionVal,
+		PeerSwitchPoId:             peerSwitchPoIdVal,
+		PeerSwitchPrimaryIp:        peerSwitchPrimaryIpVal,
+		PeerSwitchSourceLoopback:   peerSwitchSourceLoopbackVal,
+		PoMode:                     poModeVal,
+		SwitchDomainConfig:         switchDomainConfigVal,
+		SwitchKeepAliveLocalIp:     switchKeepAliveLocalIpVal,
+		SwitchMemberInterfaces:     switchMemberInterfacesVal,
+		SwitchNativeVlan:           switchNativeVlanVal,
+		SwitchPoConfig:             switchPoConfigVal,
+		SwitchPoDescription:        switchPoDescriptionVal,
+		SwitchPoId:                 switchPoIdVal,
+		SwitchPrimaryIp:            switchPrimaryIpVal,
+		SwitchSourceLoopback:       switchSourceLoopbackVal,
+		TemplateType:               templateTypeVal,
+		state:                      attr.ValueStateKnown,
+	}, diags
+}
+
+func NewVpcPairDetailsValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) VpcPairDetailsValue {
+	object, diags := NewVpcPairDetailsValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewVpcPairDetailsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t VpcPairDetailsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewVpcPairDetailsValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewVpcPairDetailsValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewVpcPairDetailsValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewVpcPairDetailsValueMust(VpcPairDetailsValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t VpcPairDetailsType) ValueType(ctx context.Context) attr.Value {
+	return VpcPairDetailsValue{}
+}
+
+var _ basetypes.ObjectValuable = VpcPairDetailsValue{}
+
+type VpcPairDetailsValue struct {
+	AdminState                 basetypes.BoolValue   `tfsdk:"admin_state"`
+	AllowedVlans               basetypes.StringValue `tfsdk:"allowed_vlans"`
+	DomainId                   basetypes.Int64Value  `tfsdk:"domain_id"`
+	EnableMirrorConfig         basetypes.BoolValue   `tfsdk:"enable_mirror_config"`
+	FabricPathSwitchId         basetypes.Int64Value  `tfsdk:"fabric_path_switch_id"`
+	IsVpcPlus                  basetypes.BoolValue   `tfsdk:"is_vpc_plus"`
+	IsVteps                    basetypes.BoolValue   `tfsdk:"is_vteps"`
+	KeepAliveHoldTimeout       basetypes.Int64Value  `tfsdk:"keep_alive_hold_timeout"`
+	KeepAliveVrf               basetypes.StringValue `tfsdk:"keep_alive_vrf"`
+	LoopbackSecondaryIp        basetypes.StringValue `tfsdk:"loopback_secondary_ip"`
+	NveInterface               basetypes.Int64Value  `tfsdk:"nve_interface"`
+	PeerSwitchDomainConfig     basetypes.StringValue `tfsdk:"peer_switch_domain_config"`
+	PeerSwitchKeepAliveLocalIp basetypes.StringValue `tfsdk:"peer_switch_keep_alive_local_ip"`
+	PeerSwitchMemberInterfaces basetypes.SetValue    `tfsdk:"peer_switch_member_interfaces"`
+	PeerSwitchNativeVlan       basetypes.Int64Value  `tfsdk:"peer_switch_native_vlan"`
+	PeerSwitchPoConfig         basetypes.StringValue `tfsdk:"peer_switch_po_config"`
+	PeerSwitchPoDescription    basetypes.StringValue `tfsdk:"peer_switch_po_description"`
+	PeerSwitchPoId             basetypes.Int64Value  `tfsdk:"peer_switch_po_id"`
+	PeerSwitchPrimaryIp        basetypes.StringValue `tfsdk:"peer_switch_primary_ip"`
+	PeerSwitchSourceLoopback   basetypes.Int64Value  `tfsdk:"peer_switch_source_loopback"`
+	PoMode                     basetypes.StringValue `tfsdk:"po_mode"`
+	SwitchDomainConfig         basetypes.StringValue `tfsdk:"switch_domain_config"`
+	SwitchKeepAliveLocalIp     basetypes.StringValue `tfsdk:"switch_keep_alive_local_ip"`
+	SwitchMemberInterfaces     basetypes.SetValue    `tfsdk:"switch_member_interfaces"`
+	SwitchNativeVlan           basetypes.Int64Value  `tfsdk:"switch_native_vlan"`
+	SwitchPoConfig             basetypes.StringValue `tfsdk:"switch_po_config"`
+	SwitchPoDescription        basetypes.StringValue `tfsdk:"switch_po_description"`
+	SwitchPoId                 basetypes.Int64Value  `tfsdk:"switch_po_id"`
+	SwitchPrimaryIp            basetypes.StringValue `tfsdk:"switch_primary_ip"`
+	SwitchSourceLoopback       basetypes.Int64Value  `tfsdk:"switch_source_loopback"`
+	TemplateType               basetypes.StringValue `tfsdk:"template_type"`
+	state                      attr.ValueState
+}
+
+func (v VpcPairDetailsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 31)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["admin_state"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["allowed_vlans"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["domain_id"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["enable_mirror_config"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["fabric_path_switch_id"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["is_vpc_plus"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["is_vteps"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["keep_alive_hold_timeout"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["keep_alive_vrf"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["loopback_secondary_ip"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["nve_interface"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["peer_switch_domain_config"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["peer_switch_keep_alive_local_ip"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["peer_switch_member_interfaces"] = basetypes.SetType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["peer_switch_native_vlan"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["peer_switch_po_config"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["peer_switch_po_description"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["peer_switch_po_id"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["peer_switch_primary_ip"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["peer_switch_source_loopback"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["po_mode"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["switch_domain_config"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["switch_keep_alive_local_ip"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["switch_member_interfaces"] = basetypes.SetType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["switch_native_vlan"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["switch_po_config"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["switch_po_description"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["switch_po_id"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["switch_primary_ip"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["switch_source_loopback"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["template_type"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 31)
+
+		val, err = v.AdminState.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["admin_state"] = val
+
+		val, err = v.AllowedVlans.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["allowed_vlans"] = val
+
+		val, err = v.DomainId.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["domain_id"] = val
+
+		val, err = v.EnableMirrorConfig.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["enable_mirror_config"] = val
+
+		val, err = v.FabricPathSwitchId.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["fabric_path_switch_id"] = val
+
+		val, err = v.IsVpcPlus.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_vpc_plus"] = val
+
+		val, err = v.IsVteps.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_vteps"] = val
+
+		val, err = v.KeepAliveHoldTimeout.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["keep_alive_hold_timeout"] = val
+
+		val, err = v.KeepAliveVrf.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["keep_alive_vrf"] = val
+
+		val, err = v.LoopbackSecondaryIp.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["loopback_secondary_ip"] = val
+
+		val, err = v.NveInterface.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["nve_interface"] = val
+
+		val, err = v.PeerSwitchDomainConfig.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["peer_switch_domain_config"] = val
+
+		val, err = v.PeerSwitchKeepAliveLocalIp.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["peer_switch_keep_alive_local_ip"] = val
+
+		val, err = v.PeerSwitchMemberInterfaces.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["peer_switch_member_interfaces"] = val
+
+		val, err = v.PeerSwitchNativeVlan.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["peer_switch_native_vlan"] = val
+
+		val, err = v.PeerSwitchPoConfig.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["peer_switch_po_config"] = val
+
+		val, err = v.PeerSwitchPoDescription.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["peer_switch_po_description"] = val
+
+		val, err = v.PeerSwitchPoId.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["peer_switch_po_id"] = val
+
+		val, err = v.PeerSwitchPrimaryIp.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["peer_switch_primary_ip"] = val
+
+		val, err = v.PeerSwitchSourceLoopback.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["peer_switch_source_loopback"] = val
+
+		val, err = v.PoMode.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["po_mode"] = val
+
+		val, err = v.SwitchDomainConfig.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["switch_domain_config"] = val
+
+		val, err = v.SwitchKeepAliveLocalIp.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["switch_keep_alive_local_ip"] = val
+
+		val, err = v.SwitchMemberInterfaces.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["switch_member_interfaces"] = val
+
+		val, err = v.SwitchNativeVlan.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["switch_native_vlan"] = val
+
+		val, err = v.SwitchPoConfig.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["switch_po_config"] = val
+
+		val, err = v.SwitchPoDescription.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["switch_po_description"] = val
+
+		val, err = v.SwitchPoId.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["switch_po_id"] = val
+
+		val, err = v.SwitchPrimaryIp.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["switch_primary_ip"] = val
+
+		val, err = v.SwitchSourceLoopback.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["switch_source_loopback"] = val
+
+		val, err = v.TemplateType.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["template_type"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v VpcPairDetailsValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v VpcPairDetailsValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v VpcPairDetailsValue) String() string {
+	return "VpcPairDetailsValue"
+}
+
+func (v VpcPairDetailsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	var peerSwitchMemberInterfacesVal basetypes.SetValue
+	switch {
+	case v.PeerSwitchMemberInterfaces.IsUnknown():
+		peerSwitchMemberInterfacesVal = types.SetUnknown(types.StringType)
+	case v.PeerSwitchMemberInterfaces.IsNull():
+		peerSwitchMemberInterfacesVal = types.SetNull(types.StringType)
+	default:
+		var d diag.Diagnostics
+		peerSwitchMemberInterfacesVal, d = types.SetValue(types.StringType, v.PeerSwitchMemberInterfaces.Elements())
+		diags.Append(d...)
+	}
+
+	if diags.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"admin_state":                     basetypes.BoolType{},
+			"allowed_vlans":                   basetypes.StringType{},
+			"domain_id":                       basetypes.Int64Type{},
+			"enable_mirror_config":            basetypes.BoolType{},
+			"fabric_path_switch_id":           basetypes.Int64Type{},
+			"is_vpc_plus":                     basetypes.BoolType{},
+			"is_vteps":                        basetypes.BoolType{},
+			"keep_alive_hold_timeout":         basetypes.Int64Type{},
+			"keep_alive_vrf":                  basetypes.StringType{},
+			"loopback_secondary_ip":           basetypes.StringType{},
+			"nve_interface":                   basetypes.Int64Type{},
+			"peer_switch_domain_config":       basetypes.StringType{},
+			"peer_switch_keep_alive_local_ip": basetypes.StringType{},
+			"peer_switch_member_interfaces": basetypes.SetType{
+				ElemType: types.StringType,
+			},
+			"peer_switch_native_vlan":     basetypes.Int64Type{},
+			"peer_switch_po_config":       basetypes.StringType{},
+			"peer_switch_po_description":  basetypes.StringType{},
+			"peer_switch_po_id":           basetypes.Int64Type{},
+			"peer_switch_primary_ip":      basetypes.StringType{},
+			"peer_switch_source_loopback": basetypes.Int64Type{},
+			"po_mode":                     basetypes.StringType{},
+			"switch_domain_config":        basetypes.StringType{},
+			"switch_keep_alive_local_ip":  basetypes.StringType{},
+			"switch_member_interfaces": basetypes.SetType{
+				ElemType: types.StringType,
+			},
+			"switch_native_vlan":     basetypes.Int64Type{},
+			"switch_po_config":       basetypes.StringType{},
+			"switch_po_description":  basetypes.StringType{},
+			"switch_po_id":           basetypes.Int64Type{},
+			"switch_primary_ip":      basetypes.StringType{},
+			"switch_source_loopback": basetypes.Int64Type{},
+			"template_type":          basetypes.StringType{},
+		}), diags
+	}
+
+	var switchMemberInterfacesVal basetypes.SetValue
+	switch {
+	case v.SwitchMemberInterfaces.IsUnknown():
+		switchMemberInterfacesVal = types.SetUnknown(types.StringType)
+	case v.SwitchMemberInterfaces.IsNull():
+		switchMemberInterfacesVal = types.SetNull(types.StringType)
+	default:
+		var d diag.Diagnostics
+		switchMemberInterfacesVal, d = types.SetValue(types.StringType, v.SwitchMemberInterfaces.Elements())
+		diags.Append(d...)
+	}
+
+	if diags.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"admin_state":                     basetypes.BoolType{},
+			"allowed_vlans":                   basetypes.StringType{},
+			"domain_id":                       basetypes.Int64Type{},
+			"enable_mirror_config":            basetypes.BoolType{},
+			"fabric_path_switch_id":           basetypes.Int64Type{},
+			"is_vpc_plus":                     basetypes.BoolType{},
+			"is_vteps":                        basetypes.BoolType{},
+			"keep_alive_hold_timeout":         basetypes.Int64Type{},
+			"keep_alive_vrf":                  basetypes.StringType{},
+			"loopback_secondary_ip":           basetypes.StringType{},
+			"nve_interface":                   basetypes.Int64Type{},
+			"peer_switch_domain_config":       basetypes.StringType{},
+			"peer_switch_keep_alive_local_ip": basetypes.StringType{},
+			"peer_switch_member_interfaces": basetypes.SetType{
+				ElemType: types.StringType,
+			},
+			"peer_switch_native_vlan":     basetypes.Int64Type{},
+			"peer_switch_po_config":       basetypes.StringType{},
+			"peer_switch_po_description":  basetypes.StringType{},
+			"peer_switch_po_id":           basetypes.Int64Type{},
+			"peer_switch_primary_ip":      basetypes.StringType{},
+			"peer_switch_source_loopback": basetypes.Int64Type{},
+			"po_mode":                     basetypes.StringType{},
+			"switch_domain_config":        basetypes.StringType{},
+			"switch_keep_alive_local_ip":  basetypes.StringType{},
+			"switch_member_interfaces": basetypes.SetType{
+				ElemType: types.StringType,
+			},
+			"switch_native_vlan":     basetypes.Int64Type{},
+			"switch_po_config":       basetypes.StringType{},
+			"switch_po_description":  basetypes.StringType{},
+			"switch_po_id":           basetypes.Int64Type{},
+			"switch_primary_ip":      basetypes.StringType{},
+			"switch_source_loopback": basetypes.Int64Type{},
+			"template_type":          basetypes.StringType{},
+		}), diags
+	}
+
+	attributeTypes := map[string]attr.Type{
+		"admin_state":                     basetypes.BoolType{},
+		"allowed_vlans":                   basetypes.StringType{},
+		"domain_id":                       basetypes.Int64Type{},
+		"enable_mirror_config":            basetypes.BoolType{},
+		"fabric_path_switch_id":           basetypes.Int64Type{},
+		"is_vpc_plus":                     basetypes.BoolType{},
+		"is_vteps":                        basetypes.BoolType{},
+		"keep_alive_hold_timeout":         basetypes.Int64Type{},
+		"keep_alive_vrf":                  basetypes.StringType{},
+		"loopback_secondary_ip":           basetypes.StringType{},
+		"nve_interface":                   basetypes.Int64Type{},
+		"peer_switch_domain_config":       basetypes.StringType{},
+		"peer_switch_keep_alive_local_ip": basetypes.StringType{},
+		"peer_switch_member_interfaces": basetypes.SetType{
+			ElemType: types.StringType,
+		},
+		"peer_switch_native_vlan":     basetypes.Int64Type{},
+		"peer_switch_po_config":       basetypes.StringType{},
+		"peer_switch_po_description":  basetypes.StringType{},
+		"peer_switch_po_id":           basetypes.Int64Type{},
+		"peer_switch_primary_ip":      basetypes.StringType{},
+		"peer_switch_source_loopback": basetypes.Int64Type{},
+		"po_mode":                     basetypes.StringType{},
+		"switch_domain_config":        basetypes.StringType{},
+		"switch_keep_alive_local_ip":  basetypes.StringType{},
+		"switch_member_interfaces": basetypes.SetType{
+			ElemType: types.StringType,
+		},
+		"switch_native_vlan":     basetypes.Int64Type{},
+		"switch_po_config":       basetypes.StringType{},
+		"switch_po_description":  basetypes.StringType{},
+		"switch_po_id":           basetypes.Int64Type{},
+		"switch_primary_ip":      basetypes.StringType{},
+		"switch_source_loopback": basetypes.Int64Type{},
+		"template_type":          basetypes.StringType{},
+	}
+
+	if v.IsNull() {
+		return types.ObjectNull(attributeTypes), diags
+	}
+
+	if v.IsUnknown() {
+		return types.ObjectUnknown(attributeTypes), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		attributeTypes,
+		map[string]attr.Value{
+			"admin_state":                     v.AdminState,
+			"allowed_vlans":                   v.AllowedVlans,
+			"domain_id":                       v.DomainId,
+			"enable_mirror_config":            v.EnableMirrorConfig,
+			"fabric_path_switch_id":           v.FabricPathSwitchId,
+			"is_vpc_plus":                     v.IsVpcPlus,
+			"is_vteps":                        v.IsVteps,
+			"keep_alive_hold_timeout":         v.KeepAliveHoldTimeout,
+			"keep_alive_vrf":                  v.KeepAliveVrf,
+			"loopback_secondary_ip":           v.LoopbackSecondaryIp,
+			"nve_interface":                   v.NveInterface,
+			"peer_switch_domain_config":       v.PeerSwitchDomainConfig,
+			"peer_switch_keep_alive_local_ip": v.PeerSwitchKeepAliveLocalIp,
+			"peer_switch_member_interfaces":   peerSwitchMemberInterfacesVal,
+			"peer_switch_native_vlan":         v.PeerSwitchNativeVlan,
+			"peer_switch_po_config":           v.PeerSwitchPoConfig,
+			"peer_switch_po_description":      v.PeerSwitchPoDescription,
+			"peer_switch_po_id":               v.PeerSwitchPoId,
+			"peer_switch_primary_ip":          v.PeerSwitchPrimaryIp,
+			"peer_switch_source_loopback":     v.PeerSwitchSourceLoopback,
+			"po_mode":                         v.PoMode,
+			"switch_domain_config":            v.SwitchDomainConfig,
+			"switch_keep_alive_local_ip":      v.SwitchKeepAliveLocalIp,
+			"switch_member_interfaces":        switchMemberInterfacesVal,
+			"switch_native_vlan":              v.SwitchNativeVlan,
+			"switch_po_config":                v.SwitchPoConfig,
+			"switch_po_description":           v.SwitchPoDescription,
+			"switch_po_id":                    v.SwitchPoId,
+			"switch_primary_ip":               v.SwitchPrimaryIp,
+			"switch_source_loopback":          v.SwitchSourceLoopback,
+			"template_type":                   v.TemplateType,
+		})
+
+	return objVal, diags
+}
+
+func (v VpcPairDetailsValue) Equal(o attr.Value) bool {
+	other, ok := o.(VpcPairDetailsValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.AdminState.Equal(other.AdminState) {
+		return false
+	}
+
+	if !v.AllowedVlans.Equal(other.AllowedVlans) {
+		return false
+	}
+
+	if !v.DomainId.Equal(other.DomainId) {
+		return false
+	}
+
+	if !v.EnableMirrorConfig.Equal(other.EnableMirrorConfig) {
+		return false
+	}
+
+	if !v.FabricPathSwitchId.Equal(other.FabricPathSwitchId) {
+		return false
+	}
+
+	if !v.IsVpcPlus.Equal(other.IsVpcPlus) {
+		return false
+	}
+
+	if !v.IsVteps.Equal(other.IsVteps) {
+		return false
+	}
+
+	if !v.KeepAliveHoldTimeout.Equal(other.KeepAliveHoldTimeout) {
+		return false
+	}
+
+	if !v.KeepAliveVrf.Equal(other.KeepAliveVrf) {
+		return false
+	}
+
+	if !v.LoopbackSecondaryIp.Equal(other.LoopbackSecondaryIp) {
+		return false
+	}
+
+	if !v.NveInterface.Equal(other.NveInterface) {
+		return false
+	}
+
+	if !v.PeerSwitchDomainConfig.Equal(other.PeerSwitchDomainConfig) {
+		return false
+	}
+
+	if !v.PeerSwitchKeepAliveLocalIp.Equal(other.PeerSwitchKeepAliveLocalIp) {
+		return false
+	}
+
+	if !v.PeerSwitchMemberInterfaces.Equal(other.PeerSwitchMemberInterfaces) {
+		return false
+	}
+
+	if !v.PeerSwitchNativeVlan.Equal(other.PeerSwitchNativeVlan) {
+		return false
+	}
+
+	if !v.PeerSwitchPoConfig.Equal(other.PeerSwitchPoConfig) {
+		return false
+	}
+
+	if !v.PeerSwitchPoDescription.Equal(other.PeerSwitchPoDescription) {
+		return false
+	}
+
+	if !v.PeerSwitchPoId.Equal(other.PeerSwitchPoId) {
+		return false
+	}
+
+	if !v.PeerSwitchPrimaryIp.Equal(other.PeerSwitchPrimaryIp) {
+		return false
+	}
+
+	if !v.PeerSwitchSourceLoopback.Equal(other.PeerSwitchSourceLoopback) {
+		return false
+	}
+
+	if !v.PoMode.Equal(other.PoMode) {
+		return false
+	}
+
+	if !v.SwitchDomainConfig.Equal(other.SwitchDomainConfig) {
+		return false
+	}
+
+	if !v.SwitchKeepAliveLocalIp.Equal(other.SwitchKeepAliveLocalIp) {
+		return false
+	}
+
+	if !v.SwitchMemberInterfaces.Equal(other.SwitchMemberInterfaces) {
+		return false
+	}
+
+	if !v.SwitchNativeVlan.Equal(other.SwitchNativeVlan) {
+		return false
+	}
+
+	if !v.SwitchPoConfig.Equal(other.SwitchPoConfig) {
+		return false
+	}
+
+	if !v.SwitchPoDescription.Equal(other.SwitchPoDescription) {
+		return false
+	}
+
+	if !v.SwitchPoId.Equal(other.SwitchPoId) {
+		return false
+	}
+
+	if !v.SwitchPrimaryIp.Equal(other.SwitchPrimaryIp) {
+		return false
+	}
+
+	if !v.SwitchSourceLoopback.Equal(other.SwitchSourceLoopback) {
+		return false
+	}
+
+	if !v.TemplateType.Equal(other.TemplateType) {
+		return false
+	}
+
+	return true
+}
+
+func (v VpcPairDetailsValue) Type(ctx context.Context) attr.Type {
+	return VpcPairDetailsType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v VpcPairDetailsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"admin_state":                     basetypes.BoolType{},
+		"allowed_vlans":                   basetypes.StringType{},
+		"domain_id":                       basetypes.Int64Type{},
+		"enable_mirror_config":            basetypes.BoolType{},
+		"fabric_path_switch_id":           basetypes.Int64Type{},
+		"is_vpc_plus":                     basetypes.BoolType{},
+		"is_vteps":                        basetypes.BoolType{},
+		"keep_alive_hold_timeout":         basetypes.Int64Type{},
+		"keep_alive_vrf":                  basetypes.StringType{},
+		"loopback_secondary_ip":           basetypes.StringType{},
+		"nve_interface":                   basetypes.Int64Type{},
+		"peer_switch_domain_config":       basetypes.StringType{},
+		"peer_switch_keep_alive_local_ip": basetypes.StringType{},
+		"peer_switch_member_interfaces": basetypes.SetType{
+			ElemType: types.StringType,
+		},
+		"peer_switch_native_vlan":     basetypes.Int64Type{},
+		"peer_switch_po_config":       basetypes.StringType{},
+		"peer_switch_po_description":  basetypes.StringType{},
+		"peer_switch_po_id":           basetypes.Int64Type{},
+		"peer_switch_primary_ip":      basetypes.StringType{},
+		"peer_switch_source_loopback": basetypes.Int64Type{},
+		"po_mode":                     basetypes.StringType{},
+		"switch_domain_config":        basetypes.StringType{},
+		"switch_keep_alive_local_ip":  basetypes.StringType{},
+		"switch_member_interfaces": basetypes.SetType{
+			ElemType: types.StringType,
+		},
+		"switch_native_vlan":     basetypes.Int64Type{},
+		"switch_po_config":       basetypes.StringType{},
+		"switch_po_description":  basetypes.StringType{},
+		"switch_po_id":           basetypes.Int64Type{},
+		"switch_primary_ip":      basetypes.StringType{},
+		"switch_source_loopback": basetypes.Int64Type{},
+		"template_type":          basetypes.StringType{},
+	}
 }
