@@ -68,5 +68,11 @@ func FabricAciModelHelperStateCheck(RscName string, c resource_fabric_aci.NDFCFa
 	} else {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("verify_ca").String(), "false"))
 	}
+	if c.Status.State != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("state").String(), c.Status.State))
+	}
+	if c.Status.LastUpdate.LastUpdateMessage != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("last_update_message").String(), c.Status.LastUpdate.LastUpdateMessage))
+	}
 	return ret
 }

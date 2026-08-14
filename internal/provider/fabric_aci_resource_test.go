@@ -185,6 +185,8 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 		checks := append(
 			FabricAciModelHelperStateCheck(rscAddr, model, path.Empty()),
 			resource.TestCheckResourceAttr(rscAddr, "id", fabricName),
+			resource.TestCheckResourceAttrSet(rscAddr, "state"),
+			resource.TestCheckResourceAttrSet(rscAddr, "last_update_message"),
 		)
 		if model.Spec.Location.Latitude != nil {
 			checks = append(checks, resource.TestCheckResourceAttr(

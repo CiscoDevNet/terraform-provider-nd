@@ -1,3 +1,11 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+// SPDX-License-Identifier: MPL-2.0
+
 package resource_fabric_aci
 
 import (
@@ -15,12 +23,22 @@ import (
 )
 
 type aciClusterResponse struct {
-	Spec aciClusterResponseSpec `json:"spec,omitempty"`
+	Spec   aciClusterResponseSpec   `json:"spec,omitempty"`
+	Status aciClusterResponseStatus `json:"status,omitempty"`
 }
 
 type aciClusterResponseSpec struct {
 	NDFCSpecValue
 	FabricName string `json:"name,omitempty"`
+}
+
+type aciClusterResponseStatus struct {
+	State      string                       `json:"state,omitempty"`
+	LastUpdate aciClusterResponseLastUpdate `json:"lastUpdate,omitempty"`
+}
+
+type aciClusterResponseLastUpdate struct {
+	Message string `json:"message,omitempty"`
 }
 
 type aciClusterCreatePayload struct {
@@ -35,6 +53,12 @@ type aciClusterRemovePayload struct {
 func (r aciClusterResponse) modelData() NDFCFabricAciModel {
 	data := NDFCFabricAciModel{
 		Spec: r.Spec.NDFCSpecValue,
+		Status: NDFCStatusValue{
+			State: r.Status.State,
+			LastUpdate: NDFCStatusLastUpdateValue{
+				LastUpdateMessage: r.Status.LastUpdate.Message,
+			},
+		},
 	}
 	if data.Spec.Aci.FabricName == "" {
 		data.Spec.Aci.FabricName = r.Spec.FabricName
@@ -49,6 +73,7 @@ func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Dia
 
 	inData := fabricAciModel.GetModelData()
 	inData.Spec.ClusterType = "APIC"
+	inData.Spec.Aci.Telemetry.TelemetryNetwork = telemetryNetworkToCreatePayload(inData.Spec.Aci.Telemetry.TelemetryNetwork)
 	createPayload := aciClusterCreatePayload{Spec: inData.Spec}
 
 	clusterAPI := api.NewFabricAciAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
@@ -62,7 +87,7 @@ func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Dia
 		return
 	}
 
-	res, err := clusterAPI.Post(clusterPayload, &ndapi.APIOptions{DisablePayloadLog: false})
+	res, err := clusterAPI.Post(clusterPayload, &ndapi.APIOptions{DisablePayloadLog: true})
 	if err != nil {
 		dg.AddError(
 			"Error Creating Fabric ACI",
@@ -203,7 +228,7 @@ func (r *fabricAciResource) rscDeleteFabricAci(_ context.Context, dg *diag.Diagn
 		return
 	}
 
-	res, err := clusterAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: false})
+	res, err := clusterAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true})
 	if err != nil {
 		if strings.Contains(err.Error(), "StatusCode 404") {
 			return

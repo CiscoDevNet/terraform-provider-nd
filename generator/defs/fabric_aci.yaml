@@ -202,3 +202,24 @@ resource:
     - spec
     - aci
     example: false
+
+  - model_name: state
+    tf_name: state
+    description: The state of the APIC cluster.
+    type: String
+    computed: true
+    use_state: true
+    payload_hide: true
+    ndfc_nested:
+    - status
+
+  - model_name: message
+    tf_name: last_update_message
+    description: The last update message of the APIC cluster.
+    type: String
+    computed: true
+    use_state: true
+    payload_hide: true
+    ndfc_nested:
+    - status
+    - lastUpdate

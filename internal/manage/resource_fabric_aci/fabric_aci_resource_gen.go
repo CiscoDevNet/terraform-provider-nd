@@ -46,6 +46,14 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"last_update_message": schema.StringAttribute{
+				Computed:            true,
+				Description:         "The last update message of the APIC cluster.",
+				MarkdownDescription: "The last update message of the APIC cluster.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"latitude": schema.Float64Attribute{
 				Optional:            true,
 				Computed:            true,
@@ -96,6 +104,14 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "The name of the security domain for the APIC cluster. Defaults to `all` when unset during creation.",
 				MarkdownDescription: "The name of the security domain for the APIC cluster. Defaults to `all` when unset during creation.",
 				Default:             stringdefault.StaticString("all"),
+			},
+			"state": schema.StringAttribute{
+				Computed:            true,
+				Description:         "The state of the APIC cluster.",
+				MarkdownDescription: "The state of the APIC cluster.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"telemetry_epg": schema.StringAttribute{
 				Optional:            true,
@@ -154,6 +170,7 @@ type FabricAciModel struct {
 	FabricName                 types.String  `tfsdk:"fabric_name"`
 	Hostname                   types.String  `tfsdk:"hostname"`
 	Id                         types.String  `tfsdk:"id"`
+	LastUpdateMessage          types.String  `tfsdk:"last_update_message"`
 	Latitude                   types.Float64 `tfsdk:"latitude"`
 	LicenseTier                types.String  `tfsdk:"license_tier"`
 	LoginDomain                types.String  `tfsdk:"login_domain"`
@@ -161,6 +178,7 @@ type FabricAciModel struct {
 	OrchestrationStatus        types.String  `tfsdk:"orchestration_status"`
 	Password                   types.String  `tfsdk:"password"`
 	SecurityDomain             types.String  `tfsdk:"security_domain"`
+	State                      types.String  `tfsdk:"state"`
 	TelemetryEpg               types.String  `tfsdk:"telemetry_epg"`
 	TelemetryNetwork           types.String  `tfsdk:"telemetry_network"`
 	TelemetryStatus            types.String  `tfsdk:"telemetry_status"`

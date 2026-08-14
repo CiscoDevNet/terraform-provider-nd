@@ -59,6 +59,8 @@ resource "nd_fabric_aci" "test_resource_fabric_aci_1" {
 ### Read-Only
 
 - `id` (String) The unique identifier for the resource, it is the name of the fabric aci (for example, apic1).
+- `last_update_message` (String) The last update message of the APIC cluster.
+- `state` (String) The state of the APIC cluster.
 
 ## Import
 

@@ -16,7 +16,8 @@ import (
 )
 
 type NDFCFabricAciModel struct {
-	Spec NDFCSpecValue `json:"spec,omitempty"`
+	Spec   NDFCSpecValue   `json:"spec,omitempty"`
+	Status NDFCStatusValue `json:"status,omitempty"`
 }
 
 type NDFCSpecValue struct {
@@ -56,6 +57,15 @@ type NDFCAciTelemetryValue struct {
 
 type NDFCAciOrchestrationValue struct {
 	OrchestrationStatus string `json:"status,omitempty"`
+}
+
+type NDFCStatusValue struct {
+	State      string                    `json:"-"`
+	LastUpdate NDFCStatusLastUpdateValue `json:"lastUpdate,omitempty"`
+}
+
+type NDFCStatusLastUpdateValue struct {
+	LastUpdateMessage string `json:"-"`
 }
 
 func (v *FabricAciModel) SetModelData(jsonData *NDFCFabricAciModel) diag.Diagnostics {
@@ -167,6 +177,20 @@ func (v *FabricAciModel) SetModelData(jsonData *NDFCFabricAciModel) diag.Diagnos
 		v.VerifyCa = types.BoolNull()
 	}
 
+	if jsonData.Status.State != "" {
+		v.State = types.StringValue(jsonData.Status.State)
+
+	} else {
+		v.State = types.StringNull()
+	}
+
+	if jsonData.Status.LastUpdate.LastUpdateMessage != "" {
+		v.LastUpdateMessage = types.StringValue(jsonData.Status.LastUpdate.LastUpdateMessage)
+
+	} else {
+		v.LastUpdateMessage = types.StringNull()
+	}
+
 	return err
 }
 
@@ -266,6 +290,18 @@ func (v FabricAciModel) GetModelData() *NDFCFabricAciModel {
 		*data.Spec.Aci.VerifyCa = v.VerifyCa.ValueBool()
 	} else {
 		data.Spec.Aci.VerifyCa = nil
+	}
+
+	if !v.State.IsNull() && !v.State.IsUnknown() {
+		data.Status.State = v.State.ValueString()
+	} else {
+		data.Status.State = ""
+	}
+
+	if !v.LastUpdateMessage.IsNull() && !v.LastUpdateMessage.IsUnknown() {
+		data.Status.LastUpdate.LastUpdateMessage = v.LastUpdateMessage.ValueString()
+	} else {
+		data.Status.LastUpdate.LastUpdateMessage = ""
 	}
 
 	return data
