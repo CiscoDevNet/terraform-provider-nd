@@ -26,9 +26,9 @@ const ModuleKey = "manage"
 
 // Ensure the implementation satisfies the expected interfaces
 var (
-	_ resource.Resource                   = &vpcPairResource{}
-	_ resource.ResourceWithConfigure      = &vpcPairResource{}
-	_ resource.ResourceWithImportState    = &vpcPairResource{}
+	_ resource.Resource                = &vpcPairResource{}
+	_ resource.ResourceWithConfigure   = &vpcPairResource{}
+	_ resource.ResourceWithImportState = &vpcPairResource{}
 )
 
 // NewVpcPairResource is a helper function to simplify the provider implementation.

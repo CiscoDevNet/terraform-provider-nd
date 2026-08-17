@@ -72,39 +72,42 @@ resource "nd_vpc_pair" "test_resource_vpc_pair_1" {
 <a id="nestedatt--vpc_pair_details"></a>
 ### Nested Schema for `vpc_pair_details`
 
+Required:
+
+- `domain_id` (Number) vPC domain identifier configured for the pair. Required by the ND API for the default vPC pair template because the switches must share a vPC domain. Valid range: 1-1000.
+- `keep_alive_vrf` (String) VRF used for the vPC peer keepalive session. Required by the ND API because the peer keepalive must run in an explicit VRF. Allowed values: `default`, `management`.
+- `peer_switch_keep_alive_local_ip` (String) Local keepalive source IP address used on the peer switch. Required by the ND API because the default vPC pair template needs a keepalive endpoint for the peer switch.
+- `switch_keep_alive_local_ip` (String) Local keepalive source IP address used on the primary switch. Required by the ND API because the default vPC pair template needs a keepalive endpoint for the primary switch.
+- `template_type` (String) Template type used for the default vPC pair configuration returned by ND. Required by the ND API when `vpc_pair_details` is present because the discriminator currently supports only `default` and `custom`; this schema branch accepts `default`.
+
 Optional:
 
-- `admin_state` (Boolean) Administrative state of the default vPC pair template.
-- `allowed_vlans` (String) VLAN range allowed on the vPC peer-link interfaces.
-- `domain_id` (Number) vPC domain identifier configured for the pair.
-- `enable_mirror_config` (Boolean) Enables mirrored configuration generation for the vPC pair template.
-- `fabric_path_switch_id` (Number) Fabric path switch identifier used by ND for the vPC pair template.
-- `is_vpc_plus` (Boolean) Indicates whether vPC+ mode is enabled for the pair.
-- `is_vteps` (Boolean) Indicates whether the paired switches operate as VTEPs.
-- `keep_alive_hold_timeout` (Number) Hold timeout value for the vPC peer keepalive session.
-- `keep_alive_vrf` (String) VRF used for the vPC peer keepalive session.
+- `admin_state` (Boolean) Administrative state of the default vPC pair template. Cisco default: `true`.
+- `allowed_vlans` (String) VLAN range allowed on the vPC peer-link interfaces. Cisco default: `all`.
+- `enable_mirror_config` (Boolean) Enables mirrored configuration generation for the vPC pair template. Cisco default: `false`.
+- `fabric_path_switch_id` (Number) Fabric path switch identifier used by ND for the vPC pair template. Valid range: 1-4096.
+- `is_vpc_plus` (Boolean) Indicates whether vPC+ mode is enabled for the pair. Cisco default: `false`.
+- `is_vteps` (Boolean) Indicates whether the paired switches operate as VTEPs. Cisco default: `false`.
+- `keep_alive_hold_timeout` (Number) Hold timeout value for the vPC peer keepalive session. Cisco default: `3`. Valid range: 3-10.
 - `loopback_secondary_ip` (String) Secondary loopback IP address associated with the vPC pair template.
-- `nve_interface` (Number) NVE interface identifier associated with the vPC pair.
+- `nve_interface` (Number) NVE interface identifier associated with the vPC pair. Cisco default: `1`. Valid range: 1-4.
 - `peer_switch_domain_config` (String) Additional vPC domain configuration rendered for the peer switch.
-- `peer_switch_keep_alive_local_ip` (String) Local keepalive source IP address used on the peer switch.
 - `peer_switch_member_interfaces` (Set of String) Member interfaces on the peer switch that form the vPC peer-link port channel.
-- `peer_switch_native_vlan` (Number) Native VLAN configured on the peer switch peer-link interfaces.
+- `peer_switch_native_vlan` (Number) Native VLAN configured on the peer switch peer-link interfaces. Valid range: 1-4094.
 - `peer_switch_po_config` (String) Additional port-channel configuration rendered for the peer switch.
-- `peer_switch_po_description` (String) Description applied to the peer switch peer-link port channel.
-- `peer_switch_po_id` (Number) Port-channel identifier used for the peer switch side of the vPC peer-link.
+- `peer_switch_po_description` (String) Description applied to the peer switch peer-link port channel. Length: 1-254 characters when set.
+- `peer_switch_po_id` (Number) Port-channel identifier used for the peer switch side of the vPC peer-link. Valid range: 1-4096.
 - `peer_switch_primary_ip` (String) Primary IP address associated with the peer switch in the vPC template.
 - `peer_switch_source_loopback` (Number) Source loopback interface number used by the peer switch for keepalive traffic.
-- `po_mode` (String) Port-channel mode configured for the vPC peer-link, such as active or on.
+- `po_mode` (String) Port-channel mode configured for the vPC peer-link. Cisco default: `active`. Allowed values: `on`, `active`, `passive`.
 - `switch_domain_config` (String) Additional vPC domain configuration rendered for the primary switch.
-- `switch_keep_alive_local_ip` (String) Local keepalive source IP address used on the primary switch.
 - `switch_member_interfaces` (Set of String) Member interfaces on the primary switch that form the vPC peer-link port channel.
-- `switch_native_vlan` (Number) Native VLAN configured on the primary switch peer-link interfaces.
+- `switch_native_vlan` (Number) Native VLAN configured on the primary switch peer-link interfaces. Valid range: 1-4094.
 - `switch_po_config` (String) Additional port-channel configuration rendered for the primary switch.
-- `switch_po_description` (String) Description applied to the primary switch peer-link port channel.
-- `switch_po_id` (Number) Port-channel identifier used for the primary switch side of the vPC peer-link.
+- `switch_po_description` (String) Description applied to the primary switch peer-link port channel. Length: 1-254 characters when set.
+- `switch_po_id` (Number) Port-channel identifier used for the primary switch side of the vPC peer-link. Valid range: 1-4096.
 - `switch_primary_ip` (String) Primary IP address associated with the primary switch in the vPC template.
 - `switch_source_loopback` (Number) Source loopback interface number used by the primary switch for keepalive traffic.
-- `template_type` (String) Template type used for the default vPC pair configuration returned by ND.
 
 ## Import
 

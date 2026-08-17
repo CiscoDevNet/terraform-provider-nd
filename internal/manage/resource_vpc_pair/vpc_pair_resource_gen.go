@@ -5,10 +5,16 @@ package resource_vpc_pair
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -61,56 +67,72 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					"admin_state": schema.BoolAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Administrative state of the default vPC pair template.",
-						MarkdownDescription: "Administrative state of the default vPC pair template.",
+						Description:         "Administrative state of the default vPC pair template. Cisco default: `true`.",
+						MarkdownDescription: "Administrative state of the default vPC pair template. Cisco default: `true`.",
+						Default:             booldefault.StaticBool(true),
 					},
 					"allowed_vlans": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "VLAN range allowed on the vPC peer-link interfaces.",
-						MarkdownDescription: "VLAN range allowed on the vPC peer-link interfaces.",
+						Description:         "VLAN range allowed on the vPC peer-link interfaces. Cisco default: `all`.",
+						MarkdownDescription: "VLAN range allowed on the vPC peer-link interfaces. Cisco default: `all`.",
+						Default:             stringdefault.StaticString("all"),
 					},
 					"domain_id": schema.Int64Attribute{
-						Optional:            true,
-						Computed:            true,
-						Description:         "vPC domain identifier configured for the pair.",
-						MarkdownDescription: "vPC domain identifier configured for the pair.",
+						Required:            true,
+						Description:         "vPC domain identifier configured for the pair. Required by the ND API for the default vPC pair template because the switches must share a vPC domain. Valid range: 1-1000.",
+						MarkdownDescription: "vPC domain identifier configured for the pair. Required by the ND API for the default vPC pair template because the switches must share a vPC domain. Valid range: 1-1000.",
+						Validators: []validator.Int64{
+							int64validator.Between(1, 1000),
+						},
 					},
 					"enable_mirror_config": schema.BoolAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Enables mirrored configuration generation for the vPC pair template.",
-						MarkdownDescription: "Enables mirrored configuration generation for the vPC pair template.",
+						Description:         "Enables mirrored configuration generation for the vPC pair template. Cisco default: `false`.",
+						MarkdownDescription: "Enables mirrored configuration generation for the vPC pair template. Cisco default: `false`.",
+						Default:             booldefault.StaticBool(false),
 					},
 					"fabric_path_switch_id": schema.Int64Attribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Fabric path switch identifier used by ND for the vPC pair template.",
-						MarkdownDescription: "Fabric path switch identifier used by ND for the vPC pair template.",
+						Description:         "Fabric path switch identifier used by ND for the vPC pair template. Valid range: 1-4096.",
+						MarkdownDescription: "Fabric path switch identifier used by ND for the vPC pair template. Valid range: 1-4096.",
+						Validators: []validator.Int64{
+							int64validator.Between(1, 4096),
+						},
 					},
 					"is_vpc_plus": schema.BoolAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Indicates whether vPC+ mode is enabled for the pair.",
-						MarkdownDescription: "Indicates whether vPC+ mode is enabled for the pair.",
+						Description:         "Indicates whether vPC+ mode is enabled for the pair. Cisco default: `false`.",
+						MarkdownDescription: "Indicates whether vPC+ mode is enabled for the pair. Cisco default: `false`.",
+						Default:             booldefault.StaticBool(false),
 					},
 					"is_vteps": schema.BoolAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Indicates whether the paired switches operate as VTEPs.",
-						MarkdownDescription: "Indicates whether the paired switches operate as VTEPs.",
+						Description:         "Indicates whether the paired switches operate as VTEPs. Cisco default: `false`.",
+						MarkdownDescription: "Indicates whether the paired switches operate as VTEPs. Cisco default: `false`.",
+						Default:             booldefault.StaticBool(false),
 					},
 					"keep_alive_hold_timeout": schema.Int64Attribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Hold timeout value for the vPC peer keepalive session.",
-						MarkdownDescription: "Hold timeout value for the vPC peer keepalive session.",
+						Description:         "Hold timeout value for the vPC peer keepalive session. Cisco default: `3`. Valid range: 3-10.",
+						MarkdownDescription: "Hold timeout value for the vPC peer keepalive session. Cisco default: `3`. Valid range: 3-10.",
+						Validators: []validator.Int64{
+							int64validator.Between(3, 10),
+						},
+						Default: int64default.StaticInt64(3),
 					},
 					"keep_alive_vrf": schema.StringAttribute{
-						Optional:            true,
-						Computed:            true,
-						Description:         "VRF used for the vPC peer keepalive session.",
-						MarkdownDescription: "VRF used for the vPC peer keepalive session.",
+						Required:            true,
+						Description:         "VRF used for the vPC peer keepalive session. Required by the ND API because the peer keepalive must run in an explicit VRF. Allowed values: `default`, `management`.",
+						MarkdownDescription: "VRF used for the vPC peer keepalive session. Required by the ND API because the peer keepalive must run in an explicit VRF. Allowed values: `default`, `management`.",
+						Validators: []validator.String{
+							stringvalidator.OneOf("default", "management"),
+						},
 					},
 					"loopback_secondary_ip": schema.StringAttribute{
 						Optional:            true,
@@ -121,8 +143,12 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					"nve_interface": schema.Int64Attribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "NVE interface identifier associated with the vPC pair.",
-						MarkdownDescription: "NVE interface identifier associated with the vPC pair.",
+						Description:         "NVE interface identifier associated with the vPC pair. Cisco default: `1`. Valid range: 1-4.",
+						MarkdownDescription: "NVE interface identifier associated with the vPC pair. Cisco default: `1`. Valid range: 1-4.",
+						Validators: []validator.Int64{
+							int64validator.Between(1, 4),
+						},
+						Default: int64default.StaticInt64(1),
 					},
 					"peer_switch_domain_config": schema.StringAttribute{
 						Optional:            true,
@@ -131,10 +157,9 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 						MarkdownDescription: "Additional vPC domain configuration rendered for the peer switch.",
 					},
 					"peer_switch_keep_alive_local_ip": schema.StringAttribute{
-						Optional:            true,
-						Computed:            true,
-						Description:         "Local keepalive source IP address used on the peer switch.",
-						MarkdownDescription: "Local keepalive source IP address used on the peer switch.",
+						Required:            true,
+						Description:         "Local keepalive source IP address used on the peer switch. Required by the ND API because the default vPC pair template needs a keepalive endpoint for the peer switch.",
+						MarkdownDescription: "Local keepalive source IP address used on the peer switch. Required by the ND API because the default vPC pair template needs a keepalive endpoint for the peer switch.",
 					},
 					"peer_switch_member_interfaces": schema.SetAttribute{
 						ElementType:         types.StringType,
@@ -146,8 +171,11 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					"peer_switch_native_vlan": schema.Int64Attribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Native VLAN configured on the peer switch peer-link interfaces.",
-						MarkdownDescription: "Native VLAN configured on the peer switch peer-link interfaces.",
+						Description:         "Native VLAN configured on the peer switch peer-link interfaces. Valid range: 1-4094.",
+						MarkdownDescription: "Native VLAN configured on the peer switch peer-link interfaces. Valid range: 1-4094.",
+						Validators: []validator.Int64{
+							int64validator.Between(1, 4094),
+						},
 					},
 					"peer_switch_po_config": schema.StringAttribute{
 						Optional:            true,
@@ -158,14 +186,20 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					"peer_switch_po_description": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Description applied to the peer switch peer-link port channel.",
-						MarkdownDescription: "Description applied to the peer switch peer-link port channel.",
+						Description:         "Description applied to the peer switch peer-link port channel. Length: 1-254 characters when set.",
+						MarkdownDescription: "Description applied to the peer switch peer-link port channel. Length: 1-254 characters when set.",
+						Validators: []validator.String{
+							stringvalidator.LengthBetween(1, 254),
+						},
 					},
 					"peer_switch_po_id": schema.Int64Attribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Port-channel identifier used for the peer switch side of the vPC peer-link.",
-						MarkdownDescription: "Port-channel identifier used for the peer switch side of the vPC peer-link.",
+						Description:         "Port-channel identifier used for the peer switch side of the vPC peer-link. Valid range: 1-4096.",
+						MarkdownDescription: "Port-channel identifier used for the peer switch side of the vPC peer-link. Valid range: 1-4096.",
+						Validators: []validator.Int64{
+							int64validator.Between(1, 4096),
+						},
 					},
 					"peer_switch_primary_ip": schema.StringAttribute{
 						Optional:            true,
@@ -182,8 +216,12 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					"po_mode": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Port-channel mode configured for the vPC peer-link, such as active or on.",
-						MarkdownDescription: "Port-channel mode configured for the vPC peer-link, such as active or on.",
+						Description:         "Port-channel mode configured for the vPC peer-link. Cisco default: `active`. Allowed values: `on`, `active`, `passive`.",
+						MarkdownDescription: "Port-channel mode configured for the vPC peer-link. Cisco default: `active`. Allowed values: `on`, `active`, `passive`.",
+						Validators: []validator.String{
+							stringvalidator.OneOf("on", "active", "passive"),
+						},
+						Default: stringdefault.StaticString("active"),
 					},
 					"switch_domain_config": schema.StringAttribute{
 						Optional:            true,
@@ -192,10 +230,9 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 						MarkdownDescription: "Additional vPC domain configuration rendered for the primary switch.",
 					},
 					"switch_keep_alive_local_ip": schema.StringAttribute{
-						Optional:            true,
-						Computed:            true,
-						Description:         "Local keepalive source IP address used on the primary switch.",
-						MarkdownDescription: "Local keepalive source IP address used on the primary switch.",
+						Required:            true,
+						Description:         "Local keepalive source IP address used on the primary switch. Required by the ND API because the default vPC pair template needs a keepalive endpoint for the primary switch.",
+						MarkdownDescription: "Local keepalive source IP address used on the primary switch. Required by the ND API because the default vPC pair template needs a keepalive endpoint for the primary switch.",
 					},
 					"switch_member_interfaces": schema.SetAttribute{
 						ElementType:         types.StringType,
@@ -207,8 +244,11 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					"switch_native_vlan": schema.Int64Attribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Native VLAN configured on the primary switch peer-link interfaces.",
-						MarkdownDescription: "Native VLAN configured on the primary switch peer-link interfaces.",
+						Description:         "Native VLAN configured on the primary switch peer-link interfaces. Valid range: 1-4094.",
+						MarkdownDescription: "Native VLAN configured on the primary switch peer-link interfaces. Valid range: 1-4094.",
+						Validators: []validator.Int64{
+							int64validator.Between(1, 4094),
+						},
 					},
 					"switch_po_config": schema.StringAttribute{
 						Optional:            true,
@@ -219,14 +259,20 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					"switch_po_description": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Description applied to the primary switch peer-link port channel.",
-						MarkdownDescription: "Description applied to the primary switch peer-link port channel.",
+						Description:         "Description applied to the primary switch peer-link port channel. Length: 1-254 characters when set.",
+						MarkdownDescription: "Description applied to the primary switch peer-link port channel. Length: 1-254 characters when set.",
+						Validators: []validator.String{
+							stringvalidator.LengthBetween(1, 254),
+						},
 					},
 					"switch_po_id": schema.Int64Attribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Port-channel identifier used for the primary switch side of the vPC peer-link.",
-						MarkdownDescription: "Port-channel identifier used for the primary switch side of the vPC peer-link.",
+						Description:         "Port-channel identifier used for the primary switch side of the vPC peer-link. Valid range: 1-4096.",
+						MarkdownDescription: "Port-channel identifier used for the primary switch side of the vPC peer-link. Valid range: 1-4096.",
+						Validators: []validator.Int64{
+							int64validator.Between(1, 4096),
+						},
 					},
 					"switch_primary_ip": schema.StringAttribute{
 						Optional:            true,
@@ -241,10 +287,12 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 						MarkdownDescription: "Source loopback interface number used by the primary switch for keepalive traffic.",
 					},
 					"template_type": schema.StringAttribute{
-						Optional:            true,
-						Computed:            true,
-						Description:         "Template type used for the default vPC pair configuration returned by ND.",
-						MarkdownDescription: "Template type used for the default vPC pair configuration returned by ND.",
+						Required:            true,
+						Description:         "Template type used for the default vPC pair configuration returned by ND. Required by the ND API when `vpc_pair_details` is present because the discriminator currently supports only `default` and `custom`; this schema branch accepts `default`.",
+						MarkdownDescription: "Template type used for the default vPC pair configuration returned by ND. Required by the ND API when `vpc_pair_details` is present because the discriminator currently supports only `default` and `custom`; this schema branch accepts `default`.",
+						Validators: []validator.String{
+							stringvalidator.OneOf("default", "custom"),
+						},
 					},
 				},
 				CustomType: VpcPairDetailsType{

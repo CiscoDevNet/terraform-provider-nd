@@ -56,12 +56,13 @@ resource:
       computed: true
       description: Default vPC pair template details for fabrics that accept explicit peer-link configuration, such as external fabrics.
       attributes:
+      # ND requires type when vpcPairDetails is present. The API discriminator currently supports only "default" and "custom"; this block models the "default" branch.
       - model_name: type
         tf_name: template_type
         type: String
-        optional: true
-        computed: true
-        description: Template type used for the default vPC pair configuration returned by ND.
+        mandatory: true
+        validator: 'OneOf("default", "custom")'
+        description: Template type used for the default vPC pair configuration returned by ND. Required by the ND API when `vpc_pair_details` is present because the discriminator currently supports only `default` and `custom`; this schema branch accepts `default`.
         example: default
       - model_name: adminState
         tf_name: admin_state
@@ -69,21 +70,24 @@ resource:
         ndfc_type: bool
         optional: true
         computed: true
-        description: Administrative state of the default vPC pair template.
+        default_value: true
+        description: 'Administrative state of the default vPC pair template. Cisco default: `true`.'
         example: true
       - model_name: allowedVlans
         tf_name: allowed_vlans
         type: String
         optional: true
         computed: true
-        description: VLAN range allowed on the vPC peer-link interfaces.
+        default_value: all
+        description: 'VLAN range allowed on the vPC peer-link interfaces. Cisco default: `all`.'
         example: all
+      # ND marks domainId as required. Range 1-1000 comes from the Cisco vpcPairDetailsDefault schema.
       - model_name: domainId
         tf_name: domain_id
         type: Int64
-        optional: true
-        computed: true
-        description: vPC domain identifier configured for the pair.
+        mandatory: true
+        validator: 'Between(1, 1000)'
+        description: 'vPC domain identifier configured for the pair. Required by the ND API for the default vPC pair template because the switches must share a vPC domain. Valid range: 1-1000.'
         example: 5
       - model_name: enableMirrorConfig
         tf_name: enable_mirror_config
@@ -91,14 +95,16 @@ resource:
         ndfc_type: bool
         optional: true
         computed: true
-        description: Enables mirrored configuration generation for the vPC pair template.
+        default_value: false
+        description: 'Enables mirrored configuration generation for the vPC pair template. Cisco default: `false`.'
         example: false
       - model_name: fabricPathSwitchId
         tf_name: fabric_path_switch_id
         type: Int64
         optional: true
         computed: true
-        description: Fabric path switch identifier used by ND for the vPC pair template.
+        validator: 'Between(1, 4096)'
+        description: 'Fabric path switch identifier used by ND for the vPC pair template. Valid range: 1-4096.'
         example: 100
       - model_name: isVpcPlus
         tf_name: is_vpc_plus
@@ -106,7 +112,8 @@ resource:
         ndfc_type: bool
         optional: true
         computed: true
-        description: Indicates whether vPC+ mode is enabled for the pair.
+        default_value: false
+        description: 'Indicates whether vPC+ mode is enabled for the pair. Cisco default: `false`.'
         example: false
       - model_name: isVteps
         tf_name: is_vteps
@@ -114,21 +121,25 @@ resource:
         ndfc_type: bool
         optional: true
         computed: true
-        description: Indicates whether the paired switches operate as VTEPs.
+        default_value: false
+        description: 'Indicates whether the paired switches operate as VTEPs. Cisco default: `false`.'
         example: true
       - model_name: keepAliveHoldTimeout
         tf_name: keep_alive_hold_timeout
         type: Int64
         optional: true
         computed: true
-        description: Hold timeout value for the vPC peer keepalive session.
+        default_value: 3
+        validator: 'Between(3, 10)'
+        description: 'Hold timeout value for the vPC peer keepalive session. Cisco default: `3`. Valid range: 3-10.'
         example: 3
+      # ND marks keepAliveVrf as required. The keepalive session must be bound to an allowed VRF.
       - model_name: keepAliveVrf
         tf_name: keep_alive_vrf
         type: String
-        optional: true
-        computed: true
-        description: VRF used for the vPC peer keepalive session.
+        mandatory: true
+        validator: 'OneOf("default", "management")'
+        description: 'VRF used for the vPC peer keepalive session. Required by the ND API because the peer keepalive must run in an explicit VRF. Allowed values: `default`, `management`.'
         example: management
       - model_name: loopbackSecondaryIp
         tf_name: loopback_secondary_ip
@@ -142,14 +153,16 @@ resource:
         type: Int64
         optional: true
         computed: true
-        description: NVE interface identifier associated with the vPC pair.
+        default_value: 1
+        validator: 'Between(1, 4)'
+        description: 'NVE interface identifier associated with the vPC pair. Cisco default: `1`. Valid range: 1-4.'
         example: 1
+      # ND marks peerSwitchKeepAliveLocalIp as required. The peer keepalive endpoint is mandatory for the second switch.
       - model_name: peerSwitchKeepAliveLocalIp
         tf_name: peer_switch_keep_alive_local_ip
         type: String
-        optional: true
-        computed: true
-        description: Local keepalive source IP address used on the peer switch.
+        mandatory: true
+        description: Local keepalive source IP address used on the peer switch. Required by the ND API because the default vPC pair template needs a keepalive endpoint for the peer switch.
         example: 192.168.10.102
       - model_name: peerSwitchDomainConfig
         tf_name: peer_switch_domain_config
@@ -170,14 +183,16 @@ resource:
         type: Int64
         optional: true
         computed: true
-        description: Native VLAN configured on the peer switch peer-link interfaces.
+        validator: 'Between(1, 4094)'
+        description: 'Native VLAN configured on the peer switch peer-link interfaces. Valid range: 1-4094.'
         example: 3600
       - model_name: peerSwitchPoDescription
         tf_name: peer_switch_po_description
         type: String
         optional: true
         computed: true
-        description: Description applied to the peer switch peer-link port channel.
+        validator: 'LengthBetween(1, 254)'
+        description: 'Description applied to the peer switch peer-link port channel. Length: 1-254 characters when set.'
         example: vpc-peer-link leaf1--leaf2
       - model_name: peerSwitchPoConfig
         tf_name: peer_switch_po_config
@@ -191,7 +206,8 @@ resource:
         type: Int64
         optional: true
         computed: true
-        description: Port-channel identifier used for the peer switch side of the vPC peer-link.
+        validator: 'Between(1, 4096)'
+        description: 'Port-channel identifier used for the peer switch side of the vPC peer-link. Valid range: 1-4096.'
         example: 500
       - model_name: peerSwitchPrimaryIp
         tf_name: peer_switch_primary_ip
@@ -212,14 +228,16 @@ resource:
         type: String
         optional: true
         computed: true
-        description: Port-channel mode configured for the vPC peer-link, such as active or on.
+        default_value: active
+        validator: 'OneOf("on", "active", "passive")'
+        description: 'Port-channel mode configured for the vPC peer-link. Cisco default: `active`. Allowed values: `on`, `active`, `passive`.'
         example: active
+      # ND marks switchKeepAliveLocalIp as required. The primary switch keepalive endpoint is mandatory for the pair.
       - model_name: switchKeepAliveLocalIp
         tf_name: switch_keep_alive_local_ip
         type: String
-        optional: true
-        computed: true
-        description: Local keepalive source IP address used on the primary switch.
+        mandatory: true
+        description: Local keepalive source IP address used on the primary switch. Required by the ND API because the default vPC pair template needs a keepalive endpoint for the primary switch.
         example: 192.168.10.101
       - model_name: switchDomainConfig
         tf_name: switch_domain_config
@@ -240,14 +258,16 @@ resource:
         type: Int64
         optional: true
         computed: true
-        description: Native VLAN configured on the primary switch peer-link interfaces.
+        validator: 'Between(1, 4094)'
+        description: 'Native VLAN configured on the primary switch peer-link interfaces. Valid range: 1-4094.'
         example: 3600
       - model_name: switchPoDescription
         tf_name: switch_po_description
         type: String
         optional: true
         computed: true
-        description: Description applied to the primary switch peer-link port channel.
+        validator: 'LengthBetween(1, 254)'
+        description: 'Description applied to the primary switch peer-link port channel. Length: 1-254 characters when set.'
         example: vpc-peer-link leaf1--leaf2
       - model_name: switchPoConfig
         tf_name: switch_po_config
@@ -261,7 +281,8 @@ resource:
         type: Int64
         optional: true
         computed: true
-        description: Port-channel identifier used for the primary switch side of the vPC peer-link.
+        validator: 'Between(1, 4096)'
+        description: 'Port-channel identifier used for the primary switch side of the vPC peer-link. Valid range: 1-4096.'
         example: 500
       - model_name: switchPrimaryIp
         tf_name: switch_primary_ip
