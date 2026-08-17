@@ -99,6 +99,50 @@ func tenantFabricAssociationsEqual(existing, desired NDFCFabricAssociationsValue
 		slices.Equal(existing.AllowedVlans, desired.AllowedVlans)
 }
 
+// tenantFabricAssociationReconciliationPayload builds the operations required
+// to make existingAssociations match desiredAssociations. removalOverrides can
+// supply freshly read backend values for delete items without changing the
+// comparison baseline used to detect desired create or update items.
+func tenantFabricAssociationReconciliationPayload(
+	dg *diag.Diagnostics,
+	tenantName string,
+	existingAssociations []NDFCFabricAssociationsValue,
+	desiredAssociations []NDFCFabricAssociationsValue,
+	removalOverrides map[string]NDFCFabricAssociationsValue,
+) tenantFabricAssociationPayload {
+	existingByKey := tenantFabricAssociationsByFabricName(dg, existingAssociations)
+	desiredByKey := tenantFabricAssociationsByFabricName(dg, desiredAssociations)
+	if dg.HasError() {
+		return tenantFabricAssociationPayload{}
+	}
+
+	payload := tenantFabricAssociationPayload{
+		Items: make([]tenantFabricAssociationItem, 0, len(existingAssociations)+len(desiredAssociations)),
+	}
+
+	for _, existingAssociation := range existingAssociations {
+		key := existingAssociation.FabricName
+		if _, ok := desiredByKey[key]; ok {
+			continue
+		}
+
+		removeAssociation := existingAssociation
+		if override, ok := removalOverrides[key]; ok {
+			removeAssociation = override
+		}
+		payload.Items = append(payload.Items, newTenantFabricAssociationItem(tenantName, removeAssociation, false))
+	}
+
+	for _, desiredAssociation := range desiredAssociations {
+		existingAssociation, ok := existingByKey[desiredAssociation.FabricName]
+		if !ok || !tenantFabricAssociationsEqual(existingAssociation, desiredAssociation) {
+			payload.Items = append(payload.Items, newTenantFabricAssociationItem(tenantName, desiredAssociation, true))
+		}
+	}
+
+	return payload
+}
+
 func tenantFabricAssociationPayloadCounts(payload tenantFabricAssociationPayload) (int, int) {
 	associateTrue := 0
 	associateFalse := 0
@@ -354,14 +398,8 @@ func (r *tenantResource) rscSyncConfiguredTenantFabricAssociations(ctx context.C
 		return
 	}
 
-	oldByKey := tenantFabricAssociationsByFabricName(dg, oldAssociations)
-	desiredByKey := tenantFabricAssociationsByFabricName(dg, desiredAssociations)
-	if dg.HasError() {
-		return
-	}
-
-	currentOldAssociationsByKey := make(map[string]NDFCFabricAssociationsValue, len(oldByKey))
-	if len(oldByKey) > 0 {
+	currentOldAssociationsByKey := make(map[string]NDFCFabricAssociationsValue, len(oldAssociations))
+	if len(oldAssociations) > 0 {
 		currentOldAssociations := r.rscGetTenantFabricAssociations(dg, tenantModel.Name.ValueString(), oldAssociations)
 		if dg.HasError() {
 			return
@@ -371,30 +409,15 @@ func (r *tenantResource) rscSyncConfiguredTenantFabricAssociations(ctx context.C
 		}
 	}
 
-	payload := tenantFabricAssociationPayload{
-		Items: make([]tenantFabricAssociationItem, 0, len(oldAssociations)+len(desiredAssociations)),
-	}
-
-	for _, oldAssociation := range oldAssociations {
-		oldAssociation = normalizeTenantFabricAssociation(oldAssociation)
-		key := oldAssociation.FabricName
-		if _, ok := desiredByKey[key]; !ok {
-			removeAssociation, ok := currentOldAssociationsByKey[key]
-			if !ok {
-				payload.Items = append(payload.Items, newTenantFabricAssociationItem(tenantName, oldAssociation, false))
-				continue
-			}
-			payload.Items = append(payload.Items, newTenantFabricAssociationItem(tenantName, removeAssociation, false))
-		}
-	}
-
-	for _, desiredAssociation := range desiredAssociations {
-		desiredAssociation = normalizeTenantFabricAssociation(desiredAssociation)
-		key := desiredAssociation.FabricName
-		oldAssociation, ok := oldByKey[key]
-		if !ok || !tenantFabricAssociationsEqual(oldAssociation, desiredAssociation) {
-			payload.Items = append(payload.Items, newTenantFabricAssociationItem(tenantName, desiredAssociation, true))
-		}
+	payload := tenantFabricAssociationReconciliationPayload(
+		dg,
+		tenantName,
+		oldAssociations,
+		desiredAssociations,
+		currentOldAssociationsByKey,
+	)
+	if dg.HasError() {
+		return
 	}
 
 	r.rscPostTenantFabricAssociations(dg, payload)
@@ -427,27 +450,15 @@ func (r *tenantResource) rscRestoreTenantFabricAssociations(ctx context.Context,
 		return
 	}
 
-	desiredByKey := tenantFabricAssociationsByFabricName(dg, desiredAssociations)
-	currentByKey := tenantFabricAssociationsByFabricName(dg, currentAssociations)
+	payload := tenantFabricAssociationReconciliationPayload(
+		dg,
+		tenantName,
+		currentAssociations,
+		desiredAssociations,
+		nil,
+	)
 	if dg.HasError() {
 		return
-	}
-
-	payload := tenantFabricAssociationPayload{
-		Items: make([]tenantFabricAssociationItem, 0, len(currentAssociations)+len(desiredAssociations)),
-	}
-
-	for _, currentAssociation := range currentAssociations {
-		if _, ok := desiredByKey[currentAssociation.FabricName]; !ok {
-			payload.Items = append(payload.Items, newTenantFabricAssociationItem(tenantName, currentAssociation, false))
-		}
-	}
-
-	for _, desiredAssociation := range desiredAssociations {
-		currentAssociation, ok := currentByKey[desiredAssociation.FabricName]
-		if !ok || !tenantFabricAssociationsEqual(currentAssociation, desiredAssociation) {
-			payload.Items = append(payload.Items, newTenantFabricAssociationItem(tenantName, desiredAssociation, true))
-		}
 	}
 
 	r.rscPostTenantFabricAssociations(dg, payload)
@@ -457,8 +468,7 @@ func (r *tenantResource) rscRestoreTenantFabricAssociations(ctx context.Context,
 // tenant being deleted. It passes nil configuredAssociations, so
 // rscGetTenantFabricAssociations filters only by tenantName and does not limit
 // deletion to the Terraform-configured fabric_name list.
-func (r *tenantResource) rscDeleteTenantFabricAssociations(dg *diag.Diagnostics, state *TenantModel) {
-	tenantName := state.Name.ValueString()
+func (r *tenantResource) rscDeleteTenantFabricAssociations(dg *diag.Diagnostics, tenantName string) {
 	log.Printf("[DEBUG] Start rscDeleteTenantFabricAssociations: tenant_name=%s", tenantName)
 	defer log.Printf("[DEBUG] End rscDeleteTenantFabricAssociations: tenant_name=%s", tenantName)
 

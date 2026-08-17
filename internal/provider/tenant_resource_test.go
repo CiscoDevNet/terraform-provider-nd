@@ -15,6 +15,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/infra/api"
@@ -31,9 +32,9 @@ import (
 )
 
 const (
-	tenantFabricOne = "tf_apic1"
-	// tenantFabricOne = "ansible_test"
-	tenantFabricTwo = "ansible_test_2"
+	tenantFabricOne                    = "ansible-test"
+	tenantFabricTwo                    = "ansible-test-2"
+	tenantAssociationOrchestrationWait = 5 * time.Second
 )
 
 type tenantFabricAssociationTestPayload struct {
@@ -294,7 +295,10 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 					s4.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 4, s4.Name, s4.Cfg) },
+				PreConfig: func() {
+					helper.LogStep(t, 4, s4.Name, s4.Cfg)
+					waitForTenantAssociationOrchestration(t)
+				},
 				Check: resource.ComposeTestCheckFunc(
 					append(
 						append(
@@ -407,7 +411,10 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 					s7.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 7, s7.Name, s7.Cfg) },
+				PreConfig: func() {
+					helper.LogStep(t, 7, s7.Name, s7.Cfg)
+					waitForTenantAssociationOrchestration(t)
+				},
 				Check: resource.ComposeTestCheckFunc(
 					append(
 						append(
@@ -680,6 +687,7 @@ func TestAccTenantResourceAssociationRollback(t *testing.T) {
 			{
 				PreConfig: func() {
 					helper.LogStep(t, s4.Index, s4.Name, s4.Cfg)
+					waitForTenantAssociationOrchestration(t)
 					assertTenantConfigurationOutsideTerraform(
 						t,
 						updateTenantName,
@@ -693,6 +701,14 @@ func TestAccTenantResourceAssociationRollback(t *testing.T) {
 			},
 		},
 	})
+}
+
+// waitForTenantAssociationOrchestration gives asynchronous association changes
+// time to settle before a test removes tenant fabric associations.
+func waitForTenantAssociationOrchestration(t *testing.T) {
+	t.Helper()
+	t.Logf("Waiting %s for tenant fabric association orchestration to settle", tenantAssociationOrchestrationWait)
+	time.Sleep(tenantAssociationOrchestrationWait)
 }
 
 func tenantAssociationStateChecks(resourceName string, associations ...resource_tenant.NDFCFabricAssociationsValue) []resource.TestCheckFunc {
@@ -931,6 +947,7 @@ func deleteTenantFabricAssociationsOutsideTerraform(t *testing.T, client *nd.Cli
 	}
 
 	tenantFabricAssocAPI := manageapi.NewTenantFabricAssociationAPI(client, ndapi.DefaultFabric)
+	waitForTenantAssociationOrchestration(t)
 	res, err := tenantFabricAssocAPI.Post(payloadBytes, nil)
 	if err != nil {
 		t.Fatalf("failed to delete tenant fabric associations for tenant %q outside Terraform: %v %s", name, err, res.String())

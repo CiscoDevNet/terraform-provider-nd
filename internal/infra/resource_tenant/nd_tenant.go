@@ -156,7 +156,9 @@ func (r *tenantResource) rscGetTenant(ctx context.Context, dg *diag.Diagnostics,
 }
 
 // rscPutTenant updates the tenant fields handled by the infra tenant API.
-func (r *tenantResource) rscPutTenant(dg *diag.Diagnostics, tenantModel *TenantModel, errorSummary string) {
+func (r *tenantResource) rscPutTenant(dg *diag.Diagnostics, tenantModel *TenantModel) {
+	const errorSummary = "Error Updating Tenant"
+
 	id := tenantModel.Id.ValueString()
 	inData := tenantModel.GetModelData()
 	tenantAPI := api.NewTenantAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
@@ -222,7 +224,7 @@ func (r *tenantResource) rscUpdateTenant(ctx context.Context, dg *diag.Diagnosti
 	}
 
 	if oldState != nil && !oldState.Description.Equal(tenantModel.Description) {
-		r.rscPutTenant(dg, tenantModel, "Error Updating Tenant")
+		r.rscPutTenant(dg, tenantModel)
 		if dg.HasError() {
 			return
 		}
@@ -252,7 +254,7 @@ func (r *tenantResource) rscDeleteTenant(ctx context.Context, dg *diag.Diagnosti
 	id := state.Id.ValueString()
 	log.Printf("[INFO] Delete nd_tenant id=%s", id)
 
-	r.rscDeleteTenantFabricAssociations(dg, state)
+	r.rscDeleteTenantFabricAssociations(dg, state.Name.ValueString())
 	if dg.HasError() {
 		return
 	}
