@@ -171,7 +171,7 @@ func (r *fabricAciResource) rscUpdateFabricAci(ctx context.Context, dg *diag.Dia
 	id := plan.Id.ValueString()
 	log.Printf("[INFO] Update nd_fabric_aci id=%s", id)
 
-	inData := plan.GetManageModelData()
+	inData := plan.manageUpdatePayload()
 
 	clusterAPI := api.NewFabricAciAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 	clusterAPI.ClusterName = id

@@ -121,8 +121,6 @@ resource:
     tf_name: telemetry_status
     description: The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when unset during creation.
     type: String
-    optional: true
-    computed: true
     default_value: disabled
     ndfc_nested:
     - spec
@@ -170,8 +168,6 @@ resource:
     tf_name: orchestration_status
     description: The status of the orchestration feature for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when unset during creation.
     type: String
-    optional: true
-    computed: true
     default_value: disabled
     ndfc_nested:
     - spec
@@ -184,8 +180,6 @@ resource:
     tf_name: security_domain
     description: The name of the security domain for the APIC cluster. Defaults to `all` when unset during creation.
     type: String
-    optional: true
-    computed: true
     default_value: all
     ndfc_nested:
     - spec

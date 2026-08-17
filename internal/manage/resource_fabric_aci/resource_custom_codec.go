@@ -14,31 +14,31 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// NDFCFabricAciManageModel is the payload shape for
+// fabricAciManageUpdatePayload is the payload shape for
 // PUT /manage/fabrics/{fabricName}. The generated NDFCFabricAciModel
 // is kept for the infra /clusters create/read/delete payload.
-type NDFCFabricAciManageModel struct {
-	Category                   string                        `json:"category,omitempty"`
-	FabricName                 string                        `json:"name,omitempty"`
-	LicenseTier                string                        `json:"licenseTier,omitempty"`
-	SecurityDomain             string                        `json:"securityDomain,omitempty"`
-	TelemetryCollection        *bool                         `json:"telemetryCollection,omitempty"`
-	TelemetryCollectionType    string                        `json:"telemetryCollectionType,omitempty"`
-	TelemetryStreamingProtocol string                        `json:"telemetryStreamingProtocol,omitempty"`
-	Location                   *NDFCSpecLocationValue        `json:"location,omitempty"`
-	Management                 *NDFCAciManageManagementValue `json:"management,omitempty"`
+type fabricAciManageUpdatePayload struct {
+	Category                   string                     `json:"category,omitempty"`
+	FabricName                 string                     `json:"name,omitempty"`
+	LicenseTier                string                     `json:"licenseTier,omitempty"`
+	SecurityDomain             string                     `json:"securityDomain,omitempty"`
+	TelemetryCollection        *bool                      `json:"telemetryCollection,omitempty"`
+	TelemetryCollectionType    string                     `json:"telemetryCollectionType,omitempty"`
+	TelemetryStreamingProtocol string                     `json:"telemetryStreamingProtocol,omitempty"`
+	Location                   *NDFCSpecLocationValue     `json:"location,omitempty"`
+	Management                 *fabricAciManageManagement `json:"management,omitempty"`
 }
 
-type NDFCAciManageManagementValue struct {
+type fabricAciManageManagement struct {
 	Type          string `json:"type,omitempty"`
 	Orchestration *bool  `json:"orchestration,omitempty"`
 	Epg           string `json:"epg,omitempty"`
 }
 
-func (v FabricAciModel) GetManageModelData() *NDFCFabricAciManageModel {
-	data := &NDFCFabricAciManageModel{
+func (v FabricAciModel) manageUpdatePayload() *fabricAciManageUpdatePayload {
+	data := &fabricAciManageUpdatePayload{
 		Category: "fabric",
-		Management: &NDFCAciManageManagementValue{
+		Management: &fabricAciManageManagement{
 			Type: "aci",
 		},
 	}
