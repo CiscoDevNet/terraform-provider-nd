@@ -82,15 +82,15 @@ Required:
 
 Optional:
 
-- `admin_state` (Boolean) Administrative state of the default vPC pair template. Cisco default: `true`.
-- `allowed_vlans` (String) VLAN range allowed on the vPC peer-link interfaces. Cisco default: `all`.
-- `enable_mirror_config` (Boolean) Enables mirrored configuration generation for the vPC pair template. Cisco default: `false`.
+- `admin_state` (Boolean) Administrative state of the default vPC pair template. Defaults to `true` when not set in the Terraform configuration.
+- `allowed_vlans` (String) VLAN range allowed on the vPC peer-link interfaces. Defaults to `all` when not set in the Terraform configuration.
+- `enable_mirror_config` (Boolean) Enables mirrored configuration generation for the vPC pair template. Defaults to `false` when not set in the Terraform configuration.
 - `fabric_path_switch_id` (Number) Fabric path switch identifier used by ND for the vPC pair template. Valid range: 1-4096.
-- `is_vpc_plus` (Boolean) Indicates whether vPC+ mode is enabled for the pair. Cisco default: `false`.
-- `is_vteps` (Boolean) Indicates whether the paired switches operate as VTEPs. Cisco default: `false`.
-- `keep_alive_hold_timeout` (Number) Hold timeout value for the vPC peer keepalive session. Cisco default: `3`. Valid range: 3-10.
+- `is_vpc_plus` (Boolean) Indicates whether vPC+ mode is enabled for the pair. Defaults to `false` when not set in the Terraform configuration.
+- `is_vteps` (Boolean) Indicates whether the paired switches operate as VTEPs. Defaults to `false` when not set in the Terraform configuration.
+- `keep_alive_hold_timeout` (Number) Hold timeout value for the vPC peer keepalive session. Defaults to `3` when not set in the Terraform configuration. Valid range: 3-10.
 - `loopback_secondary_ip` (String) Secondary loopback IP address associated with the vPC pair template.
-- `nve_interface` (Number) NVE interface identifier associated with the vPC pair. Cisco default: `1`. Valid range: 1-4.
+- `nve_interface` (Number) NVE interface identifier associated with the vPC pair. Defaults to `1` when not set in the Terraform configuration. Valid range: 1-4.
 - `peer_switch_domain_config` (String) Additional vPC domain configuration rendered for the peer switch.
 - `peer_switch_member_interfaces` (Set of String) Member interfaces on the peer switch that form the vPC peer-link port channel.
 - `peer_switch_native_vlan` (Number) Native VLAN configured on the peer switch peer-link interfaces. Valid range: 1-4094.
@@ -99,7 +99,7 @@ Optional:
 - `peer_switch_po_id` (Number) Port-channel identifier used for the peer switch side of the vPC peer-link. Valid range: 1-4096.
 - `peer_switch_primary_ip` (String) Primary IP address associated with the peer switch in the vPC template.
 - `peer_switch_source_loopback` (Number) Source loopback interface number used by the peer switch for keepalive traffic.
-- `po_mode` (String) Port-channel mode configured for the vPC peer-link. Cisco default: `active`. Allowed values: `on`, `active`, `passive`.
+- `po_mode` (String) Port-channel mode configured for the vPC peer-link. Defaults to `active` when not set in the Terraform configuration. Allowed values: `on`, `active`, `passive`.
 - `switch_domain_config` (String) Additional vPC domain configuration rendered for the primary switch.
 - `switch_member_interfaces` (Set of String) Member interfaces on the primary switch that form the vPC peer-link port channel.
 - `switch_native_vlan` (Number) Native VLAN configured on the primary switch peer-link interfaces. Valid range: 1-4094.

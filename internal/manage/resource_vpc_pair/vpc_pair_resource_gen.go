@@ -67,15 +67,15 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					"admin_state": schema.BoolAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Administrative state of the default vPC pair template. Cisco default: `true`.",
-						MarkdownDescription: "Administrative state of the default vPC pair template. Cisco default: `true`.",
+						Description:         "Administrative state of the default vPC pair template. Defaults to `true` when not set in the Terraform configuration.",
+						MarkdownDescription: "Administrative state of the default vPC pair template. Defaults to `true` when not set in the Terraform configuration.",
 						Default:             booldefault.StaticBool(true),
 					},
 					"allowed_vlans": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "VLAN range allowed on the vPC peer-link interfaces. Cisco default: `all`.",
-						MarkdownDescription: "VLAN range allowed on the vPC peer-link interfaces. Cisco default: `all`.",
+						Description:         "VLAN range allowed on the vPC peer-link interfaces. Defaults to `all` when not set in the Terraform configuration.",
+						MarkdownDescription: "VLAN range allowed on the vPC peer-link interfaces. Defaults to `all` when not set in the Terraform configuration.",
 						Default:             stringdefault.StaticString("all"),
 					},
 					"domain_id": schema.Int64Attribute{
@@ -89,8 +89,8 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					"enable_mirror_config": schema.BoolAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Enables mirrored configuration generation for the vPC pair template. Cisco default: `false`.",
-						MarkdownDescription: "Enables mirrored configuration generation for the vPC pair template. Cisco default: `false`.",
+						Description:         "Enables mirrored configuration generation for the vPC pair template. Defaults to `false` when not set in the Terraform configuration.",
+						MarkdownDescription: "Enables mirrored configuration generation for the vPC pair template. Defaults to `false` when not set in the Terraform configuration.",
 						Default:             booldefault.StaticBool(false),
 					},
 					"fabric_path_switch_id": schema.Int64Attribute{
@@ -105,22 +105,22 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					"is_vpc_plus": schema.BoolAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Indicates whether vPC+ mode is enabled for the pair. Cisco default: `false`.",
-						MarkdownDescription: "Indicates whether vPC+ mode is enabled for the pair. Cisco default: `false`.",
+						Description:         "Indicates whether vPC+ mode is enabled for the pair. Defaults to `false` when not set in the Terraform configuration.",
+						MarkdownDescription: "Indicates whether vPC+ mode is enabled for the pair. Defaults to `false` when not set in the Terraform configuration.",
 						Default:             booldefault.StaticBool(false),
 					},
 					"is_vteps": schema.BoolAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Indicates whether the paired switches operate as VTEPs. Cisco default: `false`.",
-						MarkdownDescription: "Indicates whether the paired switches operate as VTEPs. Cisco default: `false`.",
+						Description:         "Indicates whether the paired switches operate as VTEPs. Defaults to `false` when not set in the Terraform configuration.",
+						MarkdownDescription: "Indicates whether the paired switches operate as VTEPs. Defaults to `false` when not set in the Terraform configuration.",
 						Default:             booldefault.StaticBool(false),
 					},
 					"keep_alive_hold_timeout": schema.Int64Attribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Hold timeout value for the vPC peer keepalive session. Cisco default: `3`. Valid range: 3-10.",
-						MarkdownDescription: "Hold timeout value for the vPC peer keepalive session. Cisco default: `3`. Valid range: 3-10.",
+						Description:         "Hold timeout value for the vPC peer keepalive session. Defaults to `3` when not set in the Terraform configuration. Valid range: 3-10.",
+						MarkdownDescription: "Hold timeout value for the vPC peer keepalive session. Defaults to `3` when not set in the Terraform configuration. Valid range: 3-10.",
 						Validators: []validator.Int64{
 							int64validator.Between(3, 10),
 						},
@@ -143,8 +143,8 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					"nve_interface": schema.Int64Attribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "NVE interface identifier associated with the vPC pair. Cisco default: `1`. Valid range: 1-4.",
-						MarkdownDescription: "NVE interface identifier associated with the vPC pair. Cisco default: `1`. Valid range: 1-4.",
+						Description:         "NVE interface identifier associated with the vPC pair. Defaults to `1` when not set in the Terraform configuration. Valid range: 1-4.",
+						MarkdownDescription: "NVE interface identifier associated with the vPC pair. Defaults to `1` when not set in the Terraform configuration. Valid range: 1-4.",
 						Validators: []validator.Int64{
 							int64validator.Between(1, 4),
 						},
@@ -216,8 +216,8 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					"po_mode": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Port-channel mode configured for the vPC peer-link. Cisco default: `active`. Allowed values: `on`, `active`, `passive`.",
-						MarkdownDescription: "Port-channel mode configured for the vPC peer-link. Cisco default: `active`. Allowed values: `on`, `active`, `passive`.",
+						Description:         "Port-channel mode configured for the vPC peer-link. Defaults to `active` when not set in the Terraform configuration. Allowed values: `on`, `active`, `passive`.",
+						MarkdownDescription: "Port-channel mode configured for the vPC peer-link. Defaults to `active` when not set in the Terraform configuration. Allowed values: `on`, `active`, `passive`.",
 						Validators: []validator.String{
 							stringvalidator.OneOf("on", "active", "passive"),
 						},
