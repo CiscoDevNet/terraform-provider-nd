@@ -8,7 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -23,24 +24,52 @@ import (
 func InventorySwitchResourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"deploy": schema.BoolAttribute{
+			"bootstrap_password": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				Description:         "Admin password to set on the switch during POAP bootstrap. Required for bootstrap mode. Not used in discovery mode.\n",
+				MarkdownDescription: "Admin password to set on the switch during POAP bootstrap. Required for bootstrap mode. Not used in discovery mode.\n",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"discovery_cred_for_lan": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "Deploy configuration to switches after operations",
-				MarkdownDescription: "Deploy configuration to switches after operations",
-				Default:             booldefault.StaticBool(false),
+				Description:         "Discovery mode only. When true, use the discovery credentials as LAN credentials for config deployment (write) to the switch.\n",
+				MarkdownDescription: "Discovery mode only. When true, use the discovery credentials as LAN credentials for config deployment (write) to the switch.\n",
+				Default:             booldefault.StaticBool(true),
+			},
+			"discovery_password": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				Description:         "Password for switch discovery/login. In discovery mode, used as the switch login password. In bootstrap mode with use_new_credentials enabled, used as the post-bootstrap discovery password.\n",
+				MarkdownDescription: "Password for switch discovery/login. In discovery mode, used as the switch login password. In bootstrap mode with use_new_credentials enabled, used as the post-bootstrap discovery password.\n",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"discovery_username": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				Description:         "Username for switch discovery/login. In discovery mode, used as the switch login username. In bootstrap mode with use_new_credentials enabled, used as the post-bootstrap discovery username.\n",
+				MarkdownDescription: "Username for switch discovery/login. In discovery mode, used as the switch login username. In bootstrap mode with use_new_credentials enabled, used as the post-bootstrap discovery username.\n",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"fabric_name": schema.StringAttribute{
 				Required:            true,
 				Description:         "Name of the fabric to add switches to",
 				MarkdownDescription: "Name of the fabric to add switches to",
 			},
-			"max_hop": schema.Int64Attribute{
-				Optional:            true,
+			"id": schema.StringAttribute{
 				Computed:            true,
-				Description:         "Maximum hops for CDP/LLDP discovery",
-				MarkdownDescription: "Maximum hops for CDP/LLDP discovery",
-				Default:             int64default.StaticInt64(0),
+				Description:         "Unique identifier for the inventory switch resource",
+				MarkdownDescription: "Unique identifier for the inventory switch resource",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"mode": schema.StringAttribute{
 				Optional:            true,
@@ -52,12 +81,6 @@ func InventorySwitchResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Default: stringdefault.StaticString("discovery"),
 			},
-			"password": schema.StringAttribute{
-				Optional:            true,
-				Sensitive:           true,
-				Description:         "Switch login password",
-				MarkdownDescription: "Switch login password",
-			},
 			"platform_type": schema.StringAttribute{
 				Computed:            true,
 				Description:         "Platform type (nx-os, ios-xe)",
@@ -68,14 +91,10 @@ func InventorySwitchResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "Preserve existing config (true=brownfield, false=greenfield)",
 				MarkdownDescription: "Preserve existing config (true=brownfield, false=greenfield)",
-				Default:             booldefault.StaticBool(false),
-			},
-			"recalculate": schema.BoolAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Recalculate (config-save) fabric configuration after switch operations",
-				MarkdownDescription: "Recalculate (config-save) fabric configuration after switch operations",
-				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+				Default: booldefault.StaticBool(false),
 			},
 			"remote_credential_store": schema.StringAttribute{
 				Optional:            true,
@@ -94,134 +113,183 @@ func InventorySwitchResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "SNMP v3 authentication protocol",
 				MarkdownDescription: "SNMP v3 authentication protocol",
-				Default:             stringdefault.StaticString("MD5"),
+				Default:             stringdefault.StaticString("md5"),
 			},
-			"switches": schema.MapNestedAttribute{
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"discovery_auth_protocol": schema.StringAttribute{
-							Optional:            true,
-							Description:         "Authentication protocol for POAP discovery",
-							MarkdownDescription: "Authentication protocol for POAP discovery",
-						},
-						"gateway_ip_mask": schema.StringAttribute{
-							Optional:            true,
-							Description:         "Gateway IP with mask for POAP (e.g., 10.1.1.1/24)",
-							MarkdownDescription: "Gateway IP with mask for POAP (e.g., 10.1.1.1/24)",
-						},
-						"hostname": schema.StringAttribute{
-							Computed:            true,
-							Description:         "Switch hostname",
-							MarkdownDescription: "Switch hostname",
-							PlanModifiers: []planmodifier.String{
-								stringplanmodifier.UseStateForUnknown(),
-							},
-						},
-						"ip_address": schema.StringAttribute{
-							Required:            true,
-							Description:         "Switch management IP address",
-							MarkdownDescription: "Switch management IP address",
-						},
-						"model": schema.StringAttribute{
-							Optional:            true,
-							Computed:            true,
-							Description:         "Switch hardware model",
-							MarkdownDescription: "Switch hardware model",
-						},
-						"poap_password": schema.StringAttribute{
-							Optional:            true,
-							Sensitive:           true,
-							Description:         "Password for POAP bootstrap",
-							MarkdownDescription: "Password for POAP bootstrap",
-						},
-						"serial_number": schema.StringAttribute{
-							Computed:            true,
-							Description:         "Switch serial number",
-							MarkdownDescription: "Switch serial number",
-							PlanModifiers: []planmodifier.String{
-								stringplanmodifier.UseStateForUnknown(),
-							},
-						},
-						"software_version": schema.StringAttribute{
-							Optional:            true,
-							Computed:            true,
-							Description:         "Switch software version",
-							MarkdownDescription: "Switch software version",
-						},
-						"status": schema.StringAttribute{
-							Computed:            true,
-							Description:         "Current switch status",
-							MarkdownDescription: "Current switch status",
-						},
-						"status_reason": schema.StringAttribute{
-							Computed:            true,
-							Description:         "Reason for current switch status (e.g., failure details)",
-							MarkdownDescription: "Reason for current switch status (e.g., failure details)",
-						},
-						"switch_role": schema.StringAttribute{
-							Optional:            true,
-							Computed:            true,
-							Description:         "Role of switch in fabric.",
-							MarkdownDescription: "Role of switch in fabric.",
-							Default:             stringdefault.StaticString("leaf"),
-						},
-						"vdc_id": schema.Int64Attribute{
-							Optional:            true,
-							Computed:            true,
-							Description:         "VDC ID for N7K switches",
-							MarkdownDescription: "VDC ID for N7K switches",
-						},
-						"vdc_mac": schema.StringAttribute{
-							Optional:            true,
-							Computed:            true,
-							Description:         "VDC MAC for N7K switches",
-							MarkdownDescription: "VDC MAC for N7K switches",
+			"source_interface_name": schema.StringAttribute{
+				Optional:            true,
+				Description:         "Source interface for switch discovery",
+				MarkdownDescription: "Source interface for switch discovery",
+			},
+			"source_vrf_name": schema.StringAttribute{
+				Optional:            true,
+				Description:         "Source VRF for switch discovery",
+				MarkdownDescription: "Source VRF for switch discovery",
+			},
+			"switch_detail": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"discovery_auth_protocol": schema.StringAttribute{
+						Optional:            true,
+						Description:         "Authentication protocol for POAP discovery",
+						MarkdownDescription: "Authentication protocol for POAP discovery",
+					},
+					"gateway_ip_mask": schema.StringAttribute{
+						Optional:            true,
+						Description:         "Gateway IP with mask for POAP (e.g., 10.1.1.1/24)",
+						MarkdownDescription: "Gateway IP with mask for POAP (e.g., 10.1.1.1/24)",
+					},
+					"hostname": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Switch hostname",
+						MarkdownDescription: "Switch hostname",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
 						},
 					},
-					CustomType: SwitchesType{
-						ObjectType: types.ObjectType{
-							AttrTypes: SwitchesValue{}.AttributeTypes(ctx),
+					"ip_address": schema.StringAttribute{
+						Required:            true,
+						Description:         "Switch management IP address",
+						MarkdownDescription: "Switch management IP address",
+					},
+					"model": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Switch hardware model",
+						MarkdownDescription: "Switch hardware model",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"serial_number": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Switch serial number",
+						MarkdownDescription: "Switch serial number",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"software_image": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Software image filename for bootstrap (e.g. nxos64-cs.10.3.1.F.bin). When specified, this image is used during POAP bootstrap. When omitted, the value from the bootstrap list API is used.",
+						MarkdownDescription: "Software image filename for bootstrap (e.g. nxos64-cs.10.3.1.F.bin). When specified, this image is used during POAP bootstrap. When omitted, the value from the bootstrap list API is used.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"software_version": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Switch software version",
+						MarkdownDescription: "Switch software version",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"status": schema.StringAttribute{
+						Computed:            true,
+						Description:         "Current switch status",
+						MarkdownDescription: "Current switch status",
+					},
+					"status_reason": schema.StringAttribute{
+						Computed:            true,
+						Description:         "Reason for current switch status (e.g., failure details)",
+						MarkdownDescription: "Reason for current switch status (e.g., failure details)",
+					},
+					"switch_role": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Role of switch in fabric.",
+						MarkdownDescription: "Role of switch in fabric.",
+						Default:             stringdefault.StaticString("leaf"),
+					},
+					"vdc_id": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "VDC ID for N7K switches",
+						MarkdownDescription: "VDC ID for N7K switches",
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
+					},
+					"vdc_mac": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "VDC MAC for N7K switches",
+						MarkdownDescription: "VDC MAC for N7K switches",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
 						},
 					},
 				},
+				CustomType: SwitchDetailType{
+					ObjectType: types.ObjectType{
+						AttrTypes: SwitchDetailValue{}.AttributeTypes(ctx),
+					},
+				},
 				Required:            true,
-				Description:         "Map of switches to manage, keyed by serial number",
-				MarkdownDescription: "Map of switches to manage, keyed by serial number",
+				Description:         "A structure containing switch details to manage",
+				MarkdownDescription: "A structure containing switch details to manage",
 			},
-			"username": schema.StringAttribute{
+			"use_new_credentials": schema.BoolAttribute{
 				Optional:            true,
-				Sensitive:           true,
-				Description:         "Switch login username",
-				MarkdownDescription: "Switch login username",
+				Computed:            true,
+				Description:         "Bootstrap mode only. When true, use discovery_username and discovery_password as separate credentials for post-bootstrap switch discovery. When false, the bootstrap admin password is used for discovery.\n",
+				MarkdownDescription: "Bootstrap mode only. When true, use discovery_username and discovery_password as separate credentials for post-bootstrap switch discovery. When false, the bootstrap admin password is used for discovery.\n",
+				Default:             booldefault.StaticBool(false),
+			},
+			"wait_for_bootstrap": schema.StringAttribute{
+				Optional:            true,
+				Description:         "How long to Wait for the switch to boot into POAP mode (eg. 10m 60s etc) When configured, Terraform will allow some time for the switch to boot into POAP mode. When not specified, if the switch is not found in the 'POAP' list during the operation, the resource errors out\n",
+				MarkdownDescription: "How long to Wait for the switch to boot into POAP mode (eg. 10m 60s etc) When configured, Terraform will allow some time for the switch to boot into POAP mode. When not specified, if the switch is not found in the 'POAP' list during the operation, the resource errors out\n",
+			},
+			"wait_for_discover": schema.StringAttribute{
+				Optional:            true,
+				Description:         "How long to wait for the switch to become reachable during discovery (eg. 10m 60s etc). When configured, Terraform will retry shallow discovery until the switch is reachable or the timeout expires. When not specified, if the switch is not reachable, the resource errors out immediately.\n",
+				MarkdownDescription: "How long to wait for the switch to become reachable during discovery (eg. 10m 60s etc). When configured, Terraform will retry shallow discovery until the switch is reachable or the timeout expires. When not specified, if the switch is not reachable, the resource errors out immediately.\n",
+			},
+			"wait_for_ready": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "How long to Wait for the switch to be online after adding to fabric (eg. 10m 60s etc) When configured, Terraform will wait an poll the switch to be ready. If the switch is not ready within the timeout, the resource errors out.\n",
+				MarkdownDescription: "How long to Wait for the switch to be online after adding to fabric (eg. 10m 60s etc) When configured, Terraform will wait an poll the switch to be ready. If the switch is not ready within the timeout, the resource errors out.\n",
+				Default:             stringdefault.StaticString("30m"),
 			},
 		},
 	}
 }
 
 type InventorySwitchModel struct {
-	Deploy                   types.Bool   `tfsdk:"deploy"`
-	FabricName               types.String `tfsdk:"fabric_name"`
-	MaxHop                   types.Int64  `tfsdk:"max_hop"`
-	Mode                     types.String `tfsdk:"mode"`
-	Password                 types.String `tfsdk:"password"`
-	PlatformType             types.String `tfsdk:"platform_type"`
-	PreserveConfig           types.Bool   `tfsdk:"preserve_config"`
-	Recalculate              types.Bool   `tfsdk:"recalculate"`
-	RemoteCredentialStore    types.String `tfsdk:"remote_credential_store"`
-	RemoteCredentialStoreKey types.String `tfsdk:"remote_credential_store_key"`
-	SnmpV3AuthProtocol       types.String `tfsdk:"snmp_v3_auth_protocol"`
-	Switches                 types.Map    `tfsdk:"switches"`
-	Username                 types.String `tfsdk:"username"`
+	BootstrapPassword        types.String      `tfsdk:"bootstrap_password"`
+	DiscoveryCredForLan      types.Bool        `tfsdk:"discovery_cred_for_lan"`
+	DiscoveryPassword        types.String      `tfsdk:"discovery_password"`
+	DiscoveryUsername        types.String      `tfsdk:"discovery_username"`
+	FabricName               types.String      `tfsdk:"fabric_name"`
+	Id                       types.String      `tfsdk:"id"`
+	Mode                     types.String      `tfsdk:"mode"`
+	PlatformType             types.String      `tfsdk:"platform_type"`
+	PreserveConfig           types.Bool        `tfsdk:"preserve_config"`
+	RemoteCredentialStore    types.String      `tfsdk:"remote_credential_store"`
+	RemoteCredentialStoreKey types.String      `tfsdk:"remote_credential_store_key"`
+	SnmpV3AuthProtocol       types.String      `tfsdk:"snmp_v3_auth_protocol"`
+	SourceInterfaceName      types.String      `tfsdk:"source_interface_name"`
+	SourceVrfName            types.String      `tfsdk:"source_vrf_name"`
+	SwitchDetail             SwitchDetailValue `tfsdk:"switch_detail"`
+	UseNewCredentials        types.Bool        `tfsdk:"use_new_credentials"`
+	WaitForBootstrap         types.String      `tfsdk:"wait_for_bootstrap"`
+	WaitForDiscover          types.String      `tfsdk:"wait_for_discover"`
+	WaitForReady             types.String      `tfsdk:"wait_for_ready"`
 }
 
-var _ basetypes.ObjectTypable = SwitchesType{}
+var _ basetypes.ObjectTypable = SwitchDetailType{}
 
-type SwitchesType struct {
+type SwitchDetailType struct {
 	basetypes.ObjectType
 }
 
-func (t SwitchesType) Equal(o attr.Type) bool {
-	other, ok := o.(SwitchesType)
+func (t SwitchDetailType) Equal(o attr.Type) bool {
+	other, ok := o.(SwitchDetailType)
 
 	if !ok {
 		return false
@@ -230,11 +298,11 @@ func (t SwitchesType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t SwitchesType) String() string {
-	return "SwitchesType"
+func (t SwitchDetailType) String() string {
+	return "SwitchDetailType"
 }
 
-func (t SwitchesType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t SwitchDetailType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -329,24 +397,6 @@ func (t SwitchesType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 			fmt.Sprintf(`model expected to be basetypes.StringValue, was: %T`, modelAttribute))
 	}
 
-	poapPasswordAttribute, ok := attributes["poap_password"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`poap_password is missing from object`)
-
-		return nil, diags
-	}
-
-	poapPasswordVal, ok := poapPasswordAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`poap_password expected to be basetypes.StringValue, was: %T`, poapPasswordAttribute))
-	}
-
 	serialNumberAttribute, ok := attributes["serial_number"]
 
 	if !ok {
@@ -363,6 +413,24 @@ func (t SwitchesType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 		diags.AddError(
 			"Attribute Wrong Type",
 			fmt.Sprintf(`serial_number expected to be basetypes.StringValue, was: %T`, serialNumberAttribute))
+	}
+
+	softwareImageAttribute, ok := attributes["software_image"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`software_image is missing from object`)
+
+		return nil, diags
+	}
+
+	softwareImageVal, ok := softwareImageAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`software_image expected to be basetypes.StringValue, was: %T`, softwareImageAttribute))
 	}
 
 	softwareVersionAttribute, ok := attributes["software_version"]
@@ -477,14 +545,14 @@ func (t SwitchesType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 		return nil, diags
 	}
 
-	return SwitchesValue{
+	return SwitchDetailValue{
 		DiscoveryAuthProtocol: discoveryAuthProtocolVal,
 		GatewayIpMask:         gatewayIpMaskVal,
 		Hostname:              hostnameVal,
 		IpAddress:             ipAddressVal,
 		Model:                 modelVal,
-		PoapPassword:          poapPasswordVal,
 		SerialNumber:          serialNumberVal,
+		SoftwareImage:         softwareImageVal,
 		SoftwareVersion:       softwareVersionVal,
 		Status:                statusVal,
 		StatusReason:          statusReasonVal,
@@ -495,19 +563,19 @@ func (t SwitchesType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 	}, diags
 }
 
-func NewSwitchesValueNull() SwitchesValue {
-	return SwitchesValue{
+func NewSwitchDetailValueNull() SwitchDetailValue {
+	return SwitchDetailValue{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewSwitchesValueUnknown() SwitchesValue {
-	return SwitchesValue{
+func NewSwitchDetailValueUnknown() SwitchDetailValue {
+	return SwitchDetailValue{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (SwitchesValue, diag.Diagnostics) {
+func NewSwitchDetailValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (SwitchDetailValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -518,11 +586,11 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 
 		if !ok {
 			diags.AddError(
-				"Missing SwitchesValue Attribute Value",
-				"While creating a SwitchesValue value, a missing attribute value was detected. "+
-					"A SwitchesValue must contain values for all attributes, even if null or unknown. "+
+				"Missing SwitchDetailValue Attribute Value",
+				"While creating a SwitchDetailValue value, a missing attribute value was detected. "+
+					"A SwitchDetailValue must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("SwitchesValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("SwitchDetailValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -530,12 +598,12 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid SwitchesValue Attribute Type",
-				"While creating a SwitchesValue value, an invalid attribute value was detected. "+
-					"A SwitchesValue must use a matching attribute type for the value. "+
+				"Invalid SwitchDetailValue Attribute Type",
+				"While creating a SwitchDetailValue value, an invalid attribute value was detected. "+
+					"A SwitchDetailValue must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("SwitchesValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("SwitchesValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("SwitchDetailValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("SwitchDetailValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -545,17 +613,17 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 
 		if !ok {
 			diags.AddError(
-				"Extra SwitchesValue Attribute Value",
-				"While creating a SwitchesValue value, an extra attribute value was detected. "+
-					"A SwitchesValue must not contain values beyond the expected attribute types. "+
+				"Extra SwitchDetailValue Attribute Value",
+				"While creating a SwitchDetailValue value, an extra attribute value was detected. "+
+					"A SwitchDetailValue must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra SwitchesValue Attribute Name: %s", name),
+					fmt.Sprintf("Extra SwitchDetailValue Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	discoveryAuthProtocolAttribute, ok := attributes["discovery_auth_protocol"]
@@ -565,7 +633,7 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`discovery_auth_protocol is missing from object`)
 
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	discoveryAuthProtocolVal, ok := discoveryAuthProtocolAttribute.(basetypes.StringValue)
@@ -583,7 +651,7 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`gateway_ip_mask is missing from object`)
 
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	gatewayIpMaskVal, ok := gatewayIpMaskAttribute.(basetypes.StringValue)
@@ -601,7 +669,7 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`hostname is missing from object`)
 
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	hostnameVal, ok := hostnameAttribute.(basetypes.StringValue)
@@ -619,7 +687,7 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`ip_address is missing from object`)
 
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	ipAddressVal, ok := ipAddressAttribute.(basetypes.StringValue)
@@ -637,7 +705,7 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`model is missing from object`)
 
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	modelVal, ok := modelAttribute.(basetypes.StringValue)
@@ -648,24 +716,6 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			fmt.Sprintf(`model expected to be basetypes.StringValue, was: %T`, modelAttribute))
 	}
 
-	poapPasswordAttribute, ok := attributes["poap_password"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`poap_password is missing from object`)
-
-		return NewSwitchesValueUnknown(), diags
-	}
-
-	poapPasswordVal, ok := poapPasswordAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`poap_password expected to be basetypes.StringValue, was: %T`, poapPasswordAttribute))
-	}
-
 	serialNumberAttribute, ok := attributes["serial_number"]
 
 	if !ok {
@@ -673,7 +723,7 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`serial_number is missing from object`)
 
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	serialNumberVal, ok := serialNumberAttribute.(basetypes.StringValue)
@@ -684,6 +734,24 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			fmt.Sprintf(`serial_number expected to be basetypes.StringValue, was: %T`, serialNumberAttribute))
 	}
 
+	softwareImageAttribute, ok := attributes["software_image"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`software_image is missing from object`)
+
+		return NewSwitchDetailValueUnknown(), diags
+	}
+
+	softwareImageVal, ok := softwareImageAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`software_image expected to be basetypes.StringValue, was: %T`, softwareImageAttribute))
+	}
+
 	softwareVersionAttribute, ok := attributes["software_version"]
 
 	if !ok {
@@ -691,7 +759,7 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`software_version is missing from object`)
 
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	softwareVersionVal, ok := softwareVersionAttribute.(basetypes.StringValue)
@@ -709,7 +777,7 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`status is missing from object`)
 
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	statusVal, ok := statusAttribute.(basetypes.StringValue)
@@ -727,7 +795,7 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`status_reason is missing from object`)
 
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	statusReasonVal, ok := statusReasonAttribute.(basetypes.StringValue)
@@ -745,7 +813,7 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`switch_role is missing from object`)
 
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	switchRoleVal, ok := switchRoleAttribute.(basetypes.StringValue)
@@ -763,7 +831,7 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`vdc_id is missing from object`)
 
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	vdcIdVal, ok := vdcIdAttribute.(basetypes.Int64Value)
@@ -781,7 +849,7 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`vdc_mac is missing from object`)
 
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
 	vdcMacVal, ok := vdcMacAttribute.(basetypes.StringValue)
@@ -793,17 +861,17 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 	}
 
 	if diags.HasError() {
-		return NewSwitchesValueUnknown(), diags
+		return NewSwitchDetailValueUnknown(), diags
 	}
 
-	return SwitchesValue{
+	return SwitchDetailValue{
 		DiscoveryAuthProtocol: discoveryAuthProtocolVal,
 		GatewayIpMask:         gatewayIpMaskVal,
 		Hostname:              hostnameVal,
 		IpAddress:             ipAddressVal,
 		Model:                 modelVal,
-		PoapPassword:          poapPasswordVal,
 		SerialNumber:          serialNumberVal,
+		SoftwareImage:         softwareImageVal,
 		SoftwareVersion:       softwareVersionVal,
 		Status:                statusVal,
 		StatusReason:          statusReasonVal,
@@ -814,8 +882,8 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 	}, diags
 }
 
-func NewSwitchesValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) SwitchesValue {
-	object, diags := NewSwitchesValue(attributeTypes, attributes)
+func NewSwitchDetailValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) SwitchDetailValue {
+	object, diags := NewSwitchDetailValue(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -829,15 +897,15 @@ func NewSwitchesValueMust(attributeTypes map[string]attr.Type, attributes map[st
 				diagnostic.Detail()))
 		}
 
-		panic("NewSwitchesValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("NewSwitchDetailValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t SwitchesType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t SwitchDetailType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewSwitchesValueNull(), nil
+		return NewSwitchDetailValueNull(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -845,11 +913,11 @@ func (t SwitchesType) ValueFromTerraform(ctx context.Context, in tftypes.Value) 
 	}
 
 	if !in.IsKnown() {
-		return NewSwitchesValueUnknown(), nil
+		return NewSwitchDetailValueUnknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewSwitchesValueNull(), nil
+		return NewSwitchDetailValueNull(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -872,23 +940,23 @@ func (t SwitchesType) ValueFromTerraform(ctx context.Context, in tftypes.Value) 
 		attributes[k] = a
 	}
 
-	return NewSwitchesValueMust(SwitchesValue{}.AttributeTypes(ctx), attributes), nil
+	return NewSwitchDetailValueMust(SwitchDetailValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t SwitchesType) ValueType(ctx context.Context) attr.Value {
-	return SwitchesValue{}
+func (t SwitchDetailType) ValueType(ctx context.Context) attr.Value {
+	return SwitchDetailValue{}
 }
 
-var _ basetypes.ObjectValuable = SwitchesValue{}
+var _ basetypes.ObjectValuable = SwitchDetailValue{}
 
-type SwitchesValue struct {
+type SwitchDetailValue struct {
 	DiscoveryAuthProtocol basetypes.StringValue `tfsdk:"discovery_auth_protocol"`
 	GatewayIpMask         basetypes.StringValue `tfsdk:"gateway_ip_mask"`
 	Hostname              basetypes.StringValue `tfsdk:"hostname"`
 	IpAddress             basetypes.StringValue `tfsdk:"ip_address"`
 	Model                 basetypes.StringValue `tfsdk:"model"`
-	PoapPassword          basetypes.StringValue `tfsdk:"poap_password"`
 	SerialNumber          basetypes.StringValue `tfsdk:"serial_number"`
+	SoftwareImage         basetypes.StringValue `tfsdk:"software_image"`
 	SoftwareVersion       basetypes.StringValue `tfsdk:"software_version"`
 	Status                basetypes.StringValue `tfsdk:"status"`
 	StatusReason          basetypes.StringValue `tfsdk:"status_reason"`
@@ -898,7 +966,7 @@ type SwitchesValue struct {
 	state                 attr.ValueState
 }
 
-func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v SwitchDetailValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 13)
 
 	var val tftypes.Value
@@ -909,8 +977,8 @@ func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 	attrTypes["hostname"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["ip_address"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["model"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["poap_password"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["serial_number"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["software_image"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["software_version"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["status"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["status_reason"] = basetypes.StringType{}.TerraformType(ctx)
@@ -964,14 +1032,6 @@ func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 
 		vals["model"] = val
 
-		val, err = v.PoapPassword.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["poap_password"] = val
-
 		val, err = v.SerialNumber.ToTerraformValue(ctx)
 
 		if err != nil {
@@ -979,6 +1039,14 @@ func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 		}
 
 		vals["serial_number"] = val
+
+		val, err = v.SoftwareImage.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["software_image"] = val
 
 		val, err = v.SoftwareVersion.ToTerraformValue(ctx)
 
@@ -1042,19 +1110,19 @@ func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 	}
 }
 
-func (v SwitchesValue) IsNull() bool {
+func (v SwitchDetailValue) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v SwitchesValue) IsUnknown() bool {
+func (v SwitchDetailValue) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v SwitchesValue) String() string {
-	return "SwitchesValue"
+func (v SwitchDetailValue) String() string {
+	return "SwitchDetailValue"
 }
 
-func (v SwitchesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v SwitchDetailValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributeTypes := map[string]attr.Type{
@@ -1063,8 +1131,8 @@ func (v SwitchesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue
 		"hostname":                basetypes.StringType{},
 		"ip_address":              basetypes.StringType{},
 		"model":                   basetypes.StringType{},
-		"poap_password":           basetypes.StringType{},
 		"serial_number":           basetypes.StringType{},
+		"software_image":          basetypes.StringType{},
 		"software_version":        basetypes.StringType{},
 		"status":                  basetypes.StringType{},
 		"status_reason":           basetypes.StringType{},
@@ -1089,8 +1157,8 @@ func (v SwitchesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue
 			"hostname":                v.Hostname,
 			"ip_address":              v.IpAddress,
 			"model":                   v.Model,
-			"poap_password":           v.PoapPassword,
 			"serial_number":           v.SerialNumber,
+			"software_image":          v.SoftwareImage,
 			"software_version":        v.SoftwareVersion,
 			"status":                  v.Status,
 			"status_reason":           v.StatusReason,
@@ -1102,8 +1170,8 @@ func (v SwitchesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue
 	return objVal, diags
 }
 
-func (v SwitchesValue) Equal(o attr.Value) bool {
-	other, ok := o.(SwitchesValue)
+func (v SwitchDetailValue) Equal(o attr.Value) bool {
+	other, ok := o.(SwitchDetailValue)
 
 	if !ok {
 		return false
@@ -1137,11 +1205,11 @@ func (v SwitchesValue) Equal(o attr.Value) bool {
 		return false
 	}
 
-	if !v.PoapPassword.Equal(other.PoapPassword) {
+	if !v.SerialNumber.Equal(other.SerialNumber) {
 		return false
 	}
 
-	if !v.SerialNumber.Equal(other.SerialNumber) {
+	if !v.SoftwareImage.Equal(other.SoftwareImage) {
 		return false
 	}
 
@@ -1172,23 +1240,23 @@ func (v SwitchesValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v SwitchesValue) Type(ctx context.Context) attr.Type {
-	return SwitchesType{
+func (v SwitchDetailValue) Type(ctx context.Context) attr.Type {
+	return SwitchDetailType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v SwitchesValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v SwitchDetailValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"discovery_auth_protocol": basetypes.StringType{},
 		"gateway_ip_mask":         basetypes.StringType{},
 		"hostname":                basetypes.StringType{},
 		"ip_address":              basetypes.StringType{},
 		"model":                   basetypes.StringType{},
-		"poap_password":           basetypes.StringType{},
 		"serial_number":           basetypes.StringType{},
+		"software_image":          basetypes.StringType{},
 		"software_version":        basetypes.StringType{},
 		"status":                  basetypes.StringType{},
 		"status_reason":           basetypes.StringType{},

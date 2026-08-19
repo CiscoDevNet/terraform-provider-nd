@@ -14,16 +14,24 @@ description: |-
 
 ```terraform
 resource "nd_inventory_switch" "test_resource_inventory_switch_1" {
-  fabric_name             = "my_fabric"
-  mode                    = "discovery"
-  preserve_config         = true
-  username                = "admin"
-  password                = "mysecret"
-  snmp_v3_auth_protocol   = "MD5"
+  fabric_name       = "my_fabric"
+  mode              = "discovery"
+  preserve_config   = true
+  wait_for_discover = "10m"
+  wait_for_ready    = "30m"
+  switch_detail = {
+    ip_address              = "10.23.244.81"
+    model                   = "N9K-C93180YC-FX"
+    software_version        = "10.3(3)"
+    software_image          = "nxos64-cs.10.3.1.F.bin"
+    switch_role             = "leaf"
+    gateway_ip_mask         = "10.1.1.1/24"
+    discovery_auth_protocol = "MD5"
+  }
+  discovery_username      = "admin"
+  discovery_password      = "mysecret"
+  snmp_v3_auth_protocol   = "md5"
   remote_credential_store = "local"
-  max_hop                 = 2
-  recalculate             = true
-  deploy                  = true
 }
 ```
 
@@ -33,27 +41,33 @@ resource "nd_inventory_switch" "test_resource_inventory_switch_1" {
 ### Required
 
 - `fabric_name` (String) Name of the fabric to add switches to
-- `switches` (Attributes Map) Map of switches to manage, keyed by serial number (see [below for nested schema](#nestedatt--switches))
+- `switch_detail` (Attributes) A structure containing switch details to manage (see [below for nested schema](#nestedatt--switch_detail))
 
 ### Optional
 
-- `deploy` (Boolean) Deploy configuration to switches after operations
-- `max_hop` (Number) Maximum hops for CDP/LLDP discovery
+- `bootstrap_password` (String, Sensitive) Admin password to set on the switch during POAP bootstrap. Required for bootstrap mode. Not used in discovery mode.
+- `discovery_cred_for_lan` (Boolean) Discovery mode only. When true, use the discovery credentials as LAN credentials for config deployment (write) to the switch.
+- `discovery_password` (String, Sensitive) Password for switch discovery/login. In discovery mode, used as the switch login password. In bootstrap mode with use_new_credentials enabled, used as the post-bootstrap discovery password.
+- `discovery_username` (String, Sensitive) Username for switch discovery/login. In discovery mode, used as the switch login username. In bootstrap mode with use_new_credentials enabled, used as the post-bootstrap discovery username.
 - `mode` (String) Operation mode - discovery (brownfield/greenfield) or bootstrap (POAP)
-- `password` (String, Sensitive) Switch login password
 - `preserve_config` (Boolean) Preserve existing config (true=brownfield, false=greenfield)
-- `recalculate` (Boolean) Recalculate (config-save) fabric configuration after switch operations
 - `remote_credential_store` (String) Credential store type (local, cyberark)
 - `remote_credential_store_key` (String) Key for remote credential store
 - `snmp_v3_auth_protocol` (String) SNMP v3 authentication protocol
-- `username` (String, Sensitive) Switch login username
+- `source_interface_name` (String) Source interface for switch discovery
+- `source_vrf_name` (String) Source VRF for switch discovery
+- `use_new_credentials` (Boolean) Bootstrap mode only. When true, use discovery_username and discovery_password as separate credentials for post-bootstrap switch discovery. When false, the bootstrap admin password is used for discovery.
+- `wait_for_bootstrap` (String) How long to Wait for the switch to boot into POAP mode (eg. 10m 60s etc) When configured, Terraform will allow some time for the switch to boot into POAP mode. When not specified, if the switch is not found in the 'POAP' list during the operation, the resource errors out
+- `wait_for_discover` (String) How long to wait for the switch to become reachable during discovery (eg. 10m 60s etc). When configured, Terraform will retry shallow discovery until the switch is reachable or the timeout expires. When not specified, if the switch is not reachable, the resource errors out immediately.
+- `wait_for_ready` (String) How long to Wait for the switch to be online after adding to fabric (eg. 10m 60s etc) When configured, Terraform will wait an poll the switch to be ready. If the switch is not ready within the timeout, the resource errors out.
 
 ### Read-Only
 
+- `id` (String) Unique identifier for the inventory switch resource
 - `platform_type` (String) Platform type (nx-os, ios-xe)
 
-<a id="nestedatt--switches"></a>
-### Nested Schema for `switches`
+<a id="nestedatt--switch_detail"></a>
+### Nested Schema for `switch_detail`
 
 Required:
 
@@ -63,8 +77,10 @@ Optional:
 
 - `discovery_auth_protocol` (String) Authentication protocol for POAP discovery
 - `gateway_ip_mask` (String) Gateway IP with mask for POAP (e.g., 10.1.1.1/24)
+- `hostname` (String) Switch hostname
 - `model` (String) Switch hardware model
-- `poap_password` (String, Sensitive) Password for POAP bootstrap
+- `serial_number` (String) Switch serial number
+- `software_image` (String) Software image filename for bootstrap (e.g. nxos64-cs.10.3.1.F.bin). When specified, this image is used during POAP bootstrap. When omitted, the value from the bootstrap list API is used.
 - `software_version` (String) Switch software version
 - `switch_role` (String) Role of switch in fabric.
 - `vdc_id` (Number) VDC ID for N7K switches
@@ -72,7 +88,5 @@ Optional:
 
 Read-Only:
 
-- `hostname` (String) Switch hostname
-- `serial_number` (String) Switch serial number
 - `status` (String) Current switch status
 - `status_reason` (String) Reason for current switch status (e.g., failure details)

@@ -11,52 +11,67 @@
 package resource_inventory_switch
 
 import (
-	"context"
-	"log"
-
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 type NDFCInventorySwitchModel struct {
-	FabricName               string                       `json:"fabricName,omitempty"`
-	Mode                     string                       `json:"mode,omitempty"`
-	SeedIpCollection         []string                     `json:"seedIpCollection,omitempty"`
-	PreserveConfig           *bool                        `json:"preserveConfig,omitempty"`
-	Switches                 map[string]NDFCSwitchesValue `json:"-"`
-	Username                 string                       `json:"username,omitempty"`
-	Password                 string                       `json:"password,omitempty"`
-	PlatformType             string                       `json:"platformType,omitempty"`
-	SnmpV3AuthProtocol       string                       `json:"snmpV3AuthProtocol,omitempty"`
-	RemoteCredentialStore    string                       `json:"remoteCredentialStore,omitempty"`
-	RemoteCredentialStoreKey string                       `json:"remoteCredentialStoreKey,omitempty"`
-	MaxHop                   *int64                       `json:"maxHop,omitempty"`
-	Recalculate              bool                         `json:"-"`
-	Deploy                   bool                         `json:"-"`
+	Id                       string                `json:"id,omitempty"`
+	FabricName               string                `json:"fabricName,omitempty"`
+	Mode                     string                `json:"mode,omitempty"`
+	SeedIpCollection         []string              `json:"seedIpCollection,omitempty"`
+	PreserveConfig           *bool                 `json:"preserveConfig,omitempty"`
+	WaitForBootstrap         string                `json:"-"`
+	WaitForDiscover          string                `json:"-"`
+	WaitForReady             string                `json:"-"`
+	SwitchDetail             NDFCSwitchDetailValue `json:"-"`
+	DiscoveryUsername        string                `json:"username,omitempty"`
+	DiscoveryPassword        string                `json:"password,omitempty"`
+	BootstrapPassword        string                `json:"-"`
+	UseNewCredentials        bool                  `json:"-"`
+	DiscoveryCredForLan      bool                  `json:"-"`
+	PlatformType             string                `json:"platformType,omitempty"`
+	SnmpV3AuthProtocol       string                `json:"snmpV3AuthProtocol,omitempty"`
+	RemoteCredentialStore    string                `json:"remoteCredentialStore,omitempty"`
+	RemoteCredentialStoreKey string                `json:"remoteCredentialStoreKey,omitempty"`
+	SourceInterfaceName      string                `json:"-"`
+	SourceVrfName            string                `json:"-"`
+	MaxHop                   *int64                `json:"maxHop,omitempty"`
 }
 
-type NDFCSwitchesValue struct {
+type NDFCSwitchDetailValue struct {
 	Hostname              string `json:"hostname,omitempty"`
 	SerialNumber          string `json:"serialNumber,omitempty"`
 	IpAddress             string `json:"ip,omitempty"`
 	FabricManagementIp    string `json:"fabricManagementIp,omitempty"`
 	Model                 string `json:"model,omitempty"`
 	SoftwareVersion       string `json:"softwareVersion,omitempty"`
+	SoftwareImage         string `json:"softwareImage,omitempty"`
 	SwitchRole            string `json:"switchRole,omitempty"`
 	PreserveConfig        *bool  `json:"preserveConfig,omitempty"`
 	Status                string `json:"status,omitempty"`
 	StatusReason          string `json:"statusReason,omitempty"`
 	GatewayIpMask         string `json:"gatewayIpMask,omitempty"`
 	DiscoveryAuthProtocol string `json:"discoveryAuthProtocol,omitempty"`
-	PoapPassword          string `json:"poapPassword,omitempty"`
 	VdcId                 *int64 `json:"vdcId,omitempty"`
 	VdcMac                string `json:"vdcMac,omitempty"`
+	SwitchPassword        string `json:"password,omitempty"`
+	IpAddrBootstrap       string `json:"ipAddress,omitempty"`
+	PublicKey             string `json:"publicKey,omitempty"`
+	Fingerprint           string `json:"fingerPrint,omitempty"`
+	InInventory           *bool  `json:"inInventory,omitempty"`
 }
 
 func (v *InventorySwitchModel) SetModelData(jsonData *NDFCInventorySwitchModel) diag.Diagnostics {
 	var err diag.Diagnostics
 	err = nil
+
+	if jsonData.Id != "" {
+		v.Id = types.StringValue(jsonData.Id)
+	} else {
+		v.Id = types.StringNull()
+	}
 
 	if jsonData.FabricName != "" {
 		v.FabricName = types.StringValue(jsonData.FabricName)
@@ -77,39 +92,48 @@ func (v *InventorySwitchModel) SetModelData(jsonData *NDFCInventorySwitchModel) 
 		v.PreserveConfig = types.BoolNull()
 	}
 
-	if len(jsonData.Switches) == 0 {
-		log.Printf("v.Switches is empty")
-		v.Switches = types.MapNull(SwitchesValue{}.Type(context.Background()))
+	if jsonData.WaitForBootstrap != "" {
+		v.WaitForBootstrap = types.StringValue(jsonData.WaitForBootstrap)
 	} else {
-		mapData := make(map[string]SwitchesValue)
-		for key, item := range jsonData.Switches {
-			data := new(SwitchesValue)
-			err = data.SetValue(&item)
-			if err != nil {
-				log.Printf("Error in SwitchesValue.SetValue")
-				return err
-			}
-			data.state = attr.ValueStateKnown
-			mapData[key] = *data
-		}
-		v.Switches, err = types.MapValueFrom(context.Background(), SwitchesValue{}.Type(context.Background()), mapData)
-		if err != nil {
-			log.Printf("Error in converting map[string]SwitchesValue to  Map")
-
-		}
-	}
-	if jsonData.Username != "" {
-		v.Username = types.StringValue(jsonData.Username)
-	} else {
-		v.Username = types.StringNull()
+		v.WaitForBootstrap = types.StringNull()
 	}
 
-	if jsonData.Password != "" {
-		v.Password = types.StringValue(jsonData.Password)
+	if jsonData.WaitForDiscover != "" {
+		v.WaitForDiscover = types.StringValue(jsonData.WaitForDiscover)
 	} else {
-		v.Password = types.StringNull()
+		v.WaitForDiscover = types.StringNull()
 	}
 
+	if jsonData.WaitForReady != "" {
+		v.WaitForReady = types.StringValue(jsonData.WaitForReady)
+	} else {
+		v.WaitForReady = types.StringNull()
+	}
+
+	v.SwitchDetail.SetValue(&jsonData.SwitchDetail)
+	v.SwitchDetail.state = attr.ValueStateKnown
+
+	if jsonData.DiscoveryUsername != "" {
+		v.DiscoveryUsername = types.StringValue(jsonData.DiscoveryUsername)
+	} else {
+		v.DiscoveryUsername = types.StringNull()
+	}
+
+	if jsonData.DiscoveryPassword != "" {
+		v.DiscoveryPassword = types.StringValue(jsonData.DiscoveryPassword)
+	} else {
+		v.DiscoveryPassword = types.StringNull()
+	}
+
+	if jsonData.BootstrapPassword != "" {
+		v.BootstrapPassword = types.StringValue(jsonData.BootstrapPassword)
+	} else {
+		v.BootstrapPassword = types.StringNull()
+	}
+
+	v.UseNewCredentials = types.BoolValue(jsonData.UseNewCredentials)
+
+	v.DiscoveryCredForLan = types.BoolValue(jsonData.DiscoveryCredForLan)
 	if jsonData.PlatformType != "" {
 		v.PlatformType = types.StringValue(jsonData.PlatformType)
 	} else {
@@ -134,21 +158,22 @@ func (v *InventorySwitchModel) SetModelData(jsonData *NDFCInventorySwitchModel) 
 		v.RemoteCredentialStoreKey = types.StringNull()
 	}
 
-	if jsonData.MaxHop != nil {
-		v.MaxHop = types.Int64Value(*jsonData.MaxHop)
-
+	if jsonData.SourceInterfaceName != "" {
+		v.SourceInterfaceName = types.StringValue(jsonData.SourceInterfaceName)
 	} else {
-		v.MaxHop = types.Int64Null()
+		v.SourceInterfaceName = types.StringNull()
 	}
 
-	v.Recalculate = types.BoolValue(jsonData.Recalculate)
-
-	v.Deploy = types.BoolValue(jsonData.Deploy)
+	if jsonData.SourceVrfName != "" {
+		v.SourceVrfName = types.StringValue(jsonData.SourceVrfName)
+	} else {
+		v.SourceVrfName = types.StringNull()
+	}
 
 	return err
 }
 
-func (v *SwitchesValue) SetValue(jsonData *NDFCSwitchesValue) diag.Diagnostics {
+func (v *SwitchDetailValue) SetValue(jsonData *NDFCSwitchDetailValue) diag.Diagnostics {
 
 	var err diag.Diagnostics
 	err = nil
@@ -185,6 +210,12 @@ func (v *SwitchesValue) SetValue(jsonData *NDFCSwitchesValue) diag.Diagnostics {
 		v.SoftwareVersion = types.StringNull()
 	}
 
+	if jsonData.SoftwareImage != "" {
+		v.SoftwareImage = types.StringValue(jsonData.SoftwareImage)
+	} else {
+		v.SoftwareImage = types.StringNull()
+	}
+
 	if jsonData.SwitchRole != "" {
 		v.SwitchRole = types.StringValue(jsonData.SwitchRole)
 	} else {
@@ -215,12 +246,6 @@ func (v *SwitchesValue) SetValue(jsonData *NDFCSwitchesValue) diag.Diagnostics {
 		v.DiscoveryAuthProtocol = types.StringNull()
 	}
 
-	if jsonData.PoapPassword != "" {
-		v.PoapPassword = types.StringValue(jsonData.PoapPassword)
-	} else {
-		v.PoapPassword = types.StringNull()
-	}
-
 	if jsonData.VdcId != nil {
 		v.VdcId = types.Int64Value(*jsonData.VdcId)
 
@@ -242,6 +267,12 @@ func (v InventorySwitchModel) GetModelData() *NDFCInventorySwitchModel {
 
 	//MARSHAL_BODY
 
+	if !v.Id.IsNull() && !v.Id.IsUnknown() {
+		data.Id = v.Id.ValueString()
+	} else {
+		data.Id = ""
+	}
+
 	if !v.FabricName.IsNull() && !v.FabricName.IsUnknown() {
 		data.FabricName = v.FabricName.ValueString()
 	} else {
@@ -261,16 +292,48 @@ func (v InventorySwitchModel) GetModelData() *NDFCInventorySwitchModel {
 		data.PreserveConfig = nil
 	}
 
-	if !v.Username.IsNull() && !v.Username.IsUnknown() {
-		data.Username = v.Username.ValueString()
+	if !v.WaitForBootstrap.IsNull() && !v.WaitForBootstrap.IsUnknown() {
+		data.WaitForBootstrap = v.WaitForBootstrap.ValueString()
 	} else {
-		data.Username = ""
+		data.WaitForBootstrap = ""
 	}
 
-	if !v.Password.IsNull() && !v.Password.IsUnknown() {
-		data.Password = v.Password.ValueString()
+	if !v.WaitForDiscover.IsNull() && !v.WaitForDiscover.IsUnknown() {
+		data.WaitForDiscover = v.WaitForDiscover.ValueString()
 	} else {
-		data.Password = ""
+		data.WaitForDiscover = ""
+	}
+
+	if !v.WaitForReady.IsNull() && !v.WaitForReady.IsUnknown() {
+		data.WaitForReady = v.WaitForReady.ValueString()
+	} else {
+		data.WaitForReady = ""
+	}
+
+	if !v.DiscoveryUsername.IsNull() && !v.DiscoveryUsername.IsUnknown() {
+		data.DiscoveryUsername = v.DiscoveryUsername.ValueString()
+	} else {
+		data.DiscoveryUsername = ""
+	}
+
+	if !v.DiscoveryPassword.IsNull() && !v.DiscoveryPassword.IsUnknown() {
+		data.DiscoveryPassword = v.DiscoveryPassword.ValueString()
+	} else {
+		data.DiscoveryPassword = ""
+	}
+
+	if !v.BootstrapPassword.IsNull() && !v.BootstrapPassword.IsUnknown() {
+		data.BootstrapPassword = v.BootstrapPassword.ValueString()
+	} else {
+		data.BootstrapPassword = ""
+	}
+
+	if !v.UseNewCredentials.IsNull() && !v.UseNewCredentials.IsUnknown() {
+		data.UseNewCredentials = v.UseNewCredentials.ValueBool()
+	}
+
+	if !v.DiscoveryCredForLan.IsNull() && !v.DiscoveryCredForLan.IsUnknown() {
+		data.DiscoveryCredForLan = v.DiscoveryCredForLan.ValueBool()
 	}
 
 	if !v.SnmpV3AuthProtocol.IsNull() && !v.SnmpV3AuthProtocol.IsUnknown() {
@@ -291,130 +354,97 @@ func (v InventorySwitchModel) GetModelData() *NDFCInventorySwitchModel {
 		data.RemoteCredentialStoreKey = ""
 	}
 
-	if !v.MaxHop.IsNull() && !v.MaxHop.IsUnknown() {
-		data.MaxHop = new(int64)
-		*data.MaxHop = v.MaxHop.ValueInt64()
+	if !v.SourceInterfaceName.IsNull() && !v.SourceInterfaceName.IsUnknown() {
+		data.SourceInterfaceName = v.SourceInterfaceName.ValueString()
+	} else {
+		data.SourceInterfaceName = ""
+	}
+
+	if !v.SourceVrfName.IsNull() && !v.SourceVrfName.IsUnknown() {
+		data.SourceVrfName = v.SourceVrfName.ValueString()
+	} else {
+		data.SourceVrfName = ""
+	}
+
+	//MARSHAL_BODY
+
+	// Nested types SwitchDetail # hostname
+	if !v.SwitchDetail.Hostname.IsNull() && !v.SwitchDetail.Hostname.IsUnknown() {
+		data.SwitchDetail.Hostname = v.SwitchDetail.Hostname.ValueString()
+	} else {
+		data.SwitchDetail.Hostname = ""
+	}
+
+	// Nested types SwitchDetail # serial_number
+	if !v.SwitchDetail.SerialNumber.IsNull() && !v.SwitchDetail.SerialNumber.IsUnknown() {
+		data.SwitchDetail.SerialNumber = v.SwitchDetail.SerialNumber.ValueString()
+	} else {
+		data.SwitchDetail.SerialNumber = ""
+	}
+
+	// Nested types SwitchDetail # ip_address
+	if !v.SwitchDetail.IpAddress.IsNull() && !v.SwitchDetail.IpAddress.IsUnknown() {
+		data.SwitchDetail.IpAddress = v.SwitchDetail.IpAddress.ValueString()
+	} else {
+		data.SwitchDetail.IpAddress = ""
+	}
+
+	// Nested types SwitchDetail # model
+	if !v.SwitchDetail.Model.IsNull() && !v.SwitchDetail.Model.IsUnknown() {
+		data.SwitchDetail.Model = v.SwitchDetail.Model.ValueString()
+	} else {
+		data.SwitchDetail.Model = ""
+	}
+
+	// Nested types SwitchDetail # software_version
+	if !v.SwitchDetail.SoftwareVersion.IsNull() && !v.SwitchDetail.SoftwareVersion.IsUnknown() {
+		data.SwitchDetail.SoftwareVersion = v.SwitchDetail.SoftwareVersion.ValueString()
+	} else {
+		data.SwitchDetail.SoftwareVersion = ""
+	}
+
+	// Nested types SwitchDetail # software_image
+	if !v.SwitchDetail.SoftwareImage.IsNull() && !v.SwitchDetail.SoftwareImage.IsUnknown() {
+		data.SwitchDetail.SoftwareImage = v.SwitchDetail.SoftwareImage.ValueString()
+	} else {
+		data.SwitchDetail.SoftwareImage = ""
+	}
+
+	// Nested types SwitchDetail # switch_role
+	if !v.SwitchDetail.SwitchRole.IsNull() && !v.SwitchDetail.SwitchRole.IsUnknown() {
+		data.SwitchDetail.SwitchRole = v.SwitchDetail.SwitchRole.ValueString()
+	} else {
+		data.SwitchDetail.SwitchRole = ""
+	}
+
+	// Nested types SwitchDetail # gateway_ip_mask
+	if !v.SwitchDetail.GatewayIpMask.IsNull() && !v.SwitchDetail.GatewayIpMask.IsUnknown() {
+		data.SwitchDetail.GatewayIpMask = v.SwitchDetail.GatewayIpMask.ValueString()
+	} else {
+		data.SwitchDetail.GatewayIpMask = ""
+	}
+
+	// Nested types SwitchDetail # discovery_auth_protocol
+	if !v.SwitchDetail.DiscoveryAuthProtocol.IsNull() && !v.SwitchDetail.DiscoveryAuthProtocol.IsUnknown() {
+		data.SwitchDetail.DiscoveryAuthProtocol = v.SwitchDetail.DiscoveryAuthProtocol.ValueString()
+	} else {
+		data.SwitchDetail.DiscoveryAuthProtocol = ""
+	}
+
+	// Nested types SwitchDetail # vdc_id
+	if !v.SwitchDetail.VdcId.IsNull() && !v.SwitchDetail.VdcId.IsUnknown() {
+		data.SwitchDetail.VdcId = new(int64)
+		*data.SwitchDetail.VdcId = v.SwitchDetail.VdcId.ValueInt64()
 
 	} else {
-		data.MaxHop = nil
+		data.SwitchDetail.VdcId = nil
 	}
 
-	if !v.Recalculate.IsNull() && !v.Recalculate.IsUnknown() {
-		data.Recalculate = v.Recalculate.ValueBool()
-	}
-
-	if !v.Deploy.IsNull() && !v.Deploy.IsUnknown() {
-		data.Deploy = v.Deploy.ValueBool()
-	}
-
-	if !v.Switches.IsNull() && !v.Switches.IsUnknown() {
-		elements1 := make(map[string]SwitchesValue, len(v.Switches.Elements()))
-
-		data.Switches = make(map[string]NDFCSwitchesValue)
-
-		diag := v.Switches.ElementsAs(context.Background(), &elements1, false)
-		if diag != nil {
-			panic(diag)
-		}
-		for k1, ele1 := range elements1 {
-			data1 := new(NDFCSwitchesValue)
-
-			// hostname | String| []| false
-			if !ele1.Hostname.IsNull() && !ele1.Hostname.IsUnknown() {
-
-				data1.Hostname = ele1.Hostname.ValueString()
-			} else {
-				data1.Hostname = ""
-			}
-
-			// serial_number | String| []| false
-			if !ele1.SerialNumber.IsNull() && !ele1.SerialNumber.IsUnknown() {
-
-				data1.SerialNumber = ele1.SerialNumber.ValueString()
-			} else {
-				data1.SerialNumber = ""
-			}
-
-			// ip_address | String| []| false
-			if !ele1.IpAddress.IsNull() && !ele1.IpAddress.IsUnknown() {
-
-				data1.IpAddress = ele1.IpAddress.ValueString()
-			} else {
-				data1.IpAddress = ""
-			}
-
-			// model | String| []| false
-			if !ele1.Model.IsNull() && !ele1.Model.IsUnknown() {
-
-				data1.Model = ele1.Model.ValueString()
-			} else {
-				data1.Model = ""
-			}
-
-			// software_version | String| []| false
-			if !ele1.SoftwareVersion.IsNull() && !ele1.SoftwareVersion.IsUnknown() {
-
-				data1.SoftwareVersion = ele1.SoftwareVersion.ValueString()
-			} else {
-				data1.SoftwareVersion = ""
-			}
-
-			// switch_role | String| []| false
-			if !ele1.SwitchRole.IsNull() && !ele1.SwitchRole.IsUnknown() {
-
-				data1.SwitchRole = ele1.SwitchRole.ValueString()
-			} else {
-				data1.SwitchRole = ""
-			}
-
-			// preserve_config | Bool| []| true
-			// status | String| []| false
-			// status_reason | String| []| false
-			// gateway_ip_mask | String| []| false
-			if !ele1.GatewayIpMask.IsNull() && !ele1.GatewayIpMask.IsUnknown() {
-
-				data1.GatewayIpMask = ele1.GatewayIpMask.ValueString()
-			} else {
-				data1.GatewayIpMask = ""
-			}
-
-			// discovery_auth_protocol | String| []| false
-			if !ele1.DiscoveryAuthProtocol.IsNull() && !ele1.DiscoveryAuthProtocol.IsUnknown() {
-
-				data1.DiscoveryAuthProtocol = ele1.DiscoveryAuthProtocol.ValueString()
-			} else {
-				data1.DiscoveryAuthProtocol = ""
-			}
-
-			// poap_password | String| []| false
-			if !ele1.PoapPassword.IsNull() && !ele1.PoapPassword.IsUnknown() {
-
-				data1.PoapPassword = ele1.PoapPassword.ValueString()
-			} else {
-				data1.PoapPassword = ""
-			}
-
-			// vdc_id | Int64| []| false
-			if !ele1.VdcId.IsNull() && !ele1.VdcId.IsUnknown() {
-
-				data1.VdcId = new(int64)
-				*data1.VdcId = ele1.VdcId.ValueInt64()
-
-			} else {
-				data1.VdcId = nil
-			}
-
-			// vdc_mac | String| []| false
-			if !ele1.VdcMac.IsNull() && !ele1.VdcMac.IsUnknown() {
-
-				data1.VdcMac = ele1.VdcMac.ValueString()
-			} else {
-				data1.VdcMac = ""
-			}
-
-			data.Switches[k1] = *data1
-
-		}
+	// Nested types SwitchDetail # vdc_mac
+	if !v.SwitchDetail.VdcMac.IsNull() && !v.SwitchDetail.VdcMac.IsUnknown() {
+		data.SwitchDetail.VdcMac = v.SwitchDetail.VdcMac.ValueString()
+	} else {
+		data.SwitchDetail.VdcMac = ""
 	}
 
 	return data

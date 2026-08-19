@@ -13,24 +13,22 @@ import (
 )
 
 // GenerateInventorySwitchObject creates an inventory switch model object for testing.
-// switches is a map of serial_number -> ip_address
 func GenerateInventorySwitchObject(
 	obj **resource_inventory_switch.NDFCInventorySwitchModel,
 	fabricName string,
 	username string,
 	password string,
-	switches map[string]string,
-	roles map[string]string,
-	deploy bool,
-	recalculate bool,
+	serialNumber string,
+	ipAddress string,
+	role string,
 ) {
 	inv := new(resource_inventory_switch.NDFCInventorySwitchModel)
 
 	inv.FabricName = fabricName
 	inv.Mode = "discovery"
-	inv.Username = username
-	inv.Password = password
-	inv.SnmpV3AuthProtocol = "MD5"
+	inv.DiscoveryUsername = username
+	inv.DiscoveryPassword = password
+	inv.SnmpV3AuthProtocol = "md5"
 
 	preserveConfig := false
 	inv.PreserveConfig = &preserveConfig
@@ -38,26 +36,20 @@ func GenerateInventorySwitchObject(
 	maxHop := int64(0)
 	inv.MaxHop = &maxHop
 
-	inv.Deploy = deploy
-	inv.Recalculate = recalculate
-
-	inv.Switches = make(map[string]resource_inventory_switch.NDFCSwitchesValue)
-	for serial, ip := range switches {
-		role := "leaf"
-		if r, ok := roles[serial]; ok {
-			role = r
-		}
-		inv.Switches[serial] = resource_inventory_switch.NDFCSwitchesValue{
-			IpAddress:  ip,
-			SwitchRole: role,
-		}
+	if role == "" {
+		role = "leaf"
+	}
+	inv.SwitchDetail = resource_inventory_switch.NDFCSwitchDetailValue{
+		SerialNumber: serialNumber,
+		IpAddress:    ipAddress,
+		SwitchRole:   role,
 	}
 
 	*obj = inv
 }
 
 // ModifyInventorySwitchObject modifies fields on an existing inventory switch model.
-// Supported keys: "deploy", "recalculate", "preserve_config", "mode", "max_hop"
+// Supported keys: "preserve_config", "mode", "max_hop", "switch_role"
 func ModifyInventorySwitchObject(
 	obj **resource_inventory_switch.NDFCInventorySwitchModel,
 	values map[string]interface{},
@@ -69,10 +61,6 @@ func ModifyInventorySwitchObject(
 
 	for key, val := range values {
 		switch key {
-		case "deploy":
-			inv.Deploy = val.(bool)
-		case "recalculate":
-			inv.Recalculate = val.(bool)
 		case "preserve_config":
 			v := val.(bool)
 			inv.PreserveConfig = &v
@@ -81,73 +69,107 @@ func ModifyInventorySwitchObject(
 		case "max_hop":
 			v := int64(val.(int))
 			inv.MaxHop = &v
+		case "switch_role":
+			inv.SwitchDetail.SwitchRole = val.(string)
 		}
 	}
 
 	*obj = inv
 }
 
-// AddSwitches adds switches to an existing inventory switch model
-func AddSwitches(
+// GenerateBootstrapSwitchObject creates a bootstrap-mode inventory switch model for testing.
+func GenerateBootstrapSwitchObject(
 	obj **resource_inventory_switch.NDFCInventorySwitchModel,
-	switches map[string]string,
-	roles map[string]string,
+	fabricName string,
+	serialNumber string,
+	ipAddress string,
+	hostname string,
+	role string,
+	gatewayIpMask string,
+	password string,
+) {
+	inv := new(resource_inventory_switch.NDFCInventorySwitchModel)
+
+	inv.FabricName = fabricName
+	inv.Mode = "bootstrap"
+	inv.BootstrapPassword = password
+	inv.SnmpV3AuthProtocol = "md5"
+
+	preserveConfig := false
+	inv.PreserveConfig = &preserveConfig
+
+	maxHop := int64(0)
+	inv.MaxHop = &maxHop
+
+	if role == "" {
+		role = "leaf"
+	}
+	inv.SwitchDetail = resource_inventory_switch.NDFCSwitchDetailValue{
+		SerialNumber:  serialNumber,
+		IpAddress:     ipAddress,
+		Hostname:      hostname,
+		SwitchRole:    role,
+		GatewayIpMask: gatewayIpMask,
+	}
+
+	*obj = inv
+}
+
+// GenerateInventorySwitchFromConfig creates an inventory switch model from testbed config.
+func GenerateInventorySwitchFromConfig(
+	obj **resource_inventory_switch.NDFCInventorySwitchModel,
+	fabricName string,
+	user string,
+	password string,
+	sw InventorySwitch,
+) {
+	mode := sw.Mode
+	if mode == "" {
+		mode = "discovery"
+	}
+
+	if mode == "bootstrap" {
+		GenerateBootstrapSwitchObject(obj,
+			fabricName,
+			sw.Serial, sw.IP, sw.Hostname,
+			sw.Role, sw.GatewayIpMask, sw.PoapPassword,
+		)
+	} else {
+		GenerateInventorySwitchObject(obj,
+			fabricName, user, password,
+			sw.Serial, sw.IP, sw.Role,
+		)
+	}
+}
+
+// ModifyDiscoveryCredentials changes the discovery credentials on an existing switch model.
+func ModifyDiscoveryCredentials(
+	obj **resource_inventory_switch.NDFCInventorySwitchModel,
+	username string,
+	password string,
+	snmpV3AuthProtocol string,
 ) {
 	inv := *obj
 	if inv == nil {
 		return
 	}
 
-	if inv.Switches == nil {
-		inv.Switches = make(map[string]resource_inventory_switch.NDFCSwitchesValue)
-	}
-
-	for serial, ip := range switches {
-		role := "leaf"
-		if r, ok := roles[serial]; ok {
-			role = r
-		}
-		inv.Switches[serial] = resource_inventory_switch.NDFCSwitchesValue{
-			IpAddress:  ip,
-			SwitchRole: role,
-		}
-	}
-
+	inv.DiscoveryUsername = username
+	inv.DiscoveryPassword = password
+	inv.SnmpV3AuthProtocol = snmpV3AuthProtocol
 	*obj = inv
 }
 
-// DeleteSwitches removes switches by serial number from an existing inventory switch model
-func DeleteSwitches(
-	obj **resource_inventory_switch.NDFCInventorySwitchModel,
-	serials []string,
-) {
-	inv := *obj
-	if inv == nil || inv.Switches == nil {
-		return
-	}
-
-	for _, serial := range serials {
-		delete(inv.Switches, serial)
-	}
-
-	*obj = inv
-}
-
-// ModifySwitchRole changes the role of a specific switch
+// ModifySwitchRole changes the role of the switch
 func ModifySwitchRole(
 	obj **resource_inventory_switch.NDFCInventorySwitchModel,
-	serial string,
 	newRole string,
 ) {
 	inv := *obj
-	if inv == nil || inv.Switches == nil {
+	if inv == nil {
 		return
 	}
 
-	if sw, ok := inv.Switches[serial]; ok {
-		sw.SwitchRole = newRole
-		inv.Switches[serial] = sw
-	}
-
+	inv.SwitchDetail.SwitchRole = newRole
 	*obj = inv
 }

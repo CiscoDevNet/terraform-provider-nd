@@ -74,7 +74,8 @@ nd:
     preserve_config: false
     deploy: true
     recalculate: true
-    switches:
+    # Discovery mode switches
+    discovery_switches:
       - serial: "SERIAL001"
         ip: "10.0.0.1"
         role: "spine"
@@ -84,6 +85,20 @@ nd:
       - serial: "SERIAL003"
         ip: "10.0.0.3"
         role: "leaf"
+    # Bootstrap mode switches
+    bootstrap_switches:
+      - serial: "SERIAL001"
+        ip: "10.0.0.1"
+        role: "spine"
+        hostname: "spine1"
+        gateway_ip_mask: "10.0.0.254/24"
+        poap_password: "password"
+      - serial: "SERIAL002"
+        ip: "10.0.0.2"
+        role: "leaf"
+        hostname: "leaf1"
+        gateway_ip_mask: "10.0.0.254/24"
+        poap_password: "password"
 
   # Local user test configuration
   local_user:
