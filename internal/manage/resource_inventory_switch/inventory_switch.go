@@ -18,7 +18,6 @@ import (
 
 	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage/api"
-	"terraform-provider-nd/internal/manage/deployment"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -36,104 +35,129 @@ const (
 	StatusFailed         = "Failed"
 	StatusMigrationMode  = "Migration"
 	StatusAlreadyManaged = "alreadyManaged"
+	StatusNotReachable   = "notReachable"
 
-	MaxDiscoveryWaitTime = 5 * time.Minute
-	PollInterval         = 10 * time.Second
+	MaxDiscoveryWaitTime    = 10 * time.Minute
+	PollInterval            = 10 * time.Second
+	ObservationWindow       = 3 * time.Minute
+	ObservationPollInterval = 30 * time.Second
 )
 
-// rscCreateInventory creates inventory switches
+// rscCreateInventory creates a single inventory switch
 func (r *inventorySwitchResource) rscCreateInventory(ctx context.Context, dg *diag.Diagnostics, input *InventorySwitchModel) {
 	if input == nil {
 		dg.AddError("Invalid Input", "The input model is nil")
 		return
 	}
-	// Get switch data from model
-	switchesData := input.GetModelData()
+	switchData := input.GetModelData()
+
+	// Fill in a mandatory param thats not part of config (tf_hide)
+	switchData.MaxHop = new(int64)
+	*switchData.MaxHop = 0
 
 	invAPI := api.NewInventoryAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
-	invAPI.FabricName = switchesData.FabricName
+	invAPI.FabricName = switchData.FabricName
 
-	log.Printf("Creating inventory for fabric %s with mode %s", switchesData.FabricName, switchesData.Mode)
+	log.Printf("Creating inventory for fabric %s with mode %s", switchData.FabricName, switchData.Mode)
 
-	if switchesData.Mode == ModeBootstrap {
-		r.createBootstrapSwitches(ctx, dg, invAPI, switchesData)
-		if dg.HasError() {
-			return
-		}
-		// Bootstrap uses the old linear flow for config save/deploy
-		deployment.ConfigSaveAndDeploy(ctx, r.manageClient.ApiClient, switchesData.FabricName, switchesData.Recalculate, switchesData.Deploy, dg)
-		if dg.HasError() {
-			return
-		}
-	} else {
-		// Discovery mode uses the FSM which handles the full lifecycle
-		// including retryable config-save errors
-		fsm := NewInventoryFSM(ctx, r, true, invAPI, switchesData, dg)
-		fsm.Run()
-		if dg.HasError() {
-			return
-		}
+	// Both discovery and bootstrap use the FSM
+	fsm := NewInventoryFSM(ctx, r, true, invAPI, switchData, dg)
+	fsm.Run()
+	if dg.HasError() {
+		return
 	}
 
 	// Read back the created state
-	r.rscGetInventory(ctx, dg, input)
+	if !r.rscGetInventory(ctx, dg, input) && !dg.HasError() {
+		dg.AddError("Error Reading Inventory", "Switch not found in fabric after create")
+	}
 }
 
-// rscGetInventory reads the current state of inventory switches
-func (r *inventorySwitchResource) rscGetInventory(ctx context.Context, dg *diag.Diagnostics, input *InventorySwitchModel) {
+// rscGetInventory reads the current state of the single inventory switch
+func (r *inventorySwitchResource) rscGetInventory(ctx context.Context, dg *diag.Diagnostics, input *InventorySwitchModel) bool {
 	DumpInventorySwitchModel("rscGetInventory INPUT", input)
 	fabricName := input.FabricName.ValueString()
 
-	// Get data model — input may only have IPs, not serial numbers yet
-	switchesData := input.GetModelData()
+	switchData := input.GetModelData()
+	lookupSerial := switchData.SwitchDetail.SerialNumber
+	lookupIP := switchData.SwitchDetail.IpAddress
 
-	// Build lookup maps from input: serial -> map key, IP -> map key
-	serialToKey := make(map[string]string)
-	ipToKey := make(map[string]string)
-	for key, sw := range switchesData.Switches {
-		log.Printf("Processing switch %s", sw.IpAddress)
-		if sw.SerialNumber != "" {
-			log.Printf("Processing switch via serial key %s:%s", key, sw.SerialNumber)
-			serialToKey[sw.SerialNumber] = key
-		}
-		if sw.IpAddress != "" {
-			log.Printf("Processing switch via IP key %s:%s", key, sw.IpAddress)
-			ipToKey[sw.IpAddress] = key
-		}
-	}
-
-	// Fetch all switches in the fabric - no need to fill lookup maps
+	// Fetch all switches in the fabric
 	resp, err := r.getAllSwitchesByFabric(ctx, fabricName, false)
 	if err != nil {
 		dg.AddError("Error Reading Inventory", err.Error())
-		return
+		return false
 	}
-	// Response data to populate
-	outData := *switchesData
-	outData.Switches = make(map[string]NDFCSwitchesValue)
 
-	// Filter to only switches that match our input by serial or IP
-	for _, sw := range resp.Switches {
-		var mapKey string
-		if key, ok := serialToKey[sw.SerialNumber]; ok {
-			log.Printf("Found switch %s in fabric %s key %s", sw.SerialNumber, fabricName, key)
-			mapKey = key
-		} else if key, ok := ipToKey[sw.FabricManagementIp]; ok {
-			log.Printf("Found switch %s in fabric %s key %s", sw.FabricManagementIp, fabricName, key)
-			mapKey = key
-		} else {
-			log.Printf("Switch %s found in fabric %s - not part of resource", sw.SerialNumber, fabricName)
-			continue
+	// Find our switch by serial or IP
+	outData := *switchData
+	found := false
+	var matchedEntry *FabricSwitchEntry
+	for i := range resp.Switches {
+		sw := &resp.Switches[i]
+		if lookupSerial != "" && sw.SerialNumber == lookupSerial {
+			log.Printf("Found switch by serial %s in fabric %s", lookupSerial, fabricName)
+			matchedEntry = sw
+			found = true
+			break
 		}
-		outData.Switches[mapKey] = sw.NDFCSwitchesValue
+		if lookupIP != "" && (sw.FabricManagementIp == lookupIP || sw.IpAddress == lookupIP) {
+			log.Printf("Found switch by IP %s in fabric %s", lookupIP, fabricName)
+			matchedEntry = sw
+			found = true
+			break
+		}
 	}
 
-	input.SetModelData(&outData)
-	DumpInventorySwitchModel("rscGetInventory OUTPUT", input)
-	log.Printf("Read inventory for fabric %s, found %d switches", fabricName, len(outData.Switches))
+	if found {
+		outData.SwitchDetail = matchedEntry.NDFCSwitchDetailValue
+
+		// Set id from serial number
+		outData.Id = matchedEntry.SerialNumber
+
+		// Populate fields from additionalData
+		if matchedEntry.AdditionalData.PlatformType != "" {
+			outData.PlatformType = matchedEntry.AdditionalData.PlatformType
+		}
+
+		// source_interface_name and source_vrf_name: only fill from API
+		// if the config had them set; otherwise reset to empty (null)
+		if switchData.SourceInterfaceName != "" {
+			if matchedEntry.AdditionalData.SourceInterfaceName != "" {
+				outData.SourceInterfaceName = matchedEntry.AdditionalData.SourceInterfaceName
+			}
+		} else {
+			outData.SourceInterfaceName = ""
+		}
+		if switchData.SourceVrfName != "" {
+			if matchedEntry.AdditionalData.SourceVrfName != "" {
+				outData.SourceVrfName = matchedEntry.AdditionalData.SourceVrfName
+			}
+		} else {
+			outData.SourceVrfName = ""
+		}
+
+		// status comes from additionalData.discoveryStatus in GET /switches
+		if matchedEntry.AdditionalData.DiscoveryStatus != "" {
+			outData.SwitchDetail.Status = matchedEntry.AdditionalData.DiscoveryStatus
+		}
+		// statusReason is not returned by GET /switches
+		outData.SwitchDetail.StatusReason = ""
+
+		// Preserve config-only fields from the input that the API does not return
+		outData.SwitchDetail.GatewayIpMask = switchData.SwitchDetail.GatewayIpMask
+		outData.SwitchDetail.DiscoveryAuthProtocol = switchData.SwitchDetail.DiscoveryAuthProtocol
+
+		input.SetModelData(&outData)
+		DumpInventorySwitchModel("rscGetInventory OUTPUT", input)
+		log.Printf("Read inventory for fabric %s, found=%v", fabricName, found)
+	} else {
+		log.Printf("Switch not found in fabric %s (serial=%s, ip=%s)", fabricName, lookupSerial, lookupIP)
+	}
+	return found
 }
 
-// rscUpdateInventory updates inventory switches
+// rscUpdateInventory updates a single inventory switch via direct API calls
 func (r *inventorySwitchResource) rscUpdateInventory(ctx context.Context, dg *diag.Diagnostics, plan *InventorySwitchModel, state *InventorySwitchModel) {
 	DumpInventorySwitchModel("rscUpdateInventory PLAN", plan)
 	DumpInventorySwitchModel("rscUpdateInventory STATE", state)
@@ -144,154 +168,225 @@ func (r *inventorySwitchResource) rscUpdateInventory(ctx context.Context, dg *di
 	planData := plan.GetModelData()
 	stateData := state.GetModelData()
 
-	// Identify switches to add, remove, and update
-	actions := r.diffSwitches(planData, stateData)
+	// Compare plan vs state for the single switch
+	planSw := planData.SwitchDetail
+	stateSw := stateData.SwitchDetail
 
-	addSwitches := actions["add"]
-	removeSwitches := actions["del"]
-
-	// Remove switches that are no longer in plan
-	if removeSwitches != nil {
-		removeSerials := make([]string, 0)
-		for _, delSw := range removeSwitches {
-			removeSerials = append(removeSerials, delSw.SerialNumber)
+	// Update switch role if changed
+	if planSw.SwitchRole != stateSw.SwitchRole && planSw.SwitchRole != "" {
+		serial := stateSw.SerialNumber
+		if serial == "" {
+			serial = planSw.SerialNumber
 		}
-		if len(removeSerials) > 0 {
-			r.removeSwitches(ctx, dg, invAPI, removeSerials)
-			if dg.HasError() {
+		if serial != "" {
+			roleReq := SwitchRoleUpdateRequest{
+				SwitchRoles: []SwitchRole{
+					{SwitchId: serial, Role: planSw.SwitchRole},
+				},
+			}
+			payload, err := json.Marshal(roleReq)
+			if err != nil {
+				dg.AddError("Error Updating Role", fmt.Sprintf("Could not marshal role update: %v", err))
 				return
 			}
+			invAPI.SetOperation(api.OpUpdateSwitchRole)
+			resp, err := invAPI.Post(payload, nil)
+			if err != nil {
+				dg.AddError("Error Updating Role", fmt.Sprintf("Could not update role: %v: %s", err, resp.String()))
+				return
+			}
+			tflog.Info(ctx, "Updated switch role", map[string]interface{}{
+				"serial": serial,
+				"role":   planSw.SwitchRole,
+			})
 		}
 	}
 
-	// Add/update switches via FSM (handles discovery, readiness, creds, roles, config save, deploy)
-	if addSwitches != nil {
-		addData := &NDFCInventorySwitchModel{
-			FabricName:               fabricName,
-			Mode:                     planData.Mode,
-			Username:                 planData.Username,
-			Password:                 planData.Password,
-			PreserveConfig:           planData.PreserveConfig,
-			PlatformType:             planData.PlatformType,
-			SnmpV3AuthProtocol:       planData.SnmpV3AuthProtocol,
-			RemoteCredentialStore:    planData.RemoteCredentialStore,
-			RemoteCredentialStoreKey: planData.RemoteCredentialStoreKey,
-			MaxHop:                   planData.MaxHop,
-			Recalculate:              planData.Recalculate,
-			Deploy:                   planData.Deploy,
-			Switches:                 make(map[string]NDFCSwitchesValue),
+	if planData.Mode == ModeDiscovery {
+		serial := stateSw.SerialNumber
+		if serial == "" {
+			serial = planSw.SerialNumber
 		}
-		for _, sw := range addSwitches {
-			addData.Switches[sw.IpAddress] = sw
+
+		// Handle discovery credentials change (username, password, snmp, credential store)
+		usernameChanged := planData.DiscoveryUsername != stateData.DiscoveryUsername
+		passwordChanged := planData.DiscoveryPassword != stateData.DiscoveryPassword
+		snmpChanged := planData.SnmpV3AuthProtocol != stateData.SnmpV3AuthProtocol
+		credStoreChanged := planData.RemoteCredentialStore != stateData.RemoteCredentialStore
+		credStoreKeyChanged := planData.RemoteCredentialStoreKey != stateData.RemoteCredentialStoreKey
+
+		credsChanged := usernameChanged || passwordChanged || snmpChanged || credStoreChanged || credStoreKeyChanged
+
+		if credsChanged && serial != "" {
+			credReq := ChangeDiscoveryCredentialRequest{
+				SwitchIds:                []string{serial},
+				SnmpV3AuthProtocol:       planData.SnmpV3AuthProtocol,
+				Username:                 planData.DiscoveryUsername,
+				Password:                 planData.DiscoveryPassword,
+				RemoteCredentialStore:    planData.RemoteCredentialStore,
+				RemoteCredentialStoreKey: planData.RemoteCredentialStoreKey,
+			}
+			payload, err := json.Marshal(credReq)
+			if err != nil {
+				dg.AddError("Error Updating Credentials", fmt.Sprintf("Could not marshal credentials change: %v", err))
+				return
+			}
+			invAPI.SetOperation(api.OpChangeDiscoveryCredentials)
+			resp, err := invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true})
+			if err != nil {
+				dg.AddError("Error Updating Credentials", fmt.Sprintf("Could not change discovery credentials: %v: %s", err, resp.String()))
+				return
+			}
+			tflog.Info(ctx, "Updated discovery credentials", map[string]interface{}{
+				"serial": serial,
+			})
 		}
-		// add, update, and deploy
-		fsm := NewInventoryFSM(ctx, r, false, invAPI, addData, dg)
-		fsm.Run()
-		if dg.HasError() {
-			return
+
+		// Handle discovery IP change
+		if planSw.IpAddress != stateSw.IpAddress && planSw.IpAddress != "" && serial != "" {
+			ipReq := []IpSwitchIdPair{
+				{SwitchId: serial, Ip: planSw.IpAddress},
+			}
+			payload, err := json.Marshal(ipReq)
+			if err != nil {
+				dg.AddError("Error Updating IP", fmt.Sprintf("Could not marshal IP change: %v", err))
+				return
+			}
+			invAPI.SetOperation(api.OpChangeIpCollection)
+			resp, err := invAPI.Post(payload, nil)
+			if err != nil {
+				dg.AddError("Error Updating IP", fmt.Sprintf("Could not change switch IP: %v: %s", err, resp.String()))
+				return
+			}
+			tflog.Info(ctx, "Updated switch IP", map[string]interface{}{
+				"serial": serial,
+				"ip":     planSw.IpAddress,
+			})
+		}
+
+		// Handle discovery source interface or VRF change
+		// Skip if plan values are empty (user unset them)
+		ifChanged := planData.SourceInterfaceName != stateData.SourceInterfaceName
+		vrfChanged := planData.SourceVrfName != stateData.SourceVrfName
+		hasValues := planData.SourceInterfaceName != "" || planData.SourceVrfName != ""
+		if (ifChanged || vrfChanged) && hasValues && serial != "" {
+			ifVrfReq := ChangeDiscoveryInterfaceOrVrfRequest{
+				SwitchIds:     []string{serial},
+				VrfName:       planData.SourceVrfName,
+				InterfaceName: planData.SourceInterfaceName,
+			}
+			payload, err := json.Marshal(ifVrfReq)
+			if err != nil {
+				dg.AddError("Error Updating Discovery Interface/VRF", fmt.Sprintf("Could not marshal request: %v", err))
+				return
+			}
+			invAPI.SetOperation(api.OpChangeDiscoveryInterfaceOrVrf)
+			resp, err := invAPI.Post(payload, nil)
+			if err != nil {
+				dg.AddError("Error Updating Discovery Interface/VRF", fmt.Sprintf("Could not change discovery interface/VRF: %v: %s", err, resp.String()))
+				return
+			}
+
+			// Parse item-level results to detect failures
+			var actionResp SwitchActionResponse
+			if err := json.Unmarshal([]byte(resp.Raw), &actionResp); err == nil {
+				for _, item := range actionResp.Items {
+					if item.Status != "success" {
+						dg.AddError("Error Updating Discovery Interface/VRF",
+							fmt.Sprintf("Switch %s: %s: %s", item.SwitchId, item.Status, item.Message))
+						return
+					}
+				}
+			}
+
+			tflog.Info(ctx, "Updated discovery interface/VRF", map[string]interface{}{
+				"serial":    serial,
+				"interface": planData.SourceInterfaceName,
+				"vrf":       planData.SourceVrfName,
+			})
 		}
 	}
 	// Read back the updated state
-	r.rscGetInventory(ctx, dg, plan)
+	if !r.rscGetInventory(ctx, dg, plan) && !dg.HasError() {
+		dg.AddError("Error Reading Inventory", "Switch not found in fabric after update")
+	}
 }
 
-// rscDeleteInventory deletes inventory switches
+// rscDeleteInventory deletes a single inventory switch
 func (r *inventorySwitchResource) rscDeleteInventory(ctx context.Context, dg *diag.Diagnostics, state *InventorySwitchModel) {
 	fabricName := state.FabricName.ValueString()
 	invAPI := api.NewInventoryAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)
 	invAPI.FabricName = fabricName
 
 	stateData := state.GetModelData()
+	sw := stateData.SwitchDetail
 
-	swDelList := make([]string, 0)
-
-	switches, err := r.getAllSwitchesByFabric(ctx, fabricName, true)
-	if err != nil {
-		dg.AddError("Error Reading Inventory", err.Error())
+	// Resolve the serial number for the switch
+	var serial string
+	if sw.SerialNumber != "" {
+		serial = sw.SerialNumber
+	} else if sw.IpAddress != "" {
+		// Look up serial by IP from the fabric
+		switches, err := r.getAllSwitchesByFabric(ctx, fabricName, true)
+		if err != nil {
+			dg.AddError("Error Reading Inventory", err.Error())
+			return
+		}
+		if swByIP, ok := switches.SwitchesByIP[sw.IpAddress]; ok {
+			serial = swByIP.SerialNumber
+		} else {
+			tflog.Warn(ctx, "Switch not found in inventory by IP", map[string]interface{}{
+				"ip": sw.IpAddress,
+			})
+			return
+		}
+	} else {
+		tflog.Warn(ctx, "State has no serial or IP - likely corrupt state", map[string]interface{}{})
 		return
 	}
 
-	// iterate the state data and check if if the switch exists in the retrieved data
+	swDelList := []string{serial}
 
-	for _, sw := range stateData.Switches {
-		if sw.SerialNumber != "" {
-			if _, ok := switches.SwitchesBySerial[sw.SerialNumber]; !ok {
-				tflog.Warn(ctx, "Switch not found in inventory", map[string]interface{}{
-					"serial": sw.SerialNumber,
-				})
-				continue
-			} else {
-				swDelList = append(swDelList, sw.SerialNumber)
-			}
-		} else if sw.IpAddress != "" {
-			if swByIP, ok := switches.SwitchesByIP[sw.IpAddress]; ok {
-				swDelList = append(swDelList, swByIP.SerialNumber)
-			} else {
-				tflog.Warn(ctx, "Switch not found in inventory", map[string]interface{}{
-					"ip": sw.IpAddress,
-				})
-			}
-		} else {
-			tflog.Warn(ctx, "State entry has no serial or IP - likely corrupt state", map[string]interface{}{
-				"serial": sw.SerialNumber,
-				"ip":     sw.IpAddress,
-			})
-		}
-
-	}
+	tflog.Info(ctx, "Switch to be removed from fabric", map[string]interface{}{
+		"fabric": fabricName,
+		"serial": serial,
+	})
 
 	// Remove credentials first
-	if len(swDelList) > 0 {
-		tflog.Info(ctx, "Switches to be removed from fabric", map[string]interface{}{
-			"fabric":   fabricName,
-			"switches": swDelList,
-		})
-		credRemoveReq := RemoveSwitchesRequest{
-			SwitchIds: swDelList,
-		}
-
-		payload, err := json.Marshal(credRemoveReq)
-		if err != nil {
-			dg.AddError("Error Deleting Inventory", fmt.Sprintf("Could not marshal credentials remove request: %v", err))
-			return
-		}
-
-		tflog.Info(ctx, "Removing credentials", map[string]interface{}{
-			"fabric":   fabricName,
-			"switches": swDelList,
-		})
-		invAPI.SetOperation(api.OpRemoveCredentials)
-		res, err := invAPI.Post(payload, nil)
-		if err != nil {
-			dg.AddError("Error Deleting Inventory", fmt.Sprintf("Could not remove credentials: %v: %s", err, res.String()))
-			return
-		}
-
-		tflog.Info(ctx, "Removing switches", map[string]interface{}{
-			"fabric":   fabricName,
-			"switches": swDelList,
-		})
-		// Remove switches
-		r.removeSwitches(ctx, dg, invAPI, swDelList)
+	credRemoveReq := RemoveSwitchesRequest{SwitchIds: swDelList}
+	payload, err := json.Marshal(credRemoveReq)
+	if err != nil {
+		dg.AddError("Error Deleting Inventory", fmt.Sprintf("Could not marshal credentials remove request: %v", err))
+		return
 	}
 
+	invAPI.SetOperation(api.OpRemoveCredentials)
+	res, err := invAPI.Post(payload, nil)
+	if err != nil {
+		tflog.Warn(ctx, "Could not remove credentials (best-effort), continuing with switch removal", map[string]interface{}{
+			"serial": serial,
+			"error":  fmt.Sprintf("%v: %s", err, res.String()),
+		})
+	}
+
+	// Remove switch
+	r.removeSwitches(ctx, dg, invAPI, swDelList)
 }
 
-// rscImportInventory imports existing inventory switches
+// rscImportInventory imports an existing inventory switch
 func (r *inventorySwitchResource) rscImportInventory(ctx context.Context, dg *diag.Diagnostics, id string, resp *resource.ImportStateResponse) {
-	// ID format: fabric_name/serial1,serial2,serial3
+	// ID format: fabric_name/serial_number
 	parts := strings.SplitN(id, "/", 2)
 	if len(parts) != 2 {
-		dg.AddError("Invalid Import ID", "Expected format: fabric_name/serial1,serial2,serial3")
+		dg.AddError("Invalid Import ID", "Expected format: fabric_name/serial_number")
 		return
 	}
 
 	fabricName := parts[0]
-	serialsStr := parts[1]
-	serials := strings.Split(serialsStr, ",")
+	serial := strings.TrimSpace(parts[1])
 
-	if fabricName == "" || len(serials) == 0 {
-		dg.AddError("Invalid Import ID", "Fabric name and at least one serial number are required")
+	if fabricName == "" || serial == "" {
+		dg.AddError("Invalid Import ID", "Fabric name and serial number are required")
 		return
 	}
 
@@ -300,18 +395,14 @@ func (r *inventorySwitchResource) rscImportInventory(ctx context.Context, dg *di
 	input.FabricName = types.StringValue(fabricName)
 	input.Mode = types.StringValue(ModeDiscovery)
 
-	// Initialize switches map with serials
-	switchesData := &NDFCInventorySwitchModel{
+	// Initialize switch detail with serial
+	switchData := &NDFCInventorySwitchModel{
 		FabricName: fabricName,
-		Switches:   make(map[string]NDFCSwitchesValue),
+		SwitchDetail: NDFCSwitchDetailValue{
+			SerialNumber: serial,
+		},
 	}
-	for _, serial := range serials {
-		serial = strings.TrimSpace(serial)
-		if serial != "" {
-			switchesData.Switches[serial] = NDFCSwitchesValue{}
-		}
-	}
-	input.SetModelData(switchesData)
+	input.SetModelData(switchData)
 
 	// Read the actual state
 	r.rscGetInventory(ctx, dg, input)

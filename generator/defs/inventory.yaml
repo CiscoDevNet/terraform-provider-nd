@@ -5,6 +5,13 @@ resource:
   category: manage
   attributes:
   # Required - Fabric identifier
+  - model_name: id
+    tf_name: id
+    description: Unique identifier for the inventory switch resource
+    type: String
+    computed: true
+    use_state: true
+  
   - model_name: fabricName
     tf_name: fabric_name
     description: Name of the fabric to add switches to
@@ -36,16 +43,44 @@ resource:
     default_value: false
     tf_requires_replace: true
     example: true
+  
+  - model_name: wait_for_bootstrap
+    tf_name: wait_for_bootstrap
+    description: > 
+      How long to Wait for the switch to boot into POAP mode (eg. 10m 60s etc)
+      When configured, Terraform will allow some time for the switch to boot into POAP mode.
+      When not specified, if the switch is not found in the 'POAP' list during the operation, the resource errors out
+    type: String
+    payload_hide: true
+
+  - model_name: wait_for_discover
+    tf_name: wait_for_discover
+    description: >
+      How long to wait for the switch to become reachable during discovery (eg. 10m 60s etc).
+      When configured, Terraform will retry shallow discovery until the switch is reachable or the timeout expires.
+      When not specified, if the switch is not reachable, the resource errors out immediately.
+    type: String
+    payload_hide: true
+    example: "10m"
+
+  - model_name: wait_for_ready
+    tf_name: wait_for_ready
+    type: String
+    description: > 
+      How long to Wait for the switch to be online after adding to fabric (eg. 10m 60s etc)
+      When configured, Terraform will wait an poll the switch to be ready.
+      If the switch is not ready within the timeout, the resource errors out.
+    default_value: "30m"
+    payload_hide: true
+    example: "30m"
 
   # Switches map - key is serial number
-  - model_name: switches
-    tf_name: switches
-    description: Map of switches to manage, keyed by serial number
-    type: Map
+  - model_name: switch_detail
+    tf_name: switch_detail
+    description: A structure containing switch details to manage
+    type: Struct
     mandatory: true
-    map_value_type: Struct
     payload_hide: true
-    bulk: true
     attributes:
     - model_name: hostname
       tf_name: hostname
@@ -53,13 +88,15 @@ resource:
       type: String
       use_state: true
       computed: true
+      optional: true
     
     - model_name: serialNumber
       tf_name: serial_number
       description: Switch serial number
       type: String
-      use_state: true
       computed: true
+      optional: true
+      use_state: true
 
     - model_name: ip
       tf_name: ip_address
@@ -67,7 +104,6 @@ resource:
       description: Switch management IP address
       type: String
       mandatory: true
-      requires_replace: true
       example: "10.23.244.81"
 
     - model_name: model
@@ -76,6 +112,7 @@ resource:
       type: String
       computed: true
       optional: true
+      use_state: true
       example: N9K-C93180YC-FX
 
     - model_name: softwareVersion
@@ -84,15 +121,23 @@ resource:
       type: String
       computed: true
       optional: true
+      use_state: true
       example: "10.3(3)"
+
+    - model_name: softwareImage
+      tf_name: software_image
+      description: Software image filename for bootstrap (e.g. nxos64-cs.10.3.1.F.bin). When specified, this image is used during POAP bootstrap. When omitted, the value from the bootstrap list API is used.
+      type: String
+      computed: true
+      optional: true
+      use_state: true
+      example: "nxos64-cs.10.3.1.F.bin"
 
     - model_name: switchRole
       tf_name: switch_role
       description: Role of switch in fabric.
       type: String
-      optional: true
       default_value: leaf
-      requires_replace: true
       example: leaf
       enum_values:
         - border
@@ -144,13 +189,6 @@ resource:
       optional: true
       example: MD5
 
-    - model_name: poapPassword
-      tf_name: poap_password
-      description: Password for POAP bootstrap
-      type: String
-      optional: true
-      sensitive: true
-      example: admin123
 
     - model_name: vdcId
       tf_name: vdc_id
@@ -158,6 +196,7 @@ resource:
       type: Int64
       computed: true
       optional: true
+      use_state: true
       example: null
 
     - model_name: vdcMac
@@ -166,24 +205,98 @@ resource:
       type: String
       computed: true
       optional: true
+      use_state: true
       example: null
 
-  # Authentication - common for all switches
+    #below variables are for different APIs
+
+    - model_name: password
+      tf_name: switch_password
+      description: Password for bootstrap API payload (populated from top-level password)
+      type: String
+      tf_hide: true
+
+    - model_name: ipAddress
+      tf_name: ip_addr_bootstrap
+      description: IP address for bootstrap payload
+      type: String
+      tf_hide: true
+    
+    - model_name: publicKey
+      tf_name: public_key
+      description: Public key for bootstrap
+      type: String
+      tf_hide: true
+
+    - model_name: fingerPrint
+      tf_name: fingerprint
+      description: Fingerprint for bootstrap
+      type: String
+      tf_hide: true
+
+    - model_name: inInventory
+      tf_name: in_inventory
+      description: Whether the switch is in inventory
+      type: Bool
+      ndfc_type: bool
+      tf_hide: true
+
   - model_name: username
-    tf_name: username
-    description: Switch login username
+    tf_name: discovery_username
+    description: >
+      Username for switch discovery/login.
+      In discovery mode, used as the switch login username.
+      In bootstrap mode with use_new_credentials enabled, used as the post-bootstrap discovery username.
     type: String
     optional: true
     sensitive: true
+    use_state: true
     example: admin
 
   - model_name: password
-    tf_name: password
-    description: Switch login password
+    tf_name: discovery_password
+    description: >
+      Password for switch discovery/login.
+      In discovery mode, used as the switch login password.
+      In bootstrap mode with use_new_credentials enabled, used as the post-bootstrap discovery password.
     type: String
     optional: true
     sensitive: true
+    use_state: true
     example: mysecret
+
+  - model_name: bootstrap_password
+    tf_name: bootstrap_password
+    description: >
+      Admin password to set on the switch during POAP bootstrap.
+      Required for bootstrap mode. Not used in discovery mode.
+    type: String
+    optional: true
+    sensitive: true
+    use_state: true
+    payload_hide: true
+
+  - model_name: use_new_credentials
+    tf_name: use_new_credentials
+    description: >
+      Bootstrap mode only. When true, use discovery_username and discovery_password
+      as separate credentials for post-bootstrap switch discovery.
+      When false, the bootstrap admin password is used for discovery.
+    type: Bool
+    ndfc_type: bool
+    optional: true
+    default_value: false
+    payload_hide: true
+
+  - model_name: discovery_cred_for_lan
+    tf_name: discovery_cred_for_lan
+    description: >
+      Discovery mode only. When true, use the discovery credentials as LAN
+      credentials for config deployment (write) to the switch.
+    type: Bool
+    ndfc_type: bool
+    default_value: true
+    payload_hide: true
 
   - model_name: platformType
     tf_name: platform_type
@@ -195,9 +308,8 @@ resource:
     tf_name: snmp_v3_auth_protocol
     description: SNMP v3 authentication protocol
     type: String
-    optional: true
-    default_value: MD5
-    example: MD5
+    default_value: md5
+    example: md5
 
   # Credential store
   - model_name: remoteCredentialStore
@@ -215,30 +327,24 @@ resource:
     optional: true
     example: null
 
+  # Discovery source interface and VRF (update-only, read from additionalData)
+  - model_name: sourceInterfaceName
+    tf_name: source_interface_name
+    description: Source interface for switch discovery
+    type: String
+    optional: true
+    payload_hide: true
+
+  - model_name: sourceVrfName
+    tf_name: source_vrf_name
+    description: Source VRF for switch discovery
+    type: String
+    optional: true
+    payload_hide: true
+
   # Discovery settings
   - model_name: maxHop
     tf_name: max_hop
     description: Maximum hops for CDP/LLDP discovery
     type: Int64
-    optional: true
-    default_value: 0
-    example: 2
-
-  # Deployment control flags
-  - model_name: recalculate
-    tf_name: recalculate
-    description: Recalculate (config-save) fabric configuration after switch operations
-    type: Bool
-    ndfc_type: bool
-    default_value: false
-    example: true
-    payload_hide: true
-
-  - model_name: deploy
-    tf_name: deploy
-    description: Deploy configuration to switches after operations
-    type: Bool
-    ndfc_type: bool
-    default_value: false
-    example: true
-    payload_hide: true
+    tf_hide: true

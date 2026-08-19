@@ -12,12 +12,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 
 	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage/api"
-	"terraform-provider-nd/internal/manage/deployment"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -26,161 +26,99 @@ import (
 
 // FSM state names
 const (
-	StateInit              = "init"
-	StateDiscovering       = "discovering"
-	StateAddingSwitches    = "adding_switches"
-	StateCheckingReadiness = "checking_readiness"
-	StateWaitingReady      = "waiting_ready"
-	StateSavingCreds       = "saving_creds"
-	StateUpdatingRoles     = "updating_roles"
-	StateSavingConfig      = "saving_config"
-	StateConfigSaveWait    = "config_save_wait"
-	StateRediscovering     = "rediscovering"
-	StateDeployingConfig   = "deploying_config"
-	StateDone              = "done"
-	StateFailed            = "failed"
+	StateInit               = "init"
+	StateDiscovering        = "discovering"
+	StateAddingSwitches     = "adding_switches"
+	StateQueryingBootstrap  = "querying_bootstrap"
+	StateImportingBootstrap = "importing_bootstrap"
+	StateCheckingReadiness  = "checking_readiness"
+	StateWaitingReady       = "waiting_ready"
+	StateRediscovering      = "rediscovering"
+	StateSavingCreds        = "saving_creds"
+	StateUpdatingRoles      = "updating_roles"
+	StateDone               = "done"
+	StateFailed             = "failed"
 )
 
 // FSM event names
 const (
-	EventDiscover     = "discover"
-	EventAddSwitches  = "add_switches"
-	EventCheck        = "check"
-	EventWait         = "wait"
-	EventPoll         = "poll"
-	EventSaveCreds    = "save_creds"
-	EventUpdateRoles  = "update_roles"
-	EventConfigSave   = "config_save"
-	EventRediscover   = "rediscover_switches"
-	EventRetryWait    = "retry_wait"
-	EventConfigDeploy = "config_deploy"
-	EventFinish       = "finish"
-	EventFail         = "fail"
+	EventDiscover        = "discover"
+	EventAddSwitches     = "add_switches"
+	EventQueryBootstrap  = "query_bootstrap"
+	EventImportBootstrap = "import_bootstrap"
+	EventCheck           = "check"
+	EventWait            = "wait"
+	EventPoll            = "poll"
+	EventRediscover      = "rediscover_switches"
+	EventSaveCreds       = "save_creds"
+	EventUpdateRoles     = "update_roles"
+	EventFinish          = "finish"
+	EventFail            = "fail"
 )
-
-// Retryable error patterns from config-save
-var configSaveRetryablePatterns = []string{
-	"import is not yet completed",
-	"migration mode",
-	"ensure switches are reachable",
-}
 
 const (
-	BaseFSMTimeout       = 10 * time.Minute // Base timeout for FSM operations
-	PerSwitchTimeout     = 5 * time.Minute  // Additional timeout per switch
-	MaxConfigSaveRetries = 50
-	ConfigSaveRetryWait  = 30 * time.Second
+	DefaultWaitForReady = 30 * time.Minute // Default wait_for_ready timeout
 )
 
-// calculateFSMTimeout returns the total timeout based on number of switches.
-// Formula: BaseFSMTimeout + (PerSwitchTimeout * numSwitches)
-// Examples:
-//   - 1 switch:  10 + 5  = 15 minutes
-//   - 2 switches: 10 + 10 = 20 minutes
-//   - 3 switches: 10 + 15 = 25 minutes
-//   - 5 switches: 10 + 25 = 35 minutes
-func calculateFSMTimeout(numSwitches int) time.Duration {
-	if numSwitches < 1 {
-		numSwitches = 1
+// jitteredInterval returns a duration randomly varied around base by ±jitterFraction.
+// e.g. jitteredInterval(10s, 0.3) returns 7s–13s.
+func jitteredInterval(base time.Duration, jitterFraction float64) time.Duration {
+	jitter := float64(base) * jitterFraction
+	min := float64(base) - jitter
+	return time.Duration(min + rand.Float64()*2*jitter)
+}
+
+// parseTimeout parses a duration string (e.g. "30m", "60s") and returns the duration.
+// Returns the fallback if the input is empty or unparseable.
+func parseTimeout(s string, fallback time.Duration) time.Duration {
+	if s == "" {
+		return fallback
 	}
-	return BaseFSMTimeout + (PerSwitchTimeout * time.Duration(numSwitches))
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return fallback
+	}
+	return d
 }
 
-// InventoryFSM manages the state machine for discovery-based switch creation
+// InventoryFSM manages the state machine for switch creation (discovery or bootstrap)
 type InventoryFSM struct {
-	FSM               *fsm.FSM
-	ctx               context.Context
-	r                 *inventorySwitchResource
-	invAPI            *api.InventoryAPI
-	switchesData      *NDFCInventorySwitchModel
-	updateSwitches    *NDFCInventorySwitchModel
-	discovery         DiscoveryStatusResponse
-	dg                *diag.Diagnostics
-	deadline          time.Time
-	timeoutDuration   time.Duration // Total timeout for error reporting
-	configSaveRetries int
-	isCreate          bool
-	lastErr           error
-	serialSet         map[string]bool
+	FSM              *fsm.FSM
+	ctx              context.Context
+	r                *inventorySwitchResource
+	invAPI           *api.InventoryAPI
+	switchesData     *NDFCInventorySwitchModel
+	discovery        DiscoveryStatusResponse
+	bootstrapEntries map[string]NDFCSwitchDetailValue
+	dg               *diag.Diagnostics
+	deadline         time.Time
+	timeoutDuration  time.Duration
+	isCreate         bool
+	lastErr          error
+	serialSet        map[string]bool
 }
 
-// NewInventoryFSM creates a new FSM for discovery-based switch creation.
+// NewInventoryFSM creates a new FSM for switch creation.
 //
-// The FSM drives the full lifecycle of adding switches to a fabric via shallow
-// discovery. A single call to Run() fires the initial "discover" event; every
-// subsequent transition is chained from enter_<state> callbacks.
+// Discovery mode:
 //
-// States and transitions:
+//	init → discovering → adding_switches → saving_creds → updating_roles
+//	  → checking_readiness → [waiting_ready ↔ checking_readiness] → done
 //
-//	+--------+  discover   +--------------+  add_switches  +------------------+
-//	|  init  |----------->| discovering  |--------------->| adding_switches  |
-//	+--------+            +--------------+                +--------+---------+
-//	                                                               |
-//	                                                             check
-//	                                                           (immediate)
-//	                                                               |
-//	                                                               v
-//	                      +----------------+  poll   +---------------------+
-//	                      | waiting_ready  |-------->| checking_readiness  |
-//	                      +-------+--------+         +-+-----+-------+----+
-//	                              ^                    |     |       |
-//	                              |               wait | rediscover  | save_creds
-//	                              |  (not ready)       |     |       |
-//	                              +--------------------+     |       |
-//	                              |                          v       |
-//	                              |  wait   +----------------+       |
-//	                              +---------| rediscovering  |       |
-//	                                        +----------------+       |
-//	                                                                 v
-//	                                                  +---------------+
-//	                                                  | saving_creds  |
-//	                                                  +-------+-------+
-//	                                                          |
-//	                                                    update_roles
-//	                                                          |
-//	                                                          v
-//	                                                  +----------------+
-//	                                                  | updating_roles |
-//	                                                  +-------+--------+
-//	                                                          |
-//	                                                     config_save
-//	                                                          |
-//	                                                          v
-//	                                                  +----------------+  retry_wait  +-------------------+
-//	                                                  | saving_config  |------------->| config_save_wait  |
-//	                                                  +---+--------+---+              +--+-----+-----+----+
-//	                                                      |        |                     |     |     |
-//	                                       config_deploy  |        | finish    retry_wait|     |     | rediscover
-//	                                                      |        | (!deploy)           |     |     |
-//	                                                      v        |                     |     |     v
-//	                                           +------------------+|                     |     |  +----------------+
-//	                                           | deploying_config ||                     |     |  | rediscovering  |
-//	                                           +---------+--------+                      |     |  +-------+--------+
-//	                                                     |                               |     |          |
-//	                                                     |                               +-----+----------+
-//	                                                     |                              config_save  retry_wait
-//	                                                     |
-//	                                                   finish
-//	                                                     |
-//	                                                     v
-//	                                                +--------+
-//	                                                |  done  |
-//	                                                +--------+
+// Bootstrap mode:
 //
-//	Any non-terminal state can transition to "failed" via the "fail" event:
+//	init → querying_bootstrap → importing_bootstrap → saving_creds → updating_roles
+//	  → checking_readiness → [waiting_ready ↔ checking_readiness] → done
 //
-//	    +---any state---+   fail   +----------+
-//	    |               |--------->|  failed  |
-//	    +---------------+          +----------+
-func NewInventoryFSM(
-	ctx context.Context,
+// Any state can transition to "failed" via the "fail" event.
+func NewInventoryFSM(ctx context.Context,
 	r *inventorySwitchResource,
 	isCreate bool,
 	invAPI *api.InventoryAPI,
 	switchesData *NDFCInventorySwitchModel,
-	dg *diag.Diagnostics,
-) *InventoryFSM {
-	timeout := calculateFSMTimeout(len(switchesData.Switches))
+	dg *diag.Diagnostics) *InventoryFSM {
+
+	timeout := parseTimeout(switchesData.WaitForReady, DefaultWaitForReady)
 	inv := &InventoryFSM{
 		ctx:             ctx,
 		r:               r,
@@ -194,50 +132,64 @@ func NewInventoryFSM(
 
 	allStates := []string{
 		StateInit, StateDiscovering, StateAddingSwitches,
-		StateCheckingReadiness, StateRediscovering, StateWaitingReady, StateSavingCreds,
-		StateUpdatingRoles, StateSavingConfig, StateConfigSaveWait,
-		StateDeployingConfig,
+		StateQueryingBootstrap, StateImportingBootstrap,
+		StateCheckingReadiness, StateRediscovering, StateWaitingReady,
+		StateSavingCreds, StateUpdatingRoles,
 	}
 
 	inv.FSM = fsm.NewFSM(
 		StateInit,
 		fsm.Events{
+			// Discovery path
 			{Name: EventDiscover, Src: []string{StateInit}, Dst: StateDiscovering},
 			{Name: EventAddSwitches, Src: []string{StateDiscovering}, Dst: StateAddingSwitches},
-			{Name: EventCheck, Src: []string{StateAddingSwitches}, Dst: StateCheckingReadiness},
-			{Name: EventRetryWait, Src: []string{StateSavingConfig, StateConfigSaveWait, StateRediscovering}, Dst: StateConfigSaveWait},
-			{Name: EventRediscover, Src: []string{StateCheckingReadiness, StateConfigSaveWait}, Dst: StateRediscovering},
+			// Bootstrap path
+			{Name: EventQueryBootstrap, Src: []string{StateInit}, Dst: StateQueryingBootstrap},
+			{Name: EventImportBootstrap, Src: []string{StateQueryingBootstrap}, Dst: StateImportingBootstrap},
+			// Common path: save creds + roles first, then wait for readiness
+			{Name: EventSaveCreds, Src: []string{StateAddingSwitches, StateImportingBootstrap}, Dst: StateSavingCreds},
+			{Name: EventUpdateRoles, Src: []string{StateSavingCreds}, Dst: StateUpdatingRoles},
+			{Name: EventCheck, Src: []string{StateUpdatingRoles}, Dst: StateCheckingReadiness},
+			{Name: EventRediscover, Src: []string{StateCheckingReadiness}, Dst: StateRediscovering},
 			{Name: EventWait, Src: []string{StateCheckingReadiness, StateRediscovering}, Dst: StateWaitingReady},
 			{Name: EventPoll, Src: []string{StateWaitingReady}, Dst: StateCheckingReadiness},
-			{Name: EventSaveCreds, Src: []string{StateCheckingReadiness}, Dst: StateSavingCreds},
-			{Name: EventUpdateRoles, Src: []string{StateSavingCreds}, Dst: StateUpdatingRoles},
-			{Name: EventConfigSave, Src: []string{StateUpdatingRoles, StateConfigSaveWait}, Dst: StateSavingConfig},
-			{Name: EventConfigDeploy, Src: []string{StateSavingConfig}, Dst: StateDeployingConfig},
-			{Name: EventFinish, Src: []string{StateDeployingConfig, StateSavingConfig}, Dst: StateDone},
+			{Name: EventFinish, Src: []string{StateCheckingReadiness}, Dst: StateDone},
 			{Name: EventFail, Src: allStates, Dst: StateFailed},
 		},
 		fsm.Callbacks{
-			"enter_discovering":        func(ctx context.Context, e *fsm.Event) { inv.onDiscover(ctx, e) },
-			"enter_adding_switches":    func(ctx context.Context, e *fsm.Event) { inv.onAddSwitches(ctx, e) },
-			"enter_checking_readiness": func(ctx context.Context, e *fsm.Event) { inv.onCheckReadiness(ctx, e) },
-			"enter_rediscovering":      func(ctx context.Context, e *fsm.Event) { inv.onRediscover(ctx, e) },
-			"enter_waiting_ready":      func(ctx context.Context, e *fsm.Event) { inv.onWaitReady(ctx, e) },
-			"enter_saving_creds":       func(ctx context.Context, e *fsm.Event) { inv.onSaveCreds(ctx, e) },
-			"enter_updating_roles":     func(ctx context.Context, e *fsm.Event) { inv.onUpdateRoles(ctx, e) },
-			"enter_saving_config":      func(ctx context.Context, e *fsm.Event) { inv.onConfigSave(ctx, e) },
-			"enter_config_save_wait":   func(ctx context.Context, e *fsm.Event) { inv.onConfigSaveWait(ctx, e) },
-			"enter_deploying_config":   func(ctx context.Context, e *fsm.Event) { inv.onConfigDeploy(ctx, e) },
-			"enter_failed":             func(ctx context.Context, e *fsm.Event) { inv.onFailed(ctx, e) },
+			"enter_discovering":         func(ctx context.Context, e *fsm.Event) { inv.onDiscover(ctx, e) },
+			"enter_adding_switches":     func(ctx context.Context, e *fsm.Event) { inv.onAddSwitches(ctx, e) },
+			"enter_querying_bootstrap":  func(ctx context.Context, e *fsm.Event) { inv.onQueryBootstrap(ctx, e) },
+			"enter_importing_bootstrap": func(ctx context.Context, e *fsm.Event) { inv.onImportBootstrap(ctx, e) },
+			"enter_checking_readiness":  func(ctx context.Context, e *fsm.Event) { inv.onCheckReadiness(ctx, e) },
+			"enter_rediscovering":       func(ctx context.Context, e *fsm.Event) { inv.onRediscover(ctx, e) },
+			"enter_waiting_ready":       func(ctx context.Context, e *fsm.Event) { inv.onWaitReady(ctx, e) },
+			"enter_saving_creds":        func(ctx context.Context, e *fsm.Event) { inv.onSaveCreds(ctx, e) },
+			"enter_updating_roles":      func(ctx context.Context, e *fsm.Event) { inv.onUpdateRoles(ctx, e) },
+			"enter_failed":              func(ctx context.Context, e *fsm.Event) { inv.onFailed(ctx, e) },
 		},
 	)
 	return inv
 }
 
-// Run kicks off the FSM by firing the initial discover event
+// Run kicks off the FSM by firing the initial event based on mode
 func (inv *InventoryFSM) Run() {
-	tflog.Info(inv.ctx, "Starting inventory FSM")
+	// Tag all logs from this FSM with switch identity
+	inv.ctx = tflog.SetField(inv.ctx, "switch_ip", inv.switchesData.SwitchDetail.IpAddress)
+	inv.ctx = tflog.SetField(inv.ctx, "switch_serial", inv.switchesData.SwitchDetail.SerialNumber)
 
-	if err := inv.FSM.Event(inv.ctx, EventDiscover); err != nil {
+	tflog.Info(inv.ctx, "Starting inventory FSM", map[string]interface{}{
+		"mode": inv.switchesData.Mode,
+	})
+
+	var startEvent string
+	if inv.switchesData.Mode == ModeBootstrap {
+		startEvent = EventQueryBootstrap
+	} else {
+		startEvent = EventDiscover
+	}
+
+	if err := inv.FSM.Event(inv.ctx, startEvent); err != nil {
 		if !inv.dg.HasError() {
 			inv.dg.AddError("Error Creating Inventory", fmt.Sprintf("FSM error: %v", err))
 		}
@@ -271,33 +223,68 @@ func (inv *InventoryFSM) checkDeadline(ctx context.Context, e *fsm.Event) bool {
 	return true
 }
 
-// --- State callbacks ---
+// --- Discovery path callbacks ---
 
 func (inv *InventoryFSM) onDiscover(ctx context.Context, e *fsm.Event) {
 	if !inv.checkDeadline(ctx, e) {
 		return
 	}
 
-	discovery, err := inv.r.shallowDiscover(ctx, inv.invAPI, inv.switchesData)
-	if err != nil {
-		inv.triggerFail(ctx, e, "%v", err)
-		return
-	}
-	inv.discovery = *discovery
+	discoverTimeout := parseTimeout(inv.switchesData.WaitForDiscover, 0)
+	discoverDeadline := time.Now().Add(discoverTimeout)
 
-	// On create, all discovered switches must be available (not already managed)
-	if inv.isCreate {
-		var alreadyManaged []string
+	for {
+		discovery, err := inv.r.shallowDiscover(ctx, inv.invAPI, inv.switchesData)
+		if err != nil {
+			inv.triggerFail(ctx, e, "%v", err)
+			return
+		}
+		inv.discovery = *discovery
+
+		// Check if any discovered switch is not reachable
+		notReachable := false
 		for _, sw := range inv.discovery.Switches {
-			if sw.Status == StatusAlreadyManaged {
-				alreadyManaged = append(alreadyManaged, fmt.Sprintf("%s (%s)", sw.SerialNumber, sw.IpAddress))
+			if sw.Status == StatusNotReachable {
+				notReachable = true
+				tflog.Info(ctx, "Switch not reachable", map[string]interface{}{
+					"ip":     sw.IpAddress,
+					"serial": sw.SerialNumber,
+					"status": sw.Status,
+				})
 			}
 		}
-		if len(alreadyManaged) > 0 {
-			inv.triggerFail(ctx, e,
-				"not all switches are available to be managed in this fabric; "+
-					"already managed: %s", strings.Join(alreadyManaged, ", "))
+
+		if !notReachable {
+			break
+		}
+
+		// No wait_for_discover configured — fail immediately
+		if discoverTimeout == 0 {
+			inv.triggerFail(ctx, e, "switch is not reachable during discovery")
 			return
+		}
+
+		// Timeout expired
+		if time.Now().After(discoverDeadline) {
+			inv.triggerFail(ctx, e, "switch not reachable within wait_for_discover timeout (%v)", discoverTimeout)
+			return
+		}
+
+		tflog.Info(ctx, "Waiting for switch to become reachable, retrying discovery...", map[string]interface{}{
+			"remaining": time.Until(discoverDeadline).Round(time.Second).String(),
+		})
+		time.Sleep(jitteredInterval(PollInterval, 0.2))
+	}
+
+	// On create, the discovered switch must be available (not already managed)
+	if inv.isCreate {
+		for _, sw := range inv.discovery.Switches {
+			if sw.Status == StatusAlreadyManaged {
+				inv.triggerFail(ctx, e,
+					"switch is already managed in this fabric: %s (%s)",
+					sw.SerialNumber, sw.IpAddress)
+				return
+			}
 		}
 	}
 
@@ -309,10 +296,10 @@ func (inv *InventoryFSM) onAddSwitches(ctx context.Context, e *fsm.Event) {
 		return
 	}
 
-	// In update flow, filter out switches that are already managed
+	// In update flow, filter out switch if already managed
 	discoveryForAdd := inv.discovery
 	if !inv.isCreate {
-		filtered := make([]NDFCSwitchesValue, 0, len(inv.discovery.Switches))
+		filtered := make([]NDFCSwitchDetailValue, 0, len(inv.discovery.Switches))
 		for _, sw := range inv.discovery.Switches {
 			if sw.Status == StatusAlreadyManaged {
 				tflog.Info(ctx, "Skipping already-managed switch in update flow", map[string]interface{}{
@@ -328,7 +315,7 @@ func (inv *InventoryFSM) onAddSwitches(ctx context.Context, e *fsm.Event) {
 
 	if len(discoveryForAdd.Switches) == 0 {
 		tflog.Info(ctx, "No switches to add")
-		e.FSM.Event(ctx, EventCheck)
+		e.FSM.Event(ctx, EventSaveCreds)
 		return
 	}
 
@@ -341,22 +328,134 @@ func (inv *InventoryFSM) onAddSwitches(ctx context.Context, e *fsm.Event) {
 	}
 
 	inv.invAPI.SetOperation(api.OpAddSwitches)
-	_, err = inv.invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true}) // disable payload logging (contains credentials)
+	res, err := inv.invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true})
 	if err != nil {
-		inv.triggerFail(ctx, e, "add switches failed: %v", err)
+		inv.triggerFail(ctx, e, "add switches failed: %v: %s", err, res.String())
 		return
 	}
 
-	tflog.Info(ctx, "Switches added to fabric", map[string]interface{}{
+	tflog.Info(ctx, "Switch added to fabric", map[string]interface{}{
 		"fabric_name": inv.invAPI.FabricName,
-		"count":       len(addReq.Switches),
 	})
 
-	e.FSM.Event(ctx, EventCheck)
+	e.FSM.Event(ctx, EventSaveCreds)
 }
 
-// onCheckReadiness performs a single readiness check for all target switches.
-// If all ready, transitions to save_creds. Otherwise, transitions to waiting_ready.
+// --- Bootstrap path callbacks ---
+
+func (inv *InventoryFSM) onQueryBootstrap(ctx context.Context, e *fsm.Event) {
+	if !inv.checkDeadline(ctx, e) {
+		return
+	}
+
+	serial := inv.switchesData.SwitchDetail.SerialNumber
+	bootstrapTimeout := parseTimeout(inv.switchesData.WaitForBootstrap, 0)
+	bootstrapDeadline := time.Now().Add(bootstrapTimeout)
+
+	for {
+		entries, err := inv.r.queryBootstrapList(ctx, inv.invAPI)
+		if err != nil {
+			inv.triggerFail(ctx, e, "%v", err)
+			return
+		}
+		inv.bootstrapEntries = entries
+
+		if _, ok := entries[serial]; ok {
+			e.FSM.Event(ctx, EventImportBootstrap)
+			return
+		}
+
+		// No wait_for_bootstrap configured — fail immediately
+		if bootstrapTimeout == 0 {
+			inv.triggerFail(ctx, e, "switch serial %s not found in bootstrap list", serial)
+			return
+		}
+
+		// Wait timeout expired
+		if time.Now().After(bootstrapDeadline) {
+			inv.triggerFail(ctx, e, "switch serial %s not found in bootstrap list after %v", serial, bootstrapTimeout)
+			return
+		}
+
+		tflog.Debug(ctx, "Switch not yet in bootstrap list, waiting", map[string]interface{}{
+			"serial":            serial,
+			"bootstrap_timeout": bootstrapTimeout.String(),
+		})
+
+		select {
+		case <-time.After(jitteredInterval(PollInterval, 0.3)):
+		case <-ctx.Done():
+			inv.triggerFail(ctx, e, "context cancelled waiting for bootstrap: %v", ctx.Err())
+			return
+		}
+	}
+}
+
+func (inv *InventoryFSM) onImportBootstrap(ctx context.Context, e *fsm.Event) {
+	if !inv.checkDeadline(ctx, e) {
+		return
+	}
+
+	serial := inv.switchesData.SwitchDetail.SerialNumber
+
+	// Pre-check: skip import if the switch already exists in the fabric
+	fabricSwitches, err := inv.r.getAllSwitchesByFabric(ctx, inv.invAPI.FabricName, true)
+	if err != nil {
+		inv.triggerFail(ctx, e, "could not check existing switches: %v", err)
+		return
+	}
+	if _, exists := fabricSwitches.SwitchesBySerial[serial]; exists {
+		tflog.Info(ctx, "Switch already exists in fabric, skipping bootstrap import", map[string]interface{}{
+			"serial": serial,
+		})
+		inv.discovery = DiscoveryStatusResponse{
+			Switches: []NDFCSwitchDetailValue{
+				{SerialNumber: serial, IpAddress: inv.switchesData.SwitchDetail.IpAddress},
+			},
+		}
+		e.FSM.Event(ctx, EventSaveCreds)
+		return
+	}
+
+	buildResult := inv.r.buildBootstrapRequestFromAPI(inv.switchesData, inv.bootstrapEntries)
+	if len(buildResult.MissingFromBootstrap) > 0 {
+		inv.triggerFail(ctx, e, "switch not found in bootstrap list: %s",
+			strings.Join(buildResult.MissingFromBootstrap, ", "))
+		return
+	}
+
+	payload, err := json.Marshal(buildResult.Request)
+	if err != nil {
+		inv.triggerFail(ctx, e, "could not marshal bootstrap request: %v", err)
+		return
+	}
+
+	inv.invAPI.SetOperation(api.OpImportBootstrap)
+	res, err := inv.invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true})
+	if err != nil {
+		inv.triggerFail(ctx, e, "bootstrap import failed: %v: %s", err, res.String())
+		return
+	}
+
+	// Populate discovery with bootstrap serials for readiness tracking
+	inv.discovery = DiscoveryStatusResponse{
+		Switches: []NDFCSwitchDetailValue{
+			{SerialNumber: serial, IpAddress: inv.switchesData.SwitchDetail.IpAddress},
+		},
+	}
+
+	tflog.Info(ctx, "Bootstrap import initiated", map[string]interface{}{
+		"fabric_name": inv.invAPI.FabricName,
+		"serial":      serial,
+	})
+
+	e.FSM.Event(ctx, EventSaveCreds)
+}
+
+// --- Common path callbacks ---
+
+// onCheckReadiness performs a single readiness check.
+// If ready, transitions to done. Otherwise, transitions to waiting_ready.
 func (inv *InventoryFSM) onCheckReadiness(ctx context.Context, e *fsm.Event) {
 	if !inv.checkDeadline(ctx, e) {
 		return
@@ -379,14 +478,14 @@ func (inv *InventoryFSM) onCheckReadiness(ctx context.Context, e *fsm.Event) {
 	}
 
 	if result.Ready {
-		tflog.Info(ctx, "All switches ready", map[string]interface{}{
+		tflog.Info(ctx, "Switch ready", map[string]interface{}{
 			"count": len(inv.serialSet),
 		})
-		e.FSM.Event(ctx, EventSaveCreds)
+		e.FSM.Event(ctx, EventFinish)
 		return
 	}
 
-	// Switches that need rediscovery — transition to rediscovering state
+	// Switches that need rediscovery
 	if len(result.NeedRediscover) > 0 {
 		e.FSM.Event(ctx, EventRediscover, result.NeedRediscover)
 		return
@@ -395,26 +494,19 @@ func (inv *InventoryFSM) onCheckReadiness(ctx context.Context, e *fsm.Event) {
 	e.FSM.Event(ctx, EventWait)
 }
 
-// onRediscover triggers rediscovery for switches that need it.
-// Returns to waiting_ready (normal flow) or config_save_wait (config save retry flow) based on source state.
+// onRediscover triggers rediscovery for switches that need it, then returns to waiting.
 func (inv *InventoryFSM) onRediscover(ctx context.Context, e *fsm.Event) {
 	if !inv.checkDeadline(ctx, e) {
 		return
 	}
 
-	// Extract serials passed via event args
 	if len(e.Args) > 0 {
 		if serials, ok := e.Args[0].([]string); ok && len(serials) > 0 {
 			inv.r.triggerRediscovery(ctx, inv.invAPI, serials)
 		}
 	}
 
-	// Return to the appropriate wait state based on where we came from
-	if e.Src == StateConfigSaveWait {
-		e.FSM.Event(ctx, EventRetryWait)
-	} else {
-		e.FSM.Event(ctx, EventWait)
-	}
+	e.FSM.Event(ctx, EventWait)
 }
 
 // onWaitReady sleeps for PollInterval then fires a poll event to re-check readiness.
@@ -424,7 +516,7 @@ func (inv *InventoryFSM) onWaitReady(ctx context.Context, e *fsm.Event) {
 	}
 
 	select {
-	case <-time.After(PollInterval):
+	case <-time.After(jitteredInterval(PollInterval, 0.3)):
 	case <-ctx.Done():
 		inv.triggerFail(ctx, e, "context cancelled during wait: %v", ctx.Err())
 		return
@@ -437,15 +529,15 @@ func (inv *InventoryFSM) onSaveCreds(ctx context.Context, e *fsm.Event) {
 		return
 	}
 
-	if inv.switchesData.Username == "" || inv.switchesData.Password == "" {
+	if inv.switchesData.DiscoveryUsername == "" || inv.switchesData.DiscoveryPassword == "" {
 		e.FSM.Event(ctx, EventUpdateRoles)
 		return
 	}
 
 	credReq := SwitchCredentialsRequest{
 		SwitchIds:      inv.r.getSerialNumbers(&inv.discovery),
-		SwitchUsername: inv.switchesData.Username,
-		SwitchPassword: inv.switchesData.Password,
+		SwitchUsername: inv.switchesData.DiscoveryUsername,
+		SwitchPassword: inv.switchesData.DiscoveryPassword,
 	}
 
 	payload, err := json.Marshal(credReq)
@@ -455,13 +547,13 @@ func (inv *InventoryFSM) onSaveCreds(ctx context.Context, e *fsm.Event) {
 	}
 
 	inv.invAPI.SetOperation(api.OpCreateCredentials)
-	_, err = inv.invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true}) // disable payload logging (contains credentials)
+	res, err := inv.invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true})
 	if err != nil {
-		inv.triggerFail(ctx, e, "save credentials failed: %v", err)
+		inv.triggerFail(ctx, e, "save credentials failed: %v: %s", err, res.String())
 		return
 	}
 
-	tflog.Info(ctx, "Credentials saved for switches")
+	tflog.Info(ctx, "Credentials saved for switch")
 	e.FSM.Event(ctx, EventUpdateRoles)
 }
 
@@ -470,25 +562,20 @@ func (inv *InventoryFSM) onUpdateRoles(ctx context.Context, e *fsm.Event) {
 		return
 	}
 
-	ipToRole := make(map[string]string)
-	for _, sw := range inv.switchesData.Switches {
-		if sw.IpAddress != "" && sw.SwitchRole != "" {
-			ipToRole[sw.IpAddress] = sw.SwitchRole
-		}
-	}
+	desiredRole := inv.switchesData.SwitchDetail.SwitchRole
+	desiredIP := inv.switchesData.SwitchDetail.IpAddress
 
 	roleReq := SwitchRoleUpdateRequest{
 		SwitchRoles: []SwitchRole{},
 	}
 
 	for _, sw := range inv.discovery.Switches {
-		role, found := ipToRole[sw.IpAddress]
-		if !found || role == "" {
+		if sw.IpAddress != desiredIP || desiredRole == "" {
 			continue
 		}
 		roleReq.SwitchRoles = append(roleReq.SwitchRoles, SwitchRole{
 			SwitchId: sw.SerialNumber,
-			Role:     role,
+			Role:     desiredRole,
 		})
 	}
 
@@ -507,137 +594,17 @@ func (inv *InventoryFSM) onUpdateRoles(ctx context.Context, e *fsm.Event) {
 			return
 		}
 
-		tflog.Info(ctx, "Updated switch roles", map[string]interface{}{
+		tflog.Info(ctx, "Updated switch role", map[string]interface{}{
 			"fabric_name": inv.switchesData.FabricName,
-			"count":       len(roleReq.SwitchRoles),
+			"role":        desiredRole,
 		})
 	}
 
-	e.FSM.Event(ctx, EventConfigSave)
-}
-
-func (inv *InventoryFSM) onConfigSave(ctx context.Context, e *fsm.Event) {
-	if !inv.checkDeadline(ctx, e) {
-		return
-	}
-
-	if !inv.switchesData.Recalculate {
-		tflog.Info(ctx, "onConfigSave: recalculate setting is off, not doing config save, move to deployment", map[string]interface{}{
-			"fabric_name": inv.switchesData.FabricName,
-		})
-		e.FSM.Event(ctx, EventConfigDeploy)
-		return
-	}
-	errDiag := diag.Diagnostics{}
-	deployment.ConfigSaveAndDeploy(ctx, inv.r.manageClient.ApiClient, inv.switchesData.FabricName, true, false, &errDiag) //deployment.ConfigSave(ctx, inv.r.manageClient.ApiClient, inv.switchesData.FabricName, nil)
-	if errDiag.HasError() {
-		// Check for retryable errors (import not completed, migration mode)
-		if inv.isRetryableConfigSaveError(errDiag[0].Summary()) || inv.isRetryableConfigSaveError(errDiag[0].Detail()) {
-			inv.configSaveRetries++
-			if inv.configSaveRetries > MaxConfigSaveRetries {
-				inv.triggerFail(ctx, e, "config save failed after %d retries: %s", MaxConfigSaveRetries, errDiag[0].Detail())
-				return
-			}
-
-			tflog.Info(ctx, "Config save retryable error, re-checking switches", map[string]interface{}{
-				"retry":   inv.configSaveRetries,
-				"message": errDiag[0].Detail(),
-			})
-			e.FSM.Event(ctx, EventRetryWait)
-			return
-		}
-
-		inv.triggerFail(ctx, e, "config save failed: %s: %s", errDiag[0].Summary(), errDiag[0].Detail())
-		return
-	}
-
-	e.FSM.Event(ctx, EventConfigDeploy)
-}
-
-// onConfigSaveWait sleeps for ConfigSaveRetryWait then retries config-save directly.
-func (inv *InventoryFSM) onConfigSaveWait(ctx context.Context, e *fsm.Event) {
-	tflog.Info(ctx, "Waiting for config save ready", map[string]interface{}{
-		"fabric_name": inv.switchesData.FabricName,
-	})
-
-	if !inv.checkDeadline(ctx, e) {
-		return
-	}
-	select {
-	case <-time.After(ConfigSaveRetryWait):
-	case <-ctx.Done():
-		inv.triggerFail(ctx, e, "context cancelled during config save wait: %v", ctx.Err())
-		return
-	}
-
-	// Check if all switches are still ready before retrying config save
-	result, err := inv.r.switchesReady(ctx, inv.switchesData.FabricName, inv.serialSet)
-	if err != nil {
-		tflog.Debug(ctx, "GET switches failed during config save wait, will retry", map[string]interface{}{"error": err.Error()})
-		e.FSM.Event(ctx, EventRetryWait)
-		return
-	}
-
-	if len(result.NeedRediscover) > 0 {
-		tflog.Info(ctx, "Switches need rediscovery during config save wait", map[string]interface{}{
-			"serials": result.NeedRediscover,
-		})
-		e.FSM.Event(ctx, EventRediscover, result.NeedRediscover)
-		return
-	}
-
-	if !result.Ready {
-		tflog.Debug(ctx, "Switches not ready yet, will retry config save wait", map[string]interface{}{
-			"found":    result.Found,
-			"expected": result.Expected,
-		})
-		e.FSM.Event(ctx, EventRetryWait)
-		return
-	}
-
-	e.FSM.Event(ctx, EventConfigSave)
-}
-
-func (inv *InventoryFSM) onConfigDeploy(ctx context.Context, e *fsm.Event) {
-	if !inv.checkDeadline(ctx, e) {
-		return
-	}
-
-	if !inv.switchesData.Deploy {
-		tflog.Info(ctx, "onConfigDeploy: deploy setting is off, not doing config deploy, move to finish", map[string]interface{}{
-			"fabric_name": inv.switchesData.FabricName,
-		})
-		e.FSM.Event(ctx, EventFinish)
-		return
-	}
-
-	errDiag := diag.Diagnostics{}
-	deployment.ConfigSaveAndDeploy(ctx, inv.r.manageClient.ApiClient, inv.switchesData.FabricName, false, true, &errDiag)
-	if errDiag.HasError() {
-		inv.triggerFail(ctx, e, "config deploy failed: %s: %s", errDiag[0].Summary(), errDiag[0].Detail())
-		return
-	}
-
-	tflog.Info(ctx, "Config deployed", map[string]interface{}{
-		"fabric_name": inv.switchesData.FabricName,
-	})
-
-	e.FSM.Event(ctx, EventFinish)
+	e.FSM.Event(ctx, EventCheck)
 }
 
 func (inv *InventoryFSM) onFailed(_ context.Context, _ *fsm.Event) {
 	if inv.lastErr != nil {
 		inv.dg.AddError("Error Creating Inventory", inv.lastErr.Error())
 	}
-}
-
-// isRetryableConfigSaveError checks if the error message indicates a retryable condition
-func (inv *InventoryFSM) isRetryableConfigSaveError(msg string) bool {
-	lower := strings.ToLower(msg)
-	for _, pattern := range configSaveRetryablePatterns {
-		if strings.Contains(lower, strings.ToLower(pattern)) {
-			return true
-		}
-	}
-	return false
 }

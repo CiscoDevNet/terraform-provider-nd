@@ -12,12 +12,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"terraform-provider-nd/internal/manage/api"
 	"time"
 
 	"terraform-provider-nd/internal/common/ndapi"
-	. "terraform-provider-nd/internal/common/types"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -80,36 +78,29 @@ import (
 
 // AddSwitchesRequest represents the request to add switches to a fabric
 type AddSwitchesRequest struct {
-	Switches                 []NDFCSwitchesValue `json:"switches"`
-	PlatformType             string              `json:"platformType,omitempty"`
-	PreserveConfig           bool                `json:"preserveConfig"`
-	Username                 string              `json:"username,omitempty"`
-	Password                 string              `json:"password,omitempty"`
-	SnmpV3AuthProtocol       string              `json:"snmpV3AuthProtocol,omitempty"`
-	RemoteCredentialStore    string              `json:"remoteCredentialStore,omitempty"`
-	RemoteCredentialStoreKey string              `json:"remoteCredentialStoreKey,omitempty"`
-	MaxHop                   *int64              `json:"maxHop,omitempty"`
-	UseCredentialForWrite    bool                `json:"useCredentialForWrite,omitempty"`
+	Switches                 []NDFCSwitchDetailValue `json:"switches"`
+	PlatformType             string                  `json:"platformType,omitempty"`
+	PreserveConfig           bool                    `json:"preserveConfig"`
+	Username                 string                  `json:"username,omitempty"`
+	Password                 string                  `json:"password,omitempty"`
+	SnmpV3AuthProtocol       string                  `json:"snmpV3AuthProtocol,omitempty"`
+	RemoteCredentialStore    string                  `json:"remoteCredentialStore,omitempty"`
+	RemoteCredentialStoreKey string                  `json:"remoteCredentialStoreKey,omitempty"`
+	MaxHop                   *int64                  `json:"maxHop,omitempty"`
+	UseCredentialForWrite    bool                    `json:"useCredentialForWrite,omitempty"`
+}
+
+// BootstrapSwitchEntry wraps NDFCSwitchDetailValue with bootstrap-specific credential fields
+type BootstrapSwitchEntry struct {
+	NDFCSwitchDetailValue
+	UseNewCredentials *bool  `json:"useNewCredentials,omitempty"`
+	DiscoveryUsername string `json:"discoveryUsername,omitempty"`
+	DiscoveryPassword string `json:"discoveryPassword,omitempty"`
 }
 
 // BootstrapSwitchRequest represents POAP bootstrap request
 type BootstrapSwitchRequest struct {
-	Switches []BootstrapSwitchModel `json:"switches"`
-}
-
-// BootstrapSwitchModel represents a switch for POAP bootstrap
-type BootstrapSwitchModel struct {
-	GatewayIpMask         string `json:"gatewayIpMask"`
-	Model                 string `json:"model,omitempty"`
-	SoftwareVersion       string `json:"softwareVersion,omitempty"`
-	Password              string `json:"password,omitempty"`
-	DiscoveryAuthProtocol string `json:"discoveryAuthProtocol,omitempty"`
-	Hostname              string `json:"hostname,omitempty"`
-	IP                    string `json:"ip,omitempty"`
-	SerialNumber          string `json:"serialNumber"`
-	InInventory           bool   `json:"inInventory,omitempty"`
-	PublicKey             string `json:"publicKey,omitempty"`
-	FingerPrint           string `json:"fingerPrint,omitempty"`
+	Switches []BootstrapSwitchEntry `json:"switches"`
 }
 
 // SwitchCredentialsRequest represents credentials save request
@@ -134,9 +125,25 @@ type SwitchRoleUpdateRequest struct {
 	SwitchRoles []SwitchRole `json:"switchRoles"`
 }
 
+// ChangeDiscoveryCredentialRequest represents the request to change discovery credentials
+type ChangeDiscoveryCredentialRequest struct {
+	SwitchIds                []string `json:"switchIds"`
+	SnmpV3AuthProtocol       string   `json:"snmpV3AuthProtocol"`
+	Username                 string   `json:"username,omitempty"`
+	Password                 string   `json:"password,omitempty"`
+	RemoteCredentialStore    string   `json:"remoteCredentialStore,omitempty"`
+	RemoteCredentialStoreKey string   `json:"remoteCredentialStoreKey,omitempty"`
+}
+
+// IpSwitchIdPair represents a single entry in the changeIpCollection request
+type IpSwitchIdPair struct {
+	SwitchId string `json:"switchId"`
+	Ip       string `json:"ip"`
+}
+
 // DiscoveryStatusResponse represents discovery status response
 type DiscoveryStatusResponse struct {
-	Switches []NDFCSwitchesValue `json:"switches,omitempty"`
+	Switches []NDFCSwitchDetailValue `json:"switches,omitempty"`
 }
 
 // FabricSwitchAdditionalData represents the additionalData nested object in GET /switches response
@@ -144,11 +151,33 @@ type FabricSwitchAdditionalData struct {
 	DiscoveryStatus      string `json:"discoveryStatus,omitempty"`
 	DiscoveredSystemMode string `json:"discoveredSystemMode,omitempty"`
 	SystemMode           string `json:"systemMode,omitempty"`
+	PlatformType         string `json:"platformType,omitempty"`
+	SourceInterfaceName  string `json:"sourceInterfaceName,omitempty"`
+	SourceVrfName        string `json:"sourceVrfName,omitempty"`
+}
+
+// ChangeDiscoveryInterfaceOrVrfRequest is the payload for POST changeDiscoveryInterfaceOrVrf
+type ChangeDiscoveryInterfaceOrVrfRequest struct {
+	SwitchIds     []string `json:"switchIds"`
+	VrfName       string   `json:"vrfName"`
+	InterfaceName string   `json:"interfaceName,omitempty"`
+}
+
+// SwitchActionResponseItem represents a single item in a switch action response
+type SwitchActionResponseItem struct {
+	SwitchId string `json:"switchId"`
+	Status   string `json:"status"`
+	Message  string `json:"message"`
+}
+
+// SwitchActionResponse represents the response from switch action endpoints that return item-level results
+type SwitchActionResponse struct {
+	Items []SwitchActionResponseItem `json:"items"`
 }
 
 // FabricSwitchEntry represents a single switch in the GET /switches response
 type FabricSwitchEntry struct {
-	NDFCSwitchesValue
+	NDFCSwitchDetailValue
 	AdditionalData FabricSwitchAdditionalData `json:"additionalData,omitempty"`
 }
 
@@ -176,11 +205,18 @@ func (r *inventorySwitchResource) shallowDiscover(ctx context.Context, invAPI *a
 		return nil, fmt.Errorf("could not marshal discovery request: %v", err)
 	}
 
+	tflog.Debug(ctx, "Shallow discovery request", map[string]interface{}{
+		"seed_ips":        seedIPs,
+		"max_hop":         switchesData.MaxHop,
+		"mode":            switchesData.Mode,
+		"preserve_config": switchesData.PreserveConfig,
+	})
+
 	invAPI.SetOperation(api.OpShallowDiscovery)
 	// Disable payload logging, to avoid printing sensitive fields
 	respData, err := invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true})
 	if err != nil {
-		return nil, fmt.Errorf("shallow discovery failed: %v", err)
+		return nil, fmt.Errorf("shallow discovery failed: %v: %s", err, respData.String())
 	}
 
 	var discovery DiscoveryStatusResponse
@@ -193,7 +229,27 @@ func (r *inventorySwitchResource) shallowDiscover(ctx context.Context, invAPI *a
 		"switches": len(discovery.Switches),
 	})
 
+	for i, sw := range discovery.Switches {
+		tflog.Debug(ctx, "Discovered switch", map[string]interface{}{
+			"index":        i,
+			"serial":       sw.SerialNumber,
+			"ip":           sw.IpAddress,
+			"model":        sw.Model,
+			"hostname":     sw.Hostname,
+			"status":       sw.Status,
+			"switch_role":  sw.SwitchRole,
+			"software_ver": sw.SoftwareVersion,
+		})
+	}
+
 	return &discovery, nil
+}
+
+// SwitchStatus holds the current state of a single switch from the API.
+type SwitchStatus struct {
+	DiscoveryStatus   string
+	SystemMode        string
+	DiscoveredSysMode string
 }
 
 // SwitchReadinessResult holds the result of a switchesReady check.
@@ -202,6 +258,7 @@ type SwitchReadinessResult struct {
 	NeedRediscover []string
 	Found          int
 	Expected       int
+	SwitchStates   map[string]SwitchStatus
 }
 
 // switchesReady checks whether all switches identified by serialSet are present
@@ -213,8 +270,9 @@ func (r *inventorySwitchResource) switchesReady(ctx context.Context, fabricName 
 	}
 
 	result := &SwitchReadinessResult{
-		Ready:    true,
-		Expected: len(serialSet),
+		Ready:        true,
+		Expected:     len(serialSet),
+		SwitchStates: make(map[string]SwitchStatus),
 	}
 
 	for _, sw := range resp.Switches {
@@ -223,9 +281,22 @@ func (r *inventorySwitchResource) switchesReady(ctx context.Context, fabricName 
 		}
 		result.Found++
 
-		// Check migration mode — both discoveredSystemMode and systemMode must be "normal"
+		ss := SwitchStatus{
+			DiscoveryStatus:   sw.AdditionalData.DiscoveryStatus,
+			SystemMode:        sw.AdditionalData.SystemMode,
+			DiscoveredSysMode: sw.AdditionalData.DiscoveredSystemMode,
+		}
+		result.SwitchStates[sw.SerialNumber] = ss
+
+		// Check system mode — both discoveredSystemMode and systemMode must be "normal"
 		if sw.AdditionalData.DiscoveredSystemMode != "normal" || sw.AdditionalData.SystemMode != "normal" {
-			tflog.Debug(ctx, "Switch in migration mode, waiting", map[string]interface{}{
+			reason := "system mode not normal"
+			if sw.AdditionalData.DiscoveredSystemMode == "notApplicable" {
+				reason = "awaiting system mode detection (switch may be rebooting)"
+			} else if sw.AdditionalData.SystemMode == "migration" || sw.AdditionalData.DiscoveredSystemMode == "migration" {
+				reason = "switch in migration mode"
+			}
+			tflog.Debug(ctx, "Switch not ready: "+reason, map[string]interface{}{
 				"serial":               sw.SerialNumber,
 				"discoveredSystemMode": sw.AdditionalData.DiscoveredSystemMode,
 				"systemMode":           sw.AdditionalData.SystemMode,
@@ -237,9 +308,8 @@ func (r *inventorySwitchResource) switchesReady(ctx context.Context, fabricName 
 
 		// Check discovery status — trigger rediscover if not ok
 		if sw.AdditionalData.DiscoveryStatus != "ok" {
-			tflog.Debug(ctx, "Switch discovery not ok, will rediscover", map[string]interface{}{
+			tflog.Debug(ctx, "Switch not ready: discoveryStatus="+sw.AdditionalData.DiscoveryStatus, map[string]interface{}{
 				"serial": sw.SerialNumber,
-				"status": sw.AdditionalData.DiscoveryStatus,
 			})
 			result.NeedRediscover = append(result.NeedRediscover, sw.SerialNumber)
 			result.Ready = false
@@ -297,13 +367,10 @@ func (r *inventorySwitchResource) getAllSwitchesByFabric(ctx context.Context, fa
 }
 
 func (r *inventorySwitchResource) collectSeedIPs(data *NDFCInventorySwitchModel) []string {
-	var ips []string
-	for _, sw := range data.Switches {
-		if sw.IpAddress != "" {
-			ips = append(ips, sw.IpAddress)
-		}
+	if data.SwitchDetail.IpAddress != "" {
+		return []string{data.SwitchDetail.IpAddress}
 	}
-	return ips
+	return nil
 }
 
 func (r *inventorySwitchResource) getSerialNumbers(data *DiscoveryStatusResponse) []string {
@@ -315,34 +382,32 @@ func (r *inventorySwitchResource) getSerialNumbers(data *DiscoveryStatusResponse
 }
 
 func (r *inventorySwitchResource) getModelSerialNumbers(data *NDFCInventorySwitchModel) []string {
-	var serials []string
-	for _, sw := range data.Switches {
-		if sw.SerialNumber != "" {
-			serials = append(serials, sw.SerialNumber)
-		} else if sw.IpAddress != "" {
-			serials = append(serials, sw.IpAddress)
-		}
+	if data.SwitchDetail.SerialNumber != "" {
+		return []string{data.SwitchDetail.SerialNumber}
 	}
-	return serials
+	if data.SwitchDetail.IpAddress != "" {
+		return []string{data.SwitchDetail.IpAddress}
+	}
+	return nil
 }
 
 func (r *inventorySwitchResource) buildAddSwitchesRequest(data *DiscoveryStatusResponse, input *NDFCInventorySwitchModel) AddSwitchesRequest {
 
 	req := AddSwitchesRequest{
-		Switches:                 make([]NDFCSwitchesValue, 0),
+		Switches:                 make([]NDFCSwitchDetailValue, 0),
 		PreserveConfig:           *input.PreserveConfig,
-		Username:                 input.Username,
-		Password:                 input.Password,
+		Username:                 input.DiscoveryUsername,
+		Password:                 input.DiscoveryPassword,
 		SnmpV3AuthProtocol:       input.SnmpV3AuthProtocol,
 		RemoteCredentialStore:    input.RemoteCredentialStore,
 		RemoteCredentialStoreKey: input.RemoteCredentialStoreKey,
 		MaxHop:                   input.MaxHop,
 		PlatformType:             "nx-os",
-		UseCredentialForWrite:    true,
+		UseCredentialForWrite:    input.DiscoveryCredForLan,
 	}
 
 	for _, sw := range data.Switches {
-		req.Switches = append(req.Switches, NDFCSwitchesValue{
+		req.Switches = append(req.Switches, NDFCSwitchDetailValue{
 			SerialNumber:    sw.SerialNumber,
 			Hostname:        sw.Hostname,
 			IpAddress:       sw.IpAddress,
@@ -359,27 +424,30 @@ func (r *inventorySwitchResource) buildAddSwitchesRequest(data *DiscoveryStatusR
 }
 
 func (r *inventorySwitchResource) buildBootstrapRequest(data *NDFCInventorySwitchModel) BootstrapSwitchRequest {
-	req := BootstrapSwitchRequest{}
-
-	for serial, sw := range data.Switches {
-		req.Switches = append(req.Switches, BootstrapSwitchModel{
-			SerialNumber:          serial,
+	sw := data.SwitchDetail
+	entry := BootstrapSwitchEntry{
+		NDFCSwitchDetailValue: NDFCSwitchDetailValue{
+			SerialNumber:          sw.SerialNumber,
 			Hostname:              sw.Hostname,
-			IP:                    sw.IpAddress,
+			IpAddress:             sw.IpAddress,
 			Model:                 sw.Model,
 			SoftwareVersion:       sw.SoftwareVersion,
 			GatewayIpMask:         sw.GatewayIpMask,
-			Password:              sw.PoapPassword,
+			SwitchPassword:        data.BootstrapPassword,
 			DiscoveryAuthProtocol: sw.DiscoveryAuthProtocol,
-		})
+		},
+		UseNewCredentials: &data.UseNewCredentials,
 	}
-
-	return req
+	if data.UseNewCredentials {
+		entry.DiscoveryUsername = data.DiscoveryUsername
+		entry.DiscoveryPassword = data.DiscoveryPassword
+	}
+	return BootstrapSwitchRequest{Switches: []BootstrapSwitchEntry{entry}}
 }
 
 // triggerRediscovery sends a rediscovery request for the given switch serials.
 func (r *inventorySwitchResource) triggerRediscovery(ctx context.Context, invAPI *api.InventoryAPI, serials []string) {
-	tflog.Info(ctx, "Triggering rediscovery", map[string]interface{}{
+	tflog.Debug(ctx, "Triggering rediscovery", map[string]interface{}{
 		"serials": serials,
 	})
 	rediscoverReq := RemoveSwitchesRequest{SwitchIds: serials}
@@ -391,14 +459,24 @@ func (r *inventorySwitchResource) triggerRediscovery(ctx context.Context, invAPI
 }
 
 // waitForManageable polls until all specified switches are ready in the fabric.
-// Uses switchesReady for the readiness check and triggerRediscovery for switches that need it.
+// It uses a state-transition tracking approach:
+//   - For the first ObservationWindow (3 min), it watches for instability (unreachable, migration).
+//   - If a switch goes unstable then recovers to ok during the window, it's considered ready.
+//   - After the observation window, any poll where all switches are ok is accepted immediately.
+//   - Overall timeout is MaxDiscoveryWaitTime (10 min).
 func (r *inventorySwitchResource) waitForManageable(ctx context.Context, invAPI *api.InventoryAPI, serials []string) error {
 	deadline := time.Now().Add(MaxDiscoveryWaitTime)
+	observationEnd := time.Now().Add(ObservationWindow)
 
 	serialSet := make(map[string]bool, len(serials))
 	for _, s := range serials {
 		serialSet[s] = true
 	}
+
+	// Per-switch tracking: did we see this switch go unstable during observation?
+	sawUnstable := make(map[string]bool, len(serials))
+	// Per-switch tracking: did the switch recover after going unstable?
+	recoveredAfterUnstable := make(map[string]bool, len(serials))
 
 	for time.Now().Before(deadline) {
 		select {
@@ -421,15 +499,85 @@ func (r *inventorySwitchResource) waitForManageable(ctx context.Context, invAPI 
 			r.triggerRediscovery(ctx, invAPI, result.NeedRediscover)
 		}
 
-		if result.Ready {
-			tflog.Info(ctx, "All switches manageable", map[string]interface{}{
-				"count": len(serials),
-			})
-			return nil
+		inObservationWindow := time.Now().Before(observationEnd)
+
+		phase := "post-observation"
+		if inObservationWindow {
+			phase = "observation"
 		}
 
+		// Track state transitions for each switch
+		for serial, ss := range result.SwitchStates {
+			isUnstable := ss.DiscoveryStatus != "ok" || ss.SystemMode != "normal" || ss.DiscoveredSysMode != "normal"
+
+			if isUnstable {
+				firstTime := !sawUnstable[serial]
+				sawUnstable[serial] = true
+				recoveredAfterUnstable[serial] = false
+				if firstTime {
+					tflog.Info(ctx, "Switch became unstable, tracking for recovery", map[string]interface{}{
+						"serial":          serial,
+						"discoveryStatus": ss.DiscoveryStatus,
+						"systemMode":      ss.SystemMode,
+						"phase":           phase,
+					})
+				}
+			} else if sawUnstable[serial] && !recoveredAfterUnstable[serial] {
+				recoveredAfterUnstable[serial] = true
+				tflog.Info(ctx, "Switch recovered after instability", map[string]interface{}{
+					"serial": serial,
+					"phase":  phase,
+				})
+			}
+		}
+
+		if result.Ready {
+			if !inObservationWindow {
+				// Observation window passed; all switches currently ok — accept it
+				tflog.Info(ctx, "All switches ready (observation window elapsed)", map[string]interface{}{
+					"count": len(serials),
+				})
+				return nil
+			}
+
+			// Still in observation window — check if all switches that went unstable have recovered
+			allRecovered := true
+			for _, s := range serials {
+				if sawUnstable[s] && !recoveredAfterUnstable[s] {
+					allRecovered = false
+					break
+				}
+			}
+
+			// If at least one switch went unstable and all have recovered, we're done
+			anySawUnstable := false
+			for _, s := range serials {
+				if sawUnstable[s] {
+					anySawUnstable = true
+					break
+				}
+			}
+
+			if anySawUnstable && allRecovered {
+				tflog.Info(ctx, "All switches recovered after instability — ready", map[string]interface{}{
+					"count": len(serials),
+				})
+				return nil
+			}
+
+			// Otherwise keep observing
+			tflog.Debug(ctx, "Switches ok, observing for potential reboot", map[string]interface{}{
+				"remainingObservation": time.Until(observationEnd).Round(time.Second).String(),
+			})
+		}
+
+		// Use slower poll during observation, faster after
+		pollWait := PollInterval
+		if inObservationWindow {
+			pollWait = ObservationPollInterval
+		}
 		select {
-		case <-time.After(PollInterval):
+		case <-time.After(pollWait):
 		case <-ctx.Done():
 			return fmt.Errorf("context cancelled waiting for switches: %v", ctx.Err())
 		}
@@ -439,30 +587,23 @@ func (r *inventorySwitchResource) waitForManageable(ctx context.Context, invAPI 
 }
 
 func (r *inventorySwitchResource) updateSwitchRoles(ctx context.Context, dg *diag.Diagnostics, invAPI *api.InventoryAPI, discovery *DiscoveryStatusResponse, config *NDFCInventorySwitchModel) {
-	// Build IP -> desired role lookup from config
-	ipToRole := make(map[string]string)
-	for _, sw := range config.Switches {
-		log.Printf("Switch: %v:%v", sw.IpAddress, sw.SwitchRole)
-		if sw.IpAddress != "" && sw.SwitchRole != "" {
-			ipToRole[sw.IpAddress] = sw.SwitchRole
-		}
-	}
+	desiredRole := config.SwitchDetail.SwitchRole
+	desiredIP := config.SwitchDetail.IpAddress
 
 	roleReq := SwitchRoleUpdateRequest{}
 	roleReq.SwitchRoles = []SwitchRole{}
 
 	for _, sw := range discovery.Switches {
-		role, found := ipToRole[sw.IpAddress]
-		if !found || role == "" {
+		if sw.IpAddress != desiredIP || desiredRole == "" {
 			continue
 		}
 		tflog.Info(ctx, "Updated switch role", map[string]interface{}{
 			"serial": sw.SerialNumber,
-			"role":   role,
+			"role":   desiredRole,
 		})
 		roleReq.SwitchRoles = append(roleReq.SwitchRoles, SwitchRole{
 			SwitchId: sw.SerialNumber,
-			Role:     role,
+			Role:     desiredRole,
 		})
 	}
 
@@ -504,7 +645,10 @@ func (r *inventorySwitchResource) removeSwitches(ctx context.Context, dg *diag.D
 	invAPI.SetOperation(api.OpRemoveSwitches)
 	res, err := invAPI.Post(payload, nil)
 	if err != nil {
-		dg.AddError("Error Removing Switches", fmt.Sprintf("Could not remove switches: %v: %s", err, res.String()))
+		tflog.Warn(ctx, "Could not remove switches (best-effort)", map[string]interface{}{
+			"serials": serials,
+			"error":   fmt.Sprintf("%v: %s", err, res.String()),
+		})
 		return
 	}
 
@@ -514,68 +658,94 @@ func (r *inventorySwitchResource) removeSwitches(ctx context.Context, dg *diag.D
 	})
 }
 
-func (r *inventorySwitchResource) diffSwitches(plan, state *NDFCInventorySwitchModel) map[string][]NDFCSwitchesValue {
-	action := make(map[string][]NDFCSwitchesValue)
-
-	for serial, planSw := range plan.Switches {
-		if _, exists := state.Switches[serial]; !exists {
-			log.Printf("New switch in plan: %s", serial)
-			action["add"] = append(action["add"], planSw)
-		} else {
-			cf := false
-			swState := state.Switches[serial]
-			updateAction := planSw.CreatePlan(swState, &cf)
-			if updateAction == RequiresUpdate {
-				log.Printf("Update switch config in plan: %s", serial)
-				action["add"] = append(action["add"], planSw)
-			} else if updateAction == RequiresReplace {
-				// delete and create
-				log.Printf("Update switch config in plan requires replacement: %s", serial)
-				action["del"] = append(action["del"], swState)
-				action["add"] = append(action["add"], planSw)
-			} else {
-				log.Printf("No changes to switch %s", serial)
-			}
-		}
-	}
-
-	// Find switches to remove (in state but not in plan)
-	for serial := range state.Switches {
-		if _, exists := plan.Switches[serial]; !exists {
-			log.Printf("Switch removed in plan: %s", serial)
-			action["del"] = append(action["del"], state.Switches[serial])
-		}
-	}
-
-	return action
+// BootstrapBuildResult holds the result of building a bootstrap request from API data.
+type BootstrapBuildResult struct {
+	Request              BootstrapSwitchRequest
+	MissingFromBootstrap []string
 }
 
-// createBootstrapSwitches handles POAP bootstrap switch addition
-func (r *inventorySwitchResource) createBootstrapSwitches(ctx context.Context, dg *diag.Diagnostics, invAPI *api.InventoryAPI, switchesData *NDFCInventorySwitchModel) {
+// BootstrapListResponse represents the response from the bootstrap list API.
+type BootstrapListResponse struct {
+	Switches []NDFCSwitchDetailValue `json:"switches,omitempty"`
+}
 
-	bootstrapReq := r.buildBootstrapRequest(switchesData)
-	payload, err := json.Marshal(bootstrapReq)
+// queryBootstrapList queries the bootstrap API and returns a map of serial -> entry.
+func (r *inventorySwitchResource) queryBootstrapList(ctx context.Context, invAPI *api.InventoryAPI) (map[string]NDFCSwitchDetailValue, error) {
+	invAPI.SetOperation(api.OpGetBootstrapList)
+	respData, err := invAPI.Get()
 	if err != nil {
-		dg.AddError("Error Creating Inventory", fmt.Sprintf("Could not marshal bootstrap request: %v", err))
-		return
+		return nil, fmt.Errorf("could not query bootstrap list: %w: %s", err, string(respData))
 	}
 
-	invAPI.SetOperation(api.OpBootstrap)
-	res, err := invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true}) // disable payload logging (contains credentials)
-	if err != nil {
-		dg.AddError("Error Creating Inventory", fmt.Sprintf("Bootstrap failed: %v: %s", err, res.String()))
-		return
-	}
-
-	tflog.Info(ctx, "Bootstrap initiated for switches", map[string]interface{}{
-		"fabric_name": invAPI.FabricName,
-		"count":       len(bootstrapReq.Switches),
+	tflog.Debug(ctx, "Bootstrap list raw response", map[string]interface{}{
+		"body": string(respData),
 	})
 
-	// Wait for switches to become manageable
-	err = r.waitForManageable(ctx, invAPI, r.getModelSerialNumbers(switchesData))
-	if err != nil {
-		dg.AddError("Error Creating Inventory", fmt.Sprintf("Wait for manageable failed: %v", err))
-		return
+	// Try parsing as a direct array first, then as a wrapped object
+	var switchList []NDFCSwitchDetailValue
+	if err := json.Unmarshal(respData, &switchList); err != nil {
+		var resp BootstrapListResponse
+		if err2 := json.Unmarshal(respData, &resp); err2 != nil {
+			return nil, fmt.Errorf("could not parse bootstrap list response: %w (also tried array: %v)", err2, err)
+		}
+		switchList = resp.Switches
 	}
+
+	entries := make(map[string]NDFCSwitchDetailValue, len(switchList))
+	for _, sw := range switchList {
+		entries[sw.SerialNumber] = sw
+	}
+
+	tflog.Info(ctx, "Bootstrap list queried", map[string]interface{}{
+		"count": len(entries),
+	})
+	return entries, nil
+}
+
+// buildBootstrapRequestFromAPI builds a bootstrap request by merging user config with bootstrap API data.
+func (r *inventorySwitchResource) buildBootstrapRequestFromAPI(data *NDFCInventorySwitchModel, bootstrapEntries map[string]NDFCSwitchDetailValue) BootstrapBuildResult {
+	result := BootstrapBuildResult{}
+	serial := data.SwitchDetail.SerialNumber
+
+	entry, ok := bootstrapEntries[serial]
+	if !ok {
+		result.MissingFromBootstrap = append(result.MissingFromBootstrap, serial)
+		return result
+	}
+
+	discoveryAuth := data.SwitchDetail.DiscoveryAuthProtocol
+	if discoveryAuth == "" {
+		discoveryAuth = entry.DiscoveryAuthProtocol
+	}
+	if discoveryAuth == "" {
+		discoveryAuth = "md5"
+	}
+
+	softwareImage := data.SwitchDetail.SoftwareImage
+	if softwareImage == "" {
+		softwareImage = entry.SoftwareImage
+	}
+
+	swEntry := BootstrapSwitchEntry{
+		NDFCSwitchDetailValue: NDFCSwitchDetailValue{
+			SerialNumber:          serial,
+			Hostname:              data.SwitchDetail.Hostname,
+			IpAddress:             data.SwitchDetail.IpAddress,
+			Model:                 entry.Model,
+			SoftwareVersion:       entry.SoftwareVersion,
+			SoftwareImage:         softwareImage,
+			GatewayIpMask:         data.SwitchDetail.GatewayIpMask,
+			SwitchPassword:        data.BootstrapPassword,
+			DiscoveryAuthProtocol: discoveryAuth,
+			PublicKey:             entry.PublicKey,
+			Fingerprint:           entry.Fingerprint,
+		},
+		UseNewCredentials: &data.UseNewCredentials,
+	}
+	if data.UseNewCredentials {
+		swEntry.DiscoveryUsername = data.DiscoveryUsername
+		swEntry.DiscoveryPassword = data.DiscoveryPassword
+	}
+	result.Request.Switches = append(result.Request.Switches, swEntry)
+	return result
 }

@@ -63,22 +63,45 @@ type LocalUserConfig struct {
 
 // InventoryConfig represents the inventory-specific test configuration
 type InventoryConfig struct {
-	Fabric   string            `yaml:"fabric"`
-	User     string            `yaml:"user"`
-	Password string            `yaml:"pwd"`
-	Switches []InventorySwitch `yaml:"switches"`
-	Deploy   bool              `yaml:"deploy"`
-	Recalc   bool              `yaml:"recalculate"`
-	Preserve bool              `yaml:"preserve_config"`
-	Mode     string            `yaml:"mode"`
-	MaxHop   int               `yaml:"max_hop"`
+	Fabric            string            `yaml:"fabric"`
+	User              string            `yaml:"user"`
+	Password          string            `yaml:"pwd"`
+	Switches          []InventorySwitch `yaml:"switches"`
+	DiscoverySwitches []InventorySwitch `yaml:"discovery_switches"`
+	BootstrapSwitches []InventorySwitch `yaml:"bootstrap_switches"`
+	Deploy            bool              `yaml:"deploy"`
+	Recalc            bool              `yaml:"recalculate"`
+	Preserve          bool              `yaml:"preserve_config"`
+	Mode              string            `yaml:"mode"`
+	MaxHop            int               `yaml:"max_hop"`
+}
+
+// GetSwitchesByMode returns the switch list for a given mode.
+// It prefers mode-specific lists (discovery_switches / bootstrap_switches)
+// and falls back to the legacy "switches" list.
+func (c *InventoryConfig) GetSwitchesByMode(mode string) []InventorySwitch {
+	switch mode {
+	case "bootstrap":
+		if len(c.BootstrapSwitches) > 0 {
+			return c.BootstrapSwitches
+		}
+	default: // discovery
+		if len(c.DiscoverySwitches) > 0 {
+			return c.DiscoverySwitches
+		}
+	}
+	return c.Switches
 }
 
 // InventorySwitch represents a switch in the inventory config
 type InventorySwitch struct {
-	Serial string `yaml:"serial"`
-	IP     string `yaml:"ip"`
-	Role   string `yaml:"role"`
+	Serial        string `yaml:"serial"`
+	IP            string `yaml:"ip"`
+	Role          string `yaml:"role"`
+	Hostname      string `yaml:"hostname"`
+	GatewayIpMask string `yaml:"gateway_ip_mask"`
+	PoapPassword  string `yaml:"poap_password"`
+	Mode          string `yaml:"mode"`
 }
 
 // VpcPairConfig represents the acceptance-test switch selection for vPC pair tests.
@@ -144,8 +167,9 @@ func InitConfig(configPath string, mockedServer string) {
 		log.Printf("Mock server mode enabled")
 	}
 
-	log.Printf("Test config loaded: url=%s fabric=%s switches=%d inventory_switches=%d",
-		cfg.ND.URL, cfg.ND.Fabric, len(cfg.ND.Switches), len(cfg.ND.Inventory.Switches))
+	log.Printf("Test config loaded: url=%s fabric=%s switches=%d inventory_switches=%d discovery_switches=%d bootstrap_switches=%d",
+		cfg.ND.URL, cfg.ND.Fabric, len(cfg.ND.Switches), len(cfg.ND.Inventory.Switches),
+		len(cfg.ND.Inventory.DiscoverySwitches), len(cfg.ND.Inventory.BootstrapSwitches))
 }
 
 // GetConfig returns the configuration for a given module.

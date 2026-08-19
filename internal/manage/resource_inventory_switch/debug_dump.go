@@ -9,7 +9,6 @@
 package resource_inventory_switch
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -62,49 +61,31 @@ func DumpInventorySwitchModel(label string, m *InventorySwitchModel) {
 	b.WriteString(fmt.Sprintf("[DUMP] %s: InventorySwitchModel {\n", label))
 	b.WriteString(fmt.Sprintf("  fabric_name:               %s\n", tfStringState(m.FabricName)))
 	b.WriteString(fmt.Sprintf("  mode:                      %s\n", tfStringState(m.Mode)))
-	b.WriteString(fmt.Sprintf("  username:                  %s\n", tfStringState(m.Username)))
-	b.WriteString(fmt.Sprintf("  password:                  %s\n", tfStringState(m.Password)))
+	b.WriteString(fmt.Sprintf("  discovery_username:        %s\n", tfStringState(m.DiscoveryUsername)))
+	//b.WriteString(fmt.Sprintf("  discovery_password:        %s\n", tfStringState(m.DiscoveryPassword)))
+	//b.WriteString(fmt.Sprintf("  bootstrap_password:        %s\n", tfStringState(m.BootstrapPassword)))
 	b.WriteString(fmt.Sprintf("  platform_type:             %s\n", tfStringState(m.PlatformType)))
 	b.WriteString(fmt.Sprintf("  preserve_config:           %s\n", tfBoolState(m.PreserveConfig)))
-	b.WriteString(fmt.Sprintf("  recalculate:               %s\n", tfBoolState(m.Recalculate)))
-	b.WriteString(fmt.Sprintf("  deploy:                    %s\n", tfBoolState(m.Deploy)))
-	b.WriteString(fmt.Sprintf("  max_hop:                   %s\n", tfInt64State(m.MaxHop)))
 	b.WriteString(fmt.Sprintf("  snmp_v3_auth_protocol:     %s\n", tfStringState(m.SnmpV3AuthProtocol)))
 	b.WriteString(fmt.Sprintf("  remote_credential_store:   %s\n", tfStringState(m.RemoteCredentialStore)))
-	b.WriteString(fmt.Sprintf("  remote_credential_store_key: %s\n", tfStringState(m.RemoteCredentialStoreKey)))
+	//b.WriteString(fmt.Sprintf("  remote_credential_store_key: %s\n", tfStringState(m.RemoteCredentialStoreKey)))
 
-	// Switches map
-	if m.Switches.IsNull() {
-		b.WriteString("  switches: <null>\n")
-	} else if m.Switches.IsUnknown() {
-		b.WriteString("  switches: <unknown>\n")
-	} else {
-		elements := make(map[string]SwitchesValue, len(m.Switches.Elements()))
-		diag := m.Switches.ElementsAs(context.Background(), &elements, false)
-		if diag.HasError() {
-			b.WriteString(fmt.Sprintf("  switches: <error reading elements: %v>\n", diag))
-		} else {
-			b.WriteString(fmt.Sprintf("  switches: (%d entries) {\n", len(elements)))
-			for key, sw := range elements {
-				b.WriteString(fmt.Sprintf("    [%q] {\n", key))
-				b.WriteString(fmt.Sprintf("      ip_address:              %s\n", tfStringState(sw.IpAddress)))
-				b.WriteString(fmt.Sprintf("      hostname:                %s\n", tfStringState(sw.Hostname)))
-				b.WriteString(fmt.Sprintf("      serial_number:           %s\n", tfStringState(sw.SerialNumber)))
-				b.WriteString(fmt.Sprintf("      model:                   %s\n", tfStringState(sw.Model)))
-				b.WriteString(fmt.Sprintf("      software_version:        %s\n", tfStringState(sw.SoftwareVersion)))
-				b.WriteString(fmt.Sprintf("      switch_role:             %s\n", tfStringState(sw.SwitchRole)))
-				b.WriteString(fmt.Sprintf("      status:                  %s\n", tfStringState(sw.Status)))
-				b.WriteString(fmt.Sprintf("      status_reason:           %s\n", tfStringState(sw.StatusReason)))
-				b.WriteString(fmt.Sprintf("      gateway_ip_mask:         %s\n", tfStringState(sw.GatewayIpMask)))
-				b.WriteString(fmt.Sprintf("      discovery_auth_protocol: %s\n", tfStringState(sw.DiscoveryAuthProtocol)))
-				b.WriteString(fmt.Sprintf("      poap_password:           %s\n", tfStringState(sw.PoapPassword)))
-				b.WriteString(fmt.Sprintf("      vdc_id:                  %s\n", tfInt64State(sw.VdcId)))
-				b.WriteString(fmt.Sprintf("      vdc_mac:                 %s\n", tfStringState(sw.VdcMac)))
-				b.WriteString("    }\n")
-			}
-			b.WriteString("  }\n")
-		}
-	}
+	// SwitchDetail
+	sw := m.SwitchDetail
+	b.WriteString("  switch_detail: {\n")
+	b.WriteString(fmt.Sprintf("    ip_address:              %s\n", tfStringState(sw.IpAddress)))
+	b.WriteString(fmt.Sprintf("    hostname:                %s\n", tfStringState(sw.Hostname)))
+	b.WriteString(fmt.Sprintf("    serial_number:           %s\n", tfStringState(sw.SerialNumber)))
+	b.WriteString(fmt.Sprintf("    model:                   %s\n", tfStringState(sw.Model)))
+	b.WriteString(fmt.Sprintf("    software_version:        %s\n", tfStringState(sw.SoftwareVersion)))
+	b.WriteString(fmt.Sprintf("    switch_role:             %s\n", tfStringState(sw.SwitchRole)))
+	b.WriteString(fmt.Sprintf("    status:                  %s\n", tfStringState(sw.Status)))
+	b.WriteString(fmt.Sprintf("    status_reason:           %s\n", tfStringState(sw.StatusReason)))
+	b.WriteString(fmt.Sprintf("    gateway_ip_mask:         %s\n", tfStringState(sw.GatewayIpMask)))
+	b.WriteString(fmt.Sprintf("    discovery_auth_protocol: %s\n", tfStringState(sw.DiscoveryAuthProtocol)))
+	b.WriteString(fmt.Sprintf("    vdc_id:                  %s\n", tfInt64State(sw.VdcId)))
+	b.WriteString(fmt.Sprintf("    vdc_mac:                 %s\n", tfStringState(sw.VdcMac)))
+	b.WriteString("  }\n")
 
 	b.WriteString("}")
 	log.Printf("%s", b.String())

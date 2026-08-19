@@ -11,10 +11,12 @@ package resource_inventory_switch
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"terraform-provider-nd/internal/manage"
 	"terraform-provider-nd/internal/registry"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -24,6 +26,7 @@ const ModuleKey = "manage"
 var _ resource.Resource = &inventorySwitchResource{}
 var _ resource.ResourceWithConfigure = &inventorySwitchResource{}
 var _ resource.ResourceWithImportState = &inventorySwitchResource{}
+var _ resource.ResourceWithValidateConfig = &inventorySwitchResource{}
 
 func NewInventorySwitchResource() resource.Resource {
 	return &inventorySwitchResource{}
@@ -79,6 +82,144 @@ func (r *inventorySwitchResource) Configure(ctx context.Context, req resource.Co
 	})
 }
 
+func (r *inventorySwitchResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config InventorySwitchModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	mode := config.Mode.ValueString()
+	if mode == "" || config.Mode.IsUnknown() {
+		mode = "discovery" // default
+	}
+
+	// Validate mode is a known value
+	if mode != "discovery" && mode != "bootstrap" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("mode"),
+			"Invalid Attribute Value",
+			fmt.Sprintf("mode must be \"discovery\" or \"bootstrap\", got %q", mode),
+		)
+		return
+	}
+
+	credStore := config.RemoteCredentialStore.ValueString()
+	if credStore == "" || config.RemoteCredentialStore.IsUnknown() {
+		credStore = "local"
+	}
+
+	if mode == "discovery" {
+		// Username/password only required when using local credential store
+		if credStore == "local" {
+			if config.DiscoveryUsername.IsNull() || config.DiscoveryUsername.ValueString() == "" {
+				resp.Diagnostics.AddAttributeError(
+					path.Root("discovery_username"),
+					"Missing Required Attribute",
+					"discovery_username is required when mode is \"discovery\" and remote_credential_store is \"local\"",
+				)
+			}
+			if config.DiscoveryPassword.IsNull() || config.DiscoveryPassword.ValueString() == "" {
+				resp.Diagnostics.AddAttributeError(
+					path.Root("discovery_password"),
+					"Missing Required Attribute",
+					"discovery_password is required when mode is \"discovery\" and remote_credential_store is \"local\"",
+				)
+			}
+		}
+		if !config.BootstrapPassword.IsNull() && config.BootstrapPassword.ValueString() != "" {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("bootstrap_password"),
+				"Invalid Attribute",
+				"bootstrap_password is not applicable when mode is \"discovery\"",
+			)
+		}
+		if !config.UseNewCredentials.IsNull() && config.UseNewCredentials.ValueBool() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("use_new_credentials"),
+				"Invalid Attribute",
+				"use_new_credentials is only applicable when mode is \"bootstrap\"",
+			)
+		}
+	}
+
+	if mode == "bootstrap" {
+		if config.BootstrapPassword.IsNull() || config.BootstrapPassword.ValueString() == "" {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("bootstrap_password"),
+				"Missing Required Attribute",
+				"bootstrap_password is required when mode is \"bootstrap\"",
+			)
+		}
+
+		if config.SwitchDetail.SerialNumber.IsNull() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("switch_detail").AtName("serial_number"),
+				"Missing Required Attribute",
+				"switch_detail.serial_number is required when mode is \"bootstrap\"",
+			)
+		}
+
+		if !config.UseNewCredentials.IsNull() && config.UseNewCredentials.ValueBool() && credStore == "local" {
+			if config.DiscoveryUsername.IsNull() || config.DiscoveryUsername.ValueString() == "" {
+				resp.Diagnostics.AddAttributeError(
+					path.Root("discovery_username"),
+					"Missing Required Attribute",
+					"discovery_username is required when use_new_credentials is true and remote_credential_store is \"local\"",
+				)
+			}
+			if config.DiscoveryPassword.IsNull() || config.DiscoveryPassword.ValueString() == "" {
+				resp.Diagnostics.AddAttributeError(
+					path.Root("discovery_password"),
+					"Missing Required Attribute",
+					"discovery_password is required when use_new_credentials is true and remote_credential_store is \"local\"",
+				)
+			}
+		}
+		if !config.DiscoveryCredForLan.IsNull() && config.DiscoveryCredForLan.ValueBool() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("discovery_cred_for_lan"),
+				"Invalid Attribute",
+				"discovery_cred_for_lan is only applicable when mode is \"discovery\"",
+			)
+		}
+		if !config.SourceInterfaceName.IsNull() && config.SourceInterfaceName.ValueString() != "" {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("source_interface_name"),
+				"Invalid Attribute",
+				"source_interface_name is only applicable when mode is \"discovery\"",
+			)
+		}
+		if !config.SourceVrfName.IsNull() && config.SourceVrfName.ValueString() != "" {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("source_vrf_name"),
+				"Invalid Attribute",
+				"source_vrf_name is only applicable when mode is \"discovery\"",
+			)
+		}
+	}
+
+	validateDuration := func(attr string, val string) {
+		if _, err := time.ParseDuration(val); err != nil {
+			resp.Diagnostics.AddAttributeError(
+				path.Root(attr),
+				"Invalid Duration",
+				fmt.Sprintf("%s must be a valid duration (e.g. \"30m\", \"10m30s\"): %v", attr, err),
+			)
+		}
+	}
+
+	if !config.WaitForReady.IsNull() && !config.WaitForReady.IsUnknown() {
+		validateDuration("wait_for_ready", config.WaitForReady.ValueString())
+	}
+	if !config.WaitForBootstrap.IsNull() && !config.WaitForBootstrap.IsUnknown() {
+		validateDuration("wait_for_bootstrap", config.WaitForBootstrap.ValueString())
+	}
+	if !config.WaitForDiscover.IsNull() && !config.WaitForDiscover.IsUnknown() {
+		validateDuration("wait_for_discover", config.WaitForDiscover.ValueString())
+	}
+}
+
 func (r *inventorySwitchResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan InventorySwitchModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -109,8 +250,16 @@ func (r *inventorySwitchResource) Read(ctx context.Context, req resource.ReadReq
 		"fabric_name": state.FabricName.ValueString(),
 	})
 
-	r.rscGetInventory(ctx, &resp.Diagnostics, &state)
+	found := r.rscGetInventory(ctx, &resp.Diagnostics, &state)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if !found {
+		tflog.Warn(ctx, "Switch not found in fabric, removing from state", map[string]interface{}{
+			"fabric_name": state.FabricName.ValueString(),
+		})
+		resp.State.RemoveResource(ctx)
 		return
 	}
 
