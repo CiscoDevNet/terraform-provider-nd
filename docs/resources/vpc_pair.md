@@ -14,8 +14,8 @@ Resource to configure vPC pair on a switch. Note only VXLAN EVPN fabric is suppo
 
 ```terraform
 resource "nd_vpc_pair" "test_resource_vpc_pair_1" {
-  switch_id_1          = "9FRGGCZT8LR"
-  switch_id_2          = "96E0DGXYPV2"
+  switch_id_1          = "9B32CIGO4KA"
+  switch_id_2          = "9CGCIOXRFUW"
   use_virtual_peerlink = false
   vpc_pair_details = {
     template_type                   = "default"

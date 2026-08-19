@@ -4,8 +4,9 @@ resource "nd_vpc_pair" "{{.RscName}}" {
     switch_id_1 = "{{.SwitchId1}}"
     switch_id_2 = "{{.SwitchId2}}"
     use_virtual_peerlink = {{deref_bool .UseVirtualPeerlink}}
-    {{- with .VpcPairDetails}}
+    {{- if .VpcPairDetails.TemplateType}}
     vpc_pair_details = {
+      {{- with .VpcPairDetails}}
       {{- if .AdminState}}
       admin_state = {{deref_bool .AdminState}}
       {{- end}}
@@ -86,6 +87,7 @@ resource "nd_vpc_pair" "{{.RscName}}" {
       {{- end}}
       {{- if .SwitchSourceLoopback}}
       switch_source_loopback = {{deref_int64 .SwitchSourceLoopback}}
+      {{- end}}
       {{- end}}
     }
     {{- end}}

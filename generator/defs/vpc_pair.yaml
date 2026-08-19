@@ -32,7 +32,7 @@ resource:
       type: String
       mandatory: true
       tf_requires_replace: true
-      example: 9FRGGCZT8LR
+      example: 9B32CIGO4KA
     # Required - switch serial number
     - model_name: switchId
       tf_name: switch_id_2
@@ -40,7 +40,7 @@ resource:
       type: String
       mandatory: true
       tf_requires_replace: true
-      example: 96E0DGXYPV2
+      example: 9CGCIOXRFUW
     # Required - use virtual peer link or not
     - model_name: useVirtualPeerLink
       tf_name: use_virtual_peerlink
@@ -53,7 +53,6 @@ resource:
       tf_name: vpc_pair_details
       type: Struct
       optional: true
-      computed: true
       description: Default vPC pair template details for fabrics that accept explicit peer-link configuration, such as external fabrics.
       attributes:
       # ND requires type when vpcPairDetails is present. The API discriminator currently supports only "default" and "custom"; this block models the "default" branch.

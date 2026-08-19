@@ -17,6 +17,7 @@ import (
 	"terraform-provider-nd/internal/manage/deployment"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -63,6 +64,31 @@ const (
 	vpcPairReadPollTimeout  = 30 * time.Second
 )
 
+func buildVpcPairPayload(inData *NDFCVpcPairModel) ([]byte, error) {
+	payload := map[string]any{
+		"peerSwitchId": inData.SwitchId1,
+		"switchId":     inData.SwitchId2,
+		"vpcAction":    inData.VpcAction,
+	}
+
+	if inData.UseVirtualPeerlink != nil {
+		payload["useVirtualPeerLink"] = *inData.UseVirtualPeerlink
+	}
+
+	// ND validates vpcPairDetails as a discriminated object. When the Terraform
+	// config omits the block, avoid serializing an empty object that would fail
+	// API validation for missing "type".
+	if strings.TrimSpace(inData.VpcPairDetails.TemplateType) != "" {
+		payload["vpcPairDetails"] = inData.VpcPairDetails
+	}
+
+	return json.Marshal(payload)
+}
+
+func hasVpcPairDetails(details NDFCVpcPairDetailsValue) bool {
+	return strings.TrimSpace(details.TemplateType) != ""
+}
+
 // RscCreateVpcPair creates a vPC pair resource using the vPC pair model.
 func (r *vpcPairResource) rscCreateVpcPair(ctx context.Context, dg *diag.Diagnostics, input *VpcPairModel) {
 	if input == nil {
@@ -104,9 +130,7 @@ func (r *vpcPairResource) rscCreateVpcPair(ctx context.Context, dg *diag.Diagnos
 	// set action to pair for create operation and use PUT method .
 	inData.VpcAction = "pair"
 
-	// Marshal the full model so any vpcPairDetails fields present in the schema,
-	// including newly added peer/switch config fields, are sent to the ND API.
-	payload, err := json.Marshal(inData)
+	payload, err := buildVpcPairPayload(inData)
 	if err != nil {
 		tflog.Error(ctx, "Failed to marshal vPC pair create payload", map[string]interface{}{
 			"fabric_name": inData.FabricName,
@@ -188,6 +212,9 @@ func (r *vpcPairResource) rscGetVpcPair(ctx context.Context, dg *diag.Diagnostic
 		outData.UseVirtualPeerlink = in.GetModelData().UseVirtualPeerlink
 	}
 	in.SetModelData(outData)
+	if !hasVpcPairDetails(outData.VpcPairDetails) {
+		in.VpcPairDetails = VpcPairDetailsValue{state: attr.ValueStateNull}
+	}
 	setVpcPairID(in)
 
 	tflog.Debug(ctx, "Read vPC pair", map[string]interface{}{
@@ -228,7 +255,7 @@ func (r *vpcPairResource) rscUpdateVpcPair(ctx context.Context, dg *diag.Diagnos
 	vpcPairAPI.SwitchID = inData.SwitchId2
 	inData.VpcAction = "pair"
 
-	payload, err := json.Marshal(inData)
+	payload, err := buildVpcPairPayload(inData)
 	if err != nil {
 		tflog.Error(ctx, "Failed to marshal vPC pair update payload", map[string]interface{}{
 			"fabric_name": inData.FabricName,
@@ -662,7 +689,7 @@ func (r *vpcPairResource) rscDeleteVpcPair(ctx context.Context, dg *diag.Diagnos
 	// The ND API removes a pair through the same PUT endpoint with the unPair action.
 	inData.VpcAction = "unPair"
 
-	payload, err := json.Marshal(inData)
+	payload, err := buildVpcPairPayload(inData)
 	if err != nil {
 		tflog.Error(ctx, "Failed to marshal vPC pair delete payload", map[string]interface{}{
 			"fabric_name": inData.FabricName,

@@ -257,6 +257,24 @@ func vpcPairConfigForStep(t *testing.T, testName string, stepCount *int, cfg map
 	return *tfConfig
 }
 
+func vpcPairConfigWithExplicitEmptyDetails(cfg map[string]string, rscName, switchID1, switchID2 string, useVirtualPeerLink, deploy bool) string {
+	return fmt.Sprintf(`provider "nd" {
+  username = "%s"
+  password = "%s"
+  url      = "%s"
+  insecure = %s
+}
+
+resource "nd_vpc_pair" "%s" {
+  switch_id_1          = "%s"
+  switch_id_2          = "%s"
+  use_virtual_peerlink = %t
+  vpc_pair_details     = {}
+  deploy               = %t
+}
+`, cfg["User"], cfg["Password"], cfg["Host"], cfg["Insecure"], rscName, switchID1, switchID2, useVirtualPeerLink, deploy)
+}
+
 func newVpcPairTestClient(t *testing.T) *nd.Client {
 	t.Helper()
 
@@ -421,16 +439,15 @@ func TestAccVpcPairResourceCreateReadWithVpcPairDetails(t *testing.T) {
 			// fields before any request is sent to ND.
 			{
 				Config: func() string {
-					helper.GenerateVpcPairObject(
-						&vpcPairRsc,
-						vpcPairTestctx.fabricName,
+					stepCount++
+					return vpcPairConfigWithExplicitEmptyDetails(
+						vpcPairTestctx.configMap,
+						"vpc_pair_test",
 						vpcPairTestctx.leafSwitches[0],
 						vpcPairTestctx.leafSwitches[1],
 						false,
 						true,
 					)
-					vpcPairRsc.VpcPairDetails = resource_vpc_pair.NDFCVpcPairDetailsValue{}
-					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
 				}(),
 				ExpectError: regexp.MustCompile(`(?s)attributes "domain_id".*"keep_alive_vrf".*"peer_switch_keep_alive_local_ip".*"switch_keep_alive_local_ip".*"template_type" are required`),
 			},

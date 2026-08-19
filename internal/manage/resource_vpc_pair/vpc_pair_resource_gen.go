@@ -301,7 +301,6 @@ func VpcPairResourceSchema(ctx context.Context) schema.Schema {
 					},
 				},
 				Optional:            true,
-				Computed:            true,
 				Description:         "Default vPC pair template details for fabrics that accept explicit peer-link configuration, such as external fabrics.",
 				MarkdownDescription: "Default vPC pair template details for fabrics that accept explicit peer-link configuration, such as external fabrics.",
 			},
