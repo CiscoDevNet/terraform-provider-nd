@@ -12,7 +12,7 @@ resource "nd_inventory_switch" "test_resource_inventory_switch_1" {
     software_image          = "nxos64-cs.10.3.1.F.bin"
     switch_role             = "leaf"
     gateway_ip_mask         = "10.1.1.1/24"
-    discovery_auth_protocol = "MD5"
+    discovery_auth_protocol = "md5"
   }
   discovery_username      = "admin"
   discovery_password      = "mysecret"

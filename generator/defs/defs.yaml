@@ -3,7 +3,7 @@ files:
   - nd.yaml
   - fabric_vxlan.yaml
   - fabric_common.yaml
-  - inventory.yaml
+  - inventory_switch.yaml
   - multi_cluster_connectivity.yaml
   - fabric_vxlan_ibgp.yaml
   - fabric_vxlan_ebgp.yaml
