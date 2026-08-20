@@ -7,14 +7,14 @@ resource:
   # Required - Fabric identifier
   - model_name: id
     tf_name: id
-    description: Unique identifier for the inventory switch resource
+    description: Unique identifier for the inventory switch resource, could be serial, IP address.
     type: String
     computed: true
     use_state: true
   
   - model_name: fabricName
     tf_name: fabric_name
-    description: Name of the fabric to add switches to
+    description: Name of the fabric to add the switch to
     type: String
     mandatory: true
     example: my_fabric
@@ -22,9 +22,8 @@ resource:
   # Mode selection
   - model_name: mode
     tf_name: mode
-    description: Operation mode - discovery (brownfield/greenfield) or bootstrap (POAP)
+    description: "Operation mode for adding the switch. Allowed values: `discovery` (brownfield/greenfield via management IP) or `bootstrap` (zero-touch POAP provisioning)"
     type: String
-    optional: true
     default_value: discovery
     example: discovery
     tf_requires_replace: true
@@ -37,7 +36,7 @@ resource:
   - &preserveConfig
     model_name: preserveConfig
     tf_name: preserve_config
-    description: Preserve existing config (true=brownfield, false=greenfield)
+    description: "Preserve existing switch configuration. Set to `true` for brownfield (keep existing config) or `false` for greenfield (wipe config)"
     type: Bool
     ndfc_type: bool
     default_value: false
@@ -47,18 +46,18 @@ resource:
   - model_name: wait_for_bootstrap
     tf_name: wait_for_bootstrap
     description: > 
-      How long to Wait for the switch to boot into POAP mode (eg. 10m 60s etc)
-      When configured, Terraform will allow some time for the switch to boot into POAP mode.
-      When not specified, if the switch is not found in the 'POAP' list during the operation, the resource errors out
+      Bootstrap mode only. How long to wait for the switch to appear in the POAP list (e.g. `10m`, `60s`).
+      When configured, Terraform will poll until the switch boots into POAP mode or the timeout expires.
+      When not specified, the resource errors out immediately if the switch is not in the POAP list
     type: String
     payload_hide: true
 
   - model_name: wait_for_discover
     tf_name: wait_for_discover
     description: >
-      How long to wait for the switch to become reachable during discovery (eg. 10m 60s etc).
+      Discovery mode only. How long to wait for the switch to become reachable during discovery (e.g. `10m`, `60s`).
       When configured, Terraform will retry shallow discovery until the switch is reachable or the timeout expires.
-      When not specified, if the switch is not reachable, the resource errors out immediately.
+      When not specified, the resource errors out immediately if the switch is not reachable.
     type: String
     payload_hide: true
     example: "10m"
@@ -67,8 +66,8 @@ resource:
     tf_name: wait_for_ready
     type: String
     description: > 
-      How long to Wait for the switch to be online after adding to fabric (eg. 10m 60s etc)
-      When configured, Terraform will wait an poll the switch to be ready.
+      How long to wait for the switch to become manageable after adding to fabric (e.g. `10m`, `60s`).
+      When configured, Terraform will poll the switch status until it is ready.
       If the switch is not ready within the timeout, the resource errors out.
     default_value: "30m"
     payload_hide: true
@@ -77,14 +76,14 @@ resource:
   # Switches map - key is serial number
   - model_name: switch_detail
     tf_name: switch_detail
-    description: A structure containing switch details to manage
+    description: Switch identification and configuration details. `ip_address` is always required. `serial_number` is mandatory for bootstrap mode and optional for discovery mode (populated by NDFC after discovery if omitted)
     type: Struct
     mandatory: true
     payload_hide: true
     attributes:
     - model_name: hostname
       tf_name: hostname
-      description: Switch hostname
+      description: "Switch hostname. Required for bootstrap mode, optional for discovery (populated by NDFC if omitted)"
       type: String
       use_state: true
       computed: true
@@ -92,7 +91,7 @@ resource:
     
     - model_name: serialNumber
       tf_name: serial_number
-      description: Switch serial number
+      description: "Switch serial number. Either `serial_number` or `ip_address` is used to identify the switch. Populated by NDFC after discovery if omitted"
       type: String
       computed: true
       optional: true
@@ -101,14 +100,14 @@ resource:
     - model_name: ip
       tf_name: ip_address
       unmarshal_tag: fabricManagementIp
-      description: Switch management IP address
+      description: Switch management IP address used for discovery or bootstrap
       type: String
       mandatory: true
       example: "10.23.244.81"
 
     - model_name: model
       tf_name: model
-      description: Switch hardware model
+      description: "Switch hardware model (e.g. `N9K-C93180YC-FX`). Read-only, populated by NDFC after discovery"
       type: String
       computed: true
       optional: true
@@ -117,7 +116,7 @@ resource:
 
     - model_name: softwareVersion
       tf_name: software_version
-      description: Switch software version
+      description: "Switch NX-OS software version (e.g. `10.3(3)`). Read-only, populated by NDFC after discovery"
       type: String
       computed: true
       optional: true
@@ -135,7 +134,12 @@ resource:
 
     - model_name: switchRole
       tf_name: switch_role
-      description: Role of switch in fabric.
+      description: >
+        Role of switch in fabric. Allowed values:
+        `leaf`, `spine`, `border`, `borderGateway`, `borderSpine`,
+        `borderGatewaySpine`, `borderSuperSpine`, `borderGatewaySuperSpine`,
+        `superSpine`, `tier2Leaf`, `tor`, `access`, `aggregation`,
+        `coreRouter`, `edgeRouter`.
       type: String
       default_value: leaf
       example: leaf
@@ -163,50 +167,48 @@ resource:
 
     - model_name: status
       tf_name: status
-      description: Current switch status
+      description: "Current switch status as reported by NDFC (e.g. `ok`, `Manageable`, `Unreachable`). Read-only"
       type: String
       computed: true
       example: Manageable
 
     - model_name: statusReason
       tf_name: status_reason
-      description: Reason for current switch status (e.g., failure details)
+      description: "Reason for current switch status when not healthy (e.g. failure details). Read-only"
       type: String
       computed: true
 
     # Bootstrap/POAP specific fields
     - model_name: gatewayIpMask
       tf_name: gateway_ip_mask
-      description: Gateway IP with mask for POAP (e.g., 10.1.1.1/24)
+      description: "Gateway IP with subnet mask in CIDR notation (e.g. `10.1.1.1/24`). Required for bootstrap mode"
       type: String
       optional: true
       example: "10.1.1.1/24"
 
     - model_name: discoveryAuthProtocol
       tf_name: discovery_auth_protocol
-      description: Authentication protocol for POAP discovery
+      description: "Authentication protocol for POAP discovery. Allowed values: `MD5`, `SHA`, `MD5_DES`, `MD5_AES`, `SHA_DES`, `SHA_AES`"
       type: String
       optional: true
-      example: MD5
+      example: md5
 
 
     - model_name: vdcId
       tf_name: vdc_id
-      description: VDC ID for N7K switches
+      description: "Virtual Device Context (VDC) ID. Applicable only for Nexus 7000 series switches. Read-only"
       type: Int64
       computed: true
       optional: true
       use_state: true
-      example: null
 
     - model_name: vdcMac
       tf_name: vdc_mac
-      description: VDC MAC for N7K switches
+      description: "Virtual Device Context (VDC) MAC address. Applicable only for Nexus 7000 series switches. Read-only"
       type: String
       computed: true
       optional: true
       use_state: true
-      example: null
 
     #below variables are for different APIs
 
@@ -284,7 +286,6 @@ resource:
       When false, the bootstrap admin password is used for discovery.
     type: Bool
     ndfc_type: bool
-    optional: true
     default_value: false
     payload_hide: true
 
@@ -300,13 +301,13 @@ resource:
 
   - model_name: platformType
     tf_name: platform_type
-    description: Platform type (nx-os, ios-xe)
+    description: "Switch platform type (e.g. `nx-os`, `ios-xe`). Read-only, populated by NDFC after discovery"
     type: String
     computed: true
 
   - model_name: snmpV3AuthProtocol
     tf_name: snmp_v3_auth_protocol
-    description: SNMP v3 authentication protocol
+    description: "SNMP v3 authentication protocol for switch discovery. Allowed values: `md5`, `sha`"
     type: String
     default_value: md5
     example: md5
@@ -314,30 +315,28 @@ resource:
   # Credential store
   - model_name: remoteCredentialStore
     tf_name: remote_credential_store
-    description: Credential store type (local, cyberark)
+    description: "Credential store type for switch authentication. Allowed values: `local`, `cyberark`"
     type: String
-    optional: true
     default_value: local
     example: local
 
   - model_name: remoteCredentialStoreKey
     tf_name: remote_credential_store_key
-    description: Key for remote credential store
+    description: Key identifier in the remote credential store. Required when `remote_credential_store` is set to `cyberark`
     type: String
     optional: true
-    example: null
 
   # Discovery source interface and VRF (update-only, read from additionalData)
   - model_name: sourceInterfaceName
     tf_name: source_interface_name
-    description: Source interface for switch discovery
+    description: "Discovery mode only. Source interface name for switch discovery (e.g. `mgmt0`, `Ethernet1/1`)"
     type: String
     optional: true
     payload_hide: true
 
   - model_name: sourceVrfName
     tf_name: source_vrf_name
-    description: Source VRF for switch discovery
+    description: "Discovery mode only. Source VRF name for switch discovery (e.g. `management`, `default`)"
     type: String
     optional: true
     payload_hide: true

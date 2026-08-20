@@ -26,7 +26,7 @@ resource "nd_inventory_switch" "test_resource_inventory_switch_1" {
     software_image          = "nxos64-cs.10.3.1.F.bin"
     switch_role             = "leaf"
     gateway_ip_mask         = "10.1.1.1/24"
-    discovery_auth_protocol = "MD5"
+    discovery_auth_protocol = "md5"
   }
   discovery_username      = "admin"
   discovery_password      = "mysecret"
@@ -40,8 +40,8 @@ resource "nd_inventory_switch" "test_resource_inventory_switch_1" {
 
 ### Required
 
-- `fabric_name` (String) Name of the fabric to add switches to
-- `switch_detail` (Attributes) A structure containing switch details to manage (see [below for nested schema](#nestedatt--switch_detail))
+- `fabric_name` (String) Name of the fabric to add the switch to
+- `switch_detail` (Attributes) Switch identification and configuration details. `ip_address` is always required. `serial_number` is mandatory for bootstrap mode and optional for discovery mode (populated by NDFC after discovery if omitted) (see [below for nested schema](#nestedatt--switch_detail))
 
 ### Optional
 
@@ -49,44 +49,44 @@ resource "nd_inventory_switch" "test_resource_inventory_switch_1" {
 - `discovery_cred_for_lan` (Boolean) Discovery mode only. When true, use the discovery credentials as LAN credentials for config deployment (write) to the switch.
 - `discovery_password` (String, Sensitive) Password for switch discovery/login. In discovery mode, used as the switch login password. In bootstrap mode with use_new_credentials enabled, used as the post-bootstrap discovery password.
 - `discovery_username` (String, Sensitive) Username for switch discovery/login. In discovery mode, used as the switch login username. In bootstrap mode with use_new_credentials enabled, used as the post-bootstrap discovery username.
-- `mode` (String) Operation mode - discovery (brownfield/greenfield) or bootstrap (POAP)
-- `preserve_config` (Boolean) Preserve existing config (true=brownfield, false=greenfield)
-- `remote_credential_store` (String) Credential store type (local, cyberark)
-- `remote_credential_store_key` (String) Key for remote credential store
-- `snmp_v3_auth_protocol` (String) SNMP v3 authentication protocol
-- `source_interface_name` (String) Source interface for switch discovery
-- `source_vrf_name` (String) Source VRF for switch discovery
+- `mode` (String) Operation mode for adding the switch. Allowed values: `discovery` (brownfield/greenfield via management IP) or `bootstrap` (zero-touch POAP provisioning)
+- `preserve_config` (Boolean) Preserve existing switch configuration. Set to `true` for brownfield (keep existing config) or `false` for greenfield (wipe config)
+- `remote_credential_store` (String) Credential store type for switch authentication. Allowed values: `local`, `cyberark`
+- `remote_credential_store_key` (String) Key identifier in the remote credential store. Required when `remote_credential_store` is set to `cyberark`
+- `snmp_v3_auth_protocol` (String) SNMP v3 authentication protocol for switch discovery. Allowed values: `md5`, `sha`
+- `source_interface_name` (String) Discovery mode only. Source interface name for switch discovery (e.g. `mgmt0`, `Ethernet1/1`)
+- `source_vrf_name` (String) Discovery mode only. Source VRF name for switch discovery (e.g. `management`, `default`)
 - `use_new_credentials` (Boolean) Bootstrap mode only. When true, use discovery_username and discovery_password as separate credentials for post-bootstrap switch discovery. When false, the bootstrap admin password is used for discovery.
-- `wait_for_bootstrap` (String) How long to Wait for the switch to boot into POAP mode (eg. 10m 60s etc) When configured, Terraform will allow some time for the switch to boot into POAP mode. When not specified, if the switch is not found in the 'POAP' list during the operation, the resource errors out
-- `wait_for_discover` (String) How long to wait for the switch to become reachable during discovery (eg. 10m 60s etc). When configured, Terraform will retry shallow discovery until the switch is reachable or the timeout expires. When not specified, if the switch is not reachable, the resource errors out immediately.
-- `wait_for_ready` (String) How long to Wait for the switch to be online after adding to fabric (eg. 10m 60s etc) When configured, Terraform will wait an poll the switch to be ready. If the switch is not ready within the timeout, the resource errors out.
+- `wait_for_bootstrap` (String) Bootstrap mode only. How long to wait for the switch to appear in the POAP list (e.g. `10m`, `60s`). When configured, Terraform will poll until the switch boots into POAP mode or the timeout expires. When not specified, the resource errors out immediately if the switch is not in the POAP list
+- `wait_for_discover` (String) Discovery mode only. How long to wait for the switch to become reachable during discovery (e.g. `10m`, `60s`). When configured, Terraform will retry shallow discovery until the switch is reachable or the timeout expires. When not specified, the resource errors out immediately if the switch is not reachable.
+- `wait_for_ready` (String) How long to wait for the switch to become manageable after adding to fabric (e.g. `10m`, `60s`). When configured, Terraform will poll the switch status until it is ready. If the switch is not ready within the timeout, the resource errors out.
 
 ### Read-Only
 
-- `id` (String) Unique identifier for the inventory switch resource
-- `platform_type` (String) Platform type (nx-os, ios-xe)
+- `id` (String) Unique identifier for the inventory switch resource, could be serial, IP address.
+- `platform_type` (String) Switch platform type (e.g. `nx-os`, `ios-xe`). Read-only, populated by NDFC after discovery
 
 <a id="nestedatt--switch_detail"></a>
 ### Nested Schema for `switch_detail`
 
 Required:
 
-- `ip_address` (String) Switch management IP address
+- `ip_address` (String) Switch management IP address used for discovery or bootstrap
 
 Optional:
 
-- `discovery_auth_protocol` (String) Authentication protocol for POAP discovery
-- `gateway_ip_mask` (String) Gateway IP with mask for POAP (e.g., 10.1.1.1/24)
-- `hostname` (String) Switch hostname
-- `model` (String) Switch hardware model
-- `serial_number` (String) Switch serial number
+- `discovery_auth_protocol` (String) Authentication protocol for POAP discovery. Allowed values: `MD5`, `SHA`, `MD5_DES`, `MD5_AES`, `SHA_DES`, `SHA_AES`
+- `gateway_ip_mask` (String) Gateway IP with subnet mask in CIDR notation (e.g. `10.1.1.1/24`). Required for bootstrap mode
+- `hostname` (String) Switch hostname. Required for bootstrap mode, optional for discovery (populated by NDFC if omitted)
+- `model` (String) Switch hardware model (e.g. `N9K-C93180YC-FX`). Read-only, populated by NDFC after discovery
+- `serial_number` (String) Switch serial number. Either `serial_number` or `ip_address` is used to identify the switch. Populated by NDFC after discovery if omitted
 - `software_image` (String) Software image filename for bootstrap (e.g. nxos64-cs.10.3.1.F.bin). When specified, this image is used during POAP bootstrap. When omitted, the value from the bootstrap list API is used.
-- `software_version` (String) Switch software version
-- `switch_role` (String) Role of switch in fabric.
-- `vdc_id` (Number) VDC ID for N7K switches
-- `vdc_mac` (String) VDC MAC for N7K switches
+- `software_version` (String) Switch NX-OS software version (e.g. `10.3(3)`). Read-only, populated by NDFC after discovery
+- `switch_role` (String) Role of switch in fabric. Allowed values: `leaf`, `spine`, `border`, `borderGateway`, `borderSpine`, `borderGatewaySpine`, `borderSuperSpine`, `borderGatewaySuperSpine`, `superSpine`, `tier2Leaf`, `tor`, `access`, `aggregation`, `coreRouter`, `edgeRouter`.
+- `vdc_id` (Number) Virtual Device Context (VDC) ID. Applicable only for Nexus 7000 series switches. Read-only
+- `vdc_mac` (String) Virtual Device Context (VDC) MAC address. Applicable only for Nexus 7000 series switches. Read-only
 
 Read-Only:
 
-- `status` (String) Current switch status
-- `status_reason` (String) Reason for current switch status (e.g., failure details)
+- `status` (String) Current switch status as reported by NDFC (e.g. `ok`, `Manageable`, `Unreachable`). Read-only
+- `status_reason` (String) Reason for current switch status when not healthy (e.g. failure details). Read-only
