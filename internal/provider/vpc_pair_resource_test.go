@@ -653,6 +653,53 @@ func TestAccVpcPairResourceDelete(t *testing.T) {
 	})
 }
 
+func TestAccVpcPairResourceDestroyAfterOutOfBandDelete(t *testing.T) {
+	vpcPairTestctx := loadVpcPairTestctx(t)
+	requireLeafPair(t, vpcPairTestctx)
+
+	stepCount := 0
+	vpcPairRsc := new(resource_vpc_pair.NDFCVpcPairModel)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1 creates a valid leaf-to-leaf vPC pair so the next step can
+			// remove it directly in ND before Terraform runs destroy.
+			{
+				Config: func() string {
+					helper.GenerateVpcPairObject(
+						&vpcPairRsc,
+						vpcPairTestctx.fabricName,
+						vpcPairTestctx.leafSwitches[0],
+						vpcPairTestctx.leafSwitches[1],
+						false,
+						false,
+					)
+					return vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc)
+				}(),
+				Check: resource.ComposeTestCheckFunc(
+					VpcPairModelHelperStateCheck(
+						"nd_vpc_pair.vpc_pair_test",
+						*vpcPairRsc,
+						path.Empty(),
+					)...,
+				),
+			},
+			// Step 2 deletes the pair outside Terraform before destroy. This
+			// proves the provider Delete path treats a missing backend object as
+			// a successful idempotent cleanup instead of failing the teardown.
+			{
+				PreConfig: func() {
+					deleteVpcPairOutsideTerraform(t, vpcPairRsc)
+				},
+				Config:  vpcPairConfigForStep(t, t.Name(), &stepCount, vpcPairTestctx.configMap, vpcPairRsc),
+				Destroy: true,
+			},
+		},
+	})
+}
+
 func TestAccVpcPairResourceImport(t *testing.T) {
 	vpcPairTestctx := loadVpcPairTestctx(t)
 	requireLeafPair(t, vpcPairTestctx)
