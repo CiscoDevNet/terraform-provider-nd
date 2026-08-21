@@ -29,15 +29,16 @@ func TenantModelHelperStateCheck(RscName string, c resource_tenant.NDFCTenantMod
 	if c.Description != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("description").String(), c.Description))
 	}
+	for key, value := range c.FabricAssociations {
+		attrNewPath := attrPath.AtName("fabric_associations").AtName(key)
+		ret = append(ret, FabricAssociationsValueHelperStateCheck(RscName, value, attrNewPath)...)
+	}
 	return ret
 }
 
 func FabricAssociationsValueHelperStateCheck(RscName string, c resource_tenant.NDFCFabricAssociationsValue, attrPath path.Path) []resource.TestCheckFunc {
 	ret := []resource.TestCheckFunc{}
 
-	if c.FabricName != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("fabric_name").String(), c.FabricName))
-	}
 	if c.TenantPrefix != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("tenant_prefix").String(), c.TenantPrefix))
 	}

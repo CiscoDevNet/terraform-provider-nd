@@ -22,32 +22,27 @@ func TenantResourceSchema(ctx context.Context) schema.Schema {
 		Attributes: map[string]schema.Attribute{
 			"description": schema.StringAttribute{
 				Optional:            true,
-				Description:         "The description of the tenant. Remove this attribute from the configuration to reset it to the default value.",
-				MarkdownDescription: "The description of the tenant. Remove this attribute from the configuration to reset it to the default value.",
+				Description:         "The description of the tenant.",
+				MarkdownDescription: "The description of the tenant.",
 			},
-			"fabric_associations": schema.SetNestedAttribute{
+			"fabric_associations": schema.MapNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"allowed_vlans": schema.SetAttribute{
 							ElementType:         types.StringType,
 							Optional:            true,
-							Description:         "The list of allowed VLANs for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.",
-							MarkdownDescription: "The list of allowed VLANs for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.",
-						},
-						"fabric_name": schema.StringAttribute{
-							Required:            true,
-							Description:         "The fabric name to associate with the tenant.",
-							MarkdownDescription: "The fabric name to associate with the tenant.",
+							Description:         "The list of allowed VLANs for the tenant in the fabric.",
+							MarkdownDescription: "The list of allowed VLANs for the tenant in the fabric.",
 						},
 						"local_name": schema.StringAttribute{
 							Optional:            true,
-							Description:         "The local name for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.",
-							MarkdownDescription: "The local name for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.",
+							Description:         "The local name for the tenant in the fabric.",
+							MarkdownDescription: "The local name for the tenant in the fabric.",
 						},
 						"tenant_prefix": schema.StringAttribute{
 							Optional:            true,
-							Description:         "The tenant prefix for ACI fabrics. This attribute is immutable. To change it, delete and recreate the fabric association.",
-							MarkdownDescription: "The tenant prefix for ACI fabrics. This attribute is immutable. To change it, delete and recreate the fabric association.",
+							Description:         "The tenant prefix for ACI fabrics.",
+							MarkdownDescription: "The tenant prefix for ACI fabrics.",
 						},
 					},
 					CustomType: FabricAssociationsType{
@@ -57,8 +52,8 @@ func TenantResourceSchema(ctx context.Context) schema.Schema {
 					},
 				},
 				Optional:            true,
-				Description:         "The set of fabric associations for the tenant.",
-				MarkdownDescription: "The set of fabric associations for the tenant.",
+				Description:         "The map of fabric associations for the tenant, keyed by fabric name.",
+				MarkdownDescription: "The map of fabric associations for the tenant, keyed by fabric name.",
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -84,7 +79,7 @@ func TenantResourceSchema(ctx context.Context) schema.Schema {
 
 type TenantModel struct {
 	Description        types.String `tfsdk:"description"`
-	FabricAssociations types.Set    `tfsdk:"fabric_associations"`
+	FabricAssociations types.Map    `tfsdk:"fabric_associations"`
 	Id                 types.String `tfsdk:"id"`
 	Name               types.String `tfsdk:"name"`
 }
@@ -132,24 +127,6 @@ func (t FabricAssociationsType) ValueFromObject(ctx context.Context, in basetype
 			fmt.Sprintf(`allowed_vlans expected to be basetypes.SetValue, was: %T`, allowedVlansAttribute))
 	}
 
-	fabricNameAttribute, ok := attributes["fabric_name"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`fabric_name is missing from object`)
-
-		return nil, diags
-	}
-
-	fabricNameVal, ok := fabricNameAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`fabric_name expected to be basetypes.StringValue, was: %T`, fabricNameAttribute))
-	}
-
 	localNameAttribute, ok := attributes["local_name"]
 
 	if !ok {
@@ -192,7 +169,6 @@ func (t FabricAssociationsType) ValueFromObject(ctx context.Context, in basetype
 
 	return FabricAssociationsValue{
 		AllowedVlans: allowedVlansVal,
-		FabricName:   fabricNameVal,
 		LocalName:    localNameVal,
 		TenantPrefix: tenantPrefixVal,
 		state:        attr.ValueStateKnown,
@@ -280,24 +256,6 @@ func NewFabricAssociationsValue(attributeTypes map[string]attr.Type, attributes 
 			fmt.Sprintf(`allowed_vlans expected to be basetypes.SetValue, was: %T`, allowedVlansAttribute))
 	}
 
-	fabricNameAttribute, ok := attributes["fabric_name"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`fabric_name is missing from object`)
-
-		return NewFabricAssociationsValueUnknown(), diags
-	}
-
-	fabricNameVal, ok := fabricNameAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`fabric_name expected to be basetypes.StringValue, was: %T`, fabricNameAttribute))
-	}
-
 	localNameAttribute, ok := attributes["local_name"]
 
 	if !ok {
@@ -340,7 +298,6 @@ func NewFabricAssociationsValue(attributeTypes map[string]attr.Type, attributes 
 
 	return FabricAssociationsValue{
 		AllowedVlans: allowedVlansVal,
-		FabricName:   fabricNameVal,
 		LocalName:    localNameVal,
 		TenantPrefix: tenantPrefixVal,
 		state:        attr.ValueStateKnown,
@@ -416,14 +373,13 @@ var _ basetypes.ObjectValuable = FabricAssociationsValue{}
 
 type FabricAssociationsValue struct {
 	AllowedVlans basetypes.SetValue    `tfsdk:"allowed_vlans"`
-	FabricName   basetypes.StringValue `tfsdk:"fabric_name"`
 	LocalName    basetypes.StringValue `tfsdk:"local_name"`
 	TenantPrefix basetypes.StringValue `tfsdk:"tenant_prefix"`
 	state        attr.ValueState
 }
 
 func (v FabricAssociationsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 4)
+	attrTypes := make(map[string]tftypes.Type, 3)
 
 	var val tftypes.Value
 	var err error
@@ -431,7 +387,6 @@ func (v FabricAssociationsValue) ToTerraformValue(ctx context.Context) (tftypes.
 	attrTypes["allowed_vlans"] = basetypes.SetType{
 		ElemType: types.StringType,
 	}.TerraformType(ctx)
-	attrTypes["fabric_name"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["local_name"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["tenant_prefix"] = basetypes.StringType{}.TerraformType(ctx)
 
@@ -439,7 +394,7 @@ func (v FabricAssociationsValue) ToTerraformValue(ctx context.Context) (tftypes.
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 4)
+		vals := make(map[string]tftypes.Value, 3)
 
 		val, err = v.AllowedVlans.ToTerraformValue(ctx)
 
@@ -448,14 +403,6 @@ func (v FabricAssociationsValue) ToTerraformValue(ctx context.Context) (tftypes.
 		}
 
 		vals["allowed_vlans"] = val
-
-		val, err = v.FabricName.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["fabric_name"] = val
 
 		val, err = v.LocalName.ToTerraformValue(ctx)
 
@@ -519,7 +466,6 @@ func (v FabricAssociationsValue) ToObjectValue(ctx context.Context) (basetypes.O
 			"allowed_vlans": basetypes.SetType{
 				ElemType: types.StringType,
 			},
-			"fabric_name":   basetypes.StringType{},
 			"local_name":    basetypes.StringType{},
 			"tenant_prefix": basetypes.StringType{},
 		}), diags
@@ -529,7 +475,6 @@ func (v FabricAssociationsValue) ToObjectValue(ctx context.Context) (basetypes.O
 		"allowed_vlans": basetypes.SetType{
 			ElemType: types.StringType,
 		},
-		"fabric_name":   basetypes.StringType{},
 		"local_name":    basetypes.StringType{},
 		"tenant_prefix": basetypes.StringType{},
 	}
@@ -546,7 +491,6 @@ func (v FabricAssociationsValue) ToObjectValue(ctx context.Context) (basetypes.O
 		attributeTypes,
 		map[string]attr.Value{
 			"allowed_vlans": allowedVlansVal,
-			"fabric_name":   v.FabricName,
 			"local_name":    v.LocalName,
 			"tenant_prefix": v.TenantPrefix,
 		})
@@ -570,10 +514,6 @@ func (v FabricAssociationsValue) Equal(o attr.Value) bool {
 	}
 
 	if !v.AllowedVlans.Equal(other.AllowedVlans) {
-		return false
-	}
-
-	if !v.FabricName.Equal(other.FabricName) {
 		return false
 	}
 
@@ -601,7 +541,6 @@ func (v FabricAssociationsValue) AttributeTypes(ctx context.Context) map[string]
 		"allowed_vlans": basetypes.SetType{
 			ElemType: types.StringType,
 		},
-		"fabric_name":   basetypes.StringType{},
 		"local_name":    basetypes.StringType{},
 		"tenant_prefix": basetypes.StringType{},
 	}

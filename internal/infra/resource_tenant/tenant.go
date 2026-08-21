@@ -87,8 +87,7 @@ func (r *tenantResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	in.Id = in.Name
-	log.Printf("[DEBUG] Creating Tenant: id=%s", in.Id.ValueString())
+	log.Printf("[DEBUG] Creating Tenant: id=%s", in.Name.ValueString())
 
 	r.rscCreateTenant(ctx, &resp.Diagnostics, &in)
 	if resp.Diagnostics.HasError() {

@@ -9,22 +9,21 @@ resource "nd_tenant" "{{.RscName}}" {
     description = "{{.Description}}"
     {{- end}}
     {{- if .FabricAssociations}}
-    fabric_associations = [
-        {{- range .FabricAssociations}}
-        {
-            fabric_name = "{{.FabricName}}"
-            {{- if .TenantPrefix}}
-            tenant_prefix = "{{.TenantPrefix}}"
+    fabric_associations = {
+        {{- range $fabricName, $association := .FabricAssociations}}
+        "{{$fabricName}}" = {
+            {{- if $association.TenantPrefix}}
+            tenant_prefix = "{{$association.TenantPrefix}}"
             {{- end}}
-            {{- if .LocalName}}
-            local_name = "{{.LocalName}}"
+            {{- if $association.LocalName}}
+            local_name = "{{$association.LocalName}}"
             {{- end}}
-            {{- if .AllowedVlans}}
-            allowed_vlans = [{{range $i, $v := .AllowedVlans}}{{if $i}}, {{end}}"{{$v}}"{{end}}]
+            {{- if $association.AllowedVlans}}
+            allowed_vlans = [{{range $i, $v := $association.AllowedVlans}}{{if $i}}, {{end}}"{{$v}}"{{end}}]
             {{- end}}
-        },
+        }
         {{- end}}
-    ]
+    }
     {{- end}}
 {{end}}
 }

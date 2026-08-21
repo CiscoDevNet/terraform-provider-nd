@@ -24,42 +24,37 @@ resource:
 
   - model_name: description
     tf_name: description
-    description: The description of the tenant. Remove this attribute from the configuration to reset it to the default value.
+    description: The description of the tenant.
     type: String
     optional: true
     example: Tenant description
 
+  # Fabric name validation is omitted because each fabric has different naming convention requirements.
   - model_name: fabricAssociations
     tf_name: fabric_associations
-    description: The set of fabric associations for the tenant.
-    type: Set
+    description: The map of fabric associations for the tenant, keyed by fabric name.
+    type: Map
     optional: true
     payload_hide: true
+    example: tf-apic
     attributes:
-    - model_name: fabricName
-      tf_name: fabric_name
-      description: The fabric name to associate with the tenant.
-      type: String
-      mandatory: true
-      example: ansible_test
-
     - model_name: tenantPrefix
       tf_name: tenant_prefix
-      description: The tenant prefix for ACI fabrics. This attribute is immutable. To change it, delete and recreate the fabric association.
+      description: The tenant prefix for ACI fabrics.
       type: String
       optional: true
       example: tf_
 
     - model_name: localName
       tf_name: local_name
-      description: The local name for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.
+      description: The local name for the tenant in the fabric.
       type: String
       optional: true
       example: tf_test_tenant1
 
     - model_name: allowedVlans
       tf_name: allowed_vlans
-      description: The list of allowed VLANs for the tenant in the fabric. Remove this attribute from the configuration to reset it to the default value.
+      description: The list of allowed VLANs for the tenant in the fabric.
       type: List:String
       ndfc_type: string
       optional: true

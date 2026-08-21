@@ -61,7 +61,7 @@ func applyTenantValues(tenant *resource_tenant.NDFCTenantModel, values map[strin
 		case "description":
 			tenant.Description = val.(string)
 		case "fabric_associations":
-			tenant.FabricAssociations = val.([]resource_tenant.NDFCFabricAssociationsValue)
+			tenant.FabricAssociations = val.(map[string]resource_tenant.NDFCFabricAssociationsValue)
 		}
 	}
 }

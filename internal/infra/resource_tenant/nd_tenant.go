@@ -63,14 +63,14 @@ func (r *tenantResource) rscCreateTenant(ctx context.Context, dg *diag.Diagnosti
 	}
 
 	associationPayload := tenantFabricAssociationPayload{
-		Items: make([]tenantFabricAssociationItem, 0, len(desiredAssociations)),
+		Items: make([]tenantFabricAssociationRequestItem, 0, len(desiredAssociations)),
 	}
-	for _, association := range desiredAssociations {
-		associationPayload.Items = append(associationPayload.Items, newTenantFabricAssociationItem(id, association, true))
+	for _, fabricName := range sortedTenantFabricAssociationKeys(desiredAssociations) {
+		associationPayload.Items = append(associationPayload.Items, newTenantFabricAssociationRequestItem(id, fabricName, desiredAssociations[fabricName], true, false))
 	}
 
 	var associationDiags diag.Diagnostics
-	r.rscPostTenantFabricAssociations(&associationDiags, associationPayload)
+	r.rscPostTenantFabricAssociations(ctx, &associationDiags, associationPayload, tenantFabricAssociationStageCreate)
 	if associationDiags.HasError() {
 		log.Printf("[ERROR] Fabric association creation failed for tenant id=%s; rolling back tenant creation", id)
 
@@ -199,27 +199,29 @@ func (r *tenantResource) rscUpdateTenant(ctx context.Context, dg *diag.Diagnosti
 	id := tenantModel.Id.ValueString()
 
 	var associationDiags diag.Diagnostics
-	r.rscSyncConfiguredTenantFabricAssociations(ctx, &associationDiags, oldState, tenantModel)
+	rollbackRequired := r.rscSyncConfiguredTenantFabricAssociations(ctx, &associationDiags, oldState, tenantModel)
 	if associationDiags.HasError() {
-		log.Printf("[ERROR] Fabric association update failed for tenant id=%s; rolling back tenant update", id)
-
-		// The association endpoint can partially apply a multi-item request. Read
-		// the backend and reconcile it to the complete association set from the
-		// previous Terraform state.
-		var associationRollbackDiags diag.Diagnostics
-		r.rscRestoreTenantFabricAssociations(ctx, &associationRollbackDiags, oldState)
-
 		dg.Append(associationDiags...)
-		if associationRollbackDiags.HasError() {
-			dg.AddError(
-				"Error Rolling Back Tenant Fabric Associations",
-				fmt.Sprintf("The fabric association update for tenant %q failed and the previous association configuration could not be completely restored. Manual cleanup may be required.", id),
-			)
-			dg.Append(associationRollbackDiags...)
-			return
+		if rollbackRequired {
+			log.Printf("[ERROR] Fabric association regular update failed for tenant id=%s; rolling back tenant update", id)
+
+			// The association endpoint can partially apply a multi-item request. Read
+			// the backend and reconcile it to the complete association set from the
+			// previous Terraform state.
+			var associationRollbackDiags diag.Diagnostics
+			r.rscRestoreTenantFabricAssociations(ctx, &associationRollbackDiags, oldState, tenantFabricAssociationStageRegularUpdateRollback)
+
+			if associationRollbackDiags.HasError() {
+				dg.AddError(
+					"Error Rolling Back Tenant Fabric Associations",
+					tenantFabricAssociationStageMessage(tenantFabricAssociationStageRegularUpdateRollback, fmt.Sprintf("The fabric association update for tenant %q failed and the previous association configuration could not be completely restored. Manual cleanup may be required.", id)),
+				)
+				dg.Append(associationRollbackDiags...)
+			} else {
+				log.Printf("[INFO] Rolled back tenant fabric associations after regular update failure: id=%s", id)
+			}
 		}
 
-		log.Printf("[INFO] Rolled back tenant fabric associations after update failure: id=%s", id)
 		return
 	}
 
@@ -254,7 +256,7 @@ func (r *tenantResource) rscDeleteTenant(ctx context.Context, dg *diag.Diagnosti
 	id := state.Id.ValueString()
 	log.Printf("[INFO] Delete nd_tenant id=%s", id)
 
-	r.rscDeleteTenantFabricAssociations(dg, state.Name.ValueString())
+	r.rscDeleteTenantFabricAssociations(ctx, dg, state.Name.ValueString())
 	if dg.HasError() {
 		return
 	}

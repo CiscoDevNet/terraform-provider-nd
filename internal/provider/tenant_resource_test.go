@@ -69,25 +69,32 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 	tenant2LocalName := fmt.Sprintf("local_tenant2_%s", tenant2Suffix)
 	tenant1Prefix := fmt.Sprintf("tn_tenant1_%s", tenant1Suffix)
 	tenant1UpdatedPrefix := fmt.Sprintf("tn_t1upd_%s", tenant1Suffix)
+	tenant2DriftDescription := "Tenant2 description changed outside Terraform"
+	tenant2DriftLocalName := fmt.Sprintf("local_tenant2_drift_%s", tenant2Suffix)
 
 	allowedVlansCreate := []string{"1", "5-10"}
 	allowedVlansUpdate := []string{"5-10", "11-20", "30"}
+	allowedVlansDrift := []string{"100-110", "200"}
 
-	testCases := []map[string]string{
-		{"name": "create_tenant1_required", "purpose": "create tenant1 with only required attributes"},
-		{"name": "create_tenant2_optional", "purpose": "create tenant2 with description and fabric association optional values"},
-		{"name": "update_tenant1_add_associations", "purpose": "add tenant1 description and two fabric associations"},
-		{"name": "update_tenant1_remove_and_update_associations", "purpose": "remove tenant1 description, remove one association, and update the second association"},
-		{"name": "update_tenant1_remove_association_optional_values", "purpose": "remove tenant1 association local_name and allowed_vlans while keeping tenant_prefix"},
-		{"name": "update_tenant1_change_tenant_prefix_error", "purpose": "verify the API rejects tenant_prefix mutation without delete/recreate"},
-		{"name": "update_tenant1_remove_all_associations", "purpose": "delete every tenant1 fabric association"},
-		{"name": "delete_tenant1", "purpose": "delete tenant1 by removing it from Terraform config"},
-		{"name": "import_tenant2", "purpose": "import tenant2 by name and verify API-returned values"},
-		{"name": "import_missing_tenant1", "purpose": "verify import reports not found for the deleted tenant1"},
-		{"name": "clear_tenant2_after_out_of_band_delete", "purpose": "destroy tenant2 after an outside-Terraform delete so the resource handles tenant not found"},
+	testCases := []string{
+		"Create tenant1 with required attributes only",
+		"Create tenant2 with description and optional fabric association values",
+		"Update tenant1 by setting the description and adding two fabric associations",
+		"Update tenant1 by clearing the description, removing one fabric association, and updating the remaining association",
+		"Update tenant1 by clearing optional fabric association values",
+		"Update tenant1 by replacing the fabric association to change its tenant prefix",
+		"Update tenant1 by removing all fabric associations",
+		"Delete tenant1 by removing it from the Terraform configuration",
+		"Import tenant2 by name",
+		"Verify importing a missing tenant returns a not-found error",
+		"Detect tenant2 drift after out-of-band changes",
+		"Destroy tenant2 after an out-of-band deletion",
 	}
-	for _, tc := range testCases {
-		t.Logf("tenant test case %s: %s", tc["name"], tc["purpose"])
+	for _, testCase := range testCases {
+		t.Logf("Tenant test case: %s", testCase)
+	}
+	stepName := func(step int) string {
+		return fmt.Sprintf("%s - %s", t.Name(), testCases[step-1])
 	}
 
 	xTenant1 := &map[string]string{
@@ -116,39 +123,45 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 	}
 
 	tfConfig := new(string)
-	stepCount := new(int)
-	*stepCount = 0
 
 	tenant1Rsc := new(resource_tenant.NDFCTenantModel)
 	tenant2Rsc := new(resource_tenant.NDFCTenantModel)
 
-	tenant1RequiredAssociation := resource_tenant.NDFCFabricAssociationsValue{
-		FabricName: tenantFabricOne,
-	}
 	tenant1FullAssociationCreate := resource_tenant.NDFCFabricAssociationsValue{
-		FabricName:   tenantFabricTwo,
 		TenantPrefix: tenant1Prefix,
 		LocalName:    tenant1LocalName,
 		AllowedVlans: allowedVlansCreate,
 	}
 	tenant1FullAssociationUpdate := resource_tenant.NDFCFabricAssociationsValue{
-		FabricName:   tenantFabricTwo,
 		TenantPrefix: tenant1Prefix,
 		LocalName:    tenant1UpdatedLocalName,
 		AllowedVlans: allowedVlansUpdate,
 	}
 	tenant1PrefixOnlyAssociation := resource_tenant.NDFCFabricAssociationsValue{
-		FabricName:   tenantFabricTwo,
 		TenantPrefix: tenant1Prefix,
 	}
-	tenant1InvalidPrefixAssociation := resource_tenant.NDFCFabricAssociationsValue{
-		FabricName:   tenantFabricTwo,
+	tenant1UpdatedPrefixAssociation := resource_tenant.NDFCFabricAssociationsValue{
 		TenantPrefix: tenant1UpdatedPrefix,
 	}
 	tenant2Association := resource_tenant.NDFCFabricAssociationsValue{
-		FabricName:   tenantFabricOne,
 		LocalName:    tenant2LocalName,
 		AllowedVlans: allowedVlansCreate,
+	}
+	tenant1CreateAssociations := map[string]resource_tenant.NDFCFabricAssociationsValue{
+		tenantFabricOne: {},
+		tenantFabricTwo: tenant1FullAssociationCreate,
+	}
+	tenant1UpdateAssociations := map[string]resource_tenant.NDFCFabricAssociationsValue{
+		tenantFabricTwo: tenant1FullAssociationUpdate,
+	}
+	tenant1PrefixOnlyAssociations := map[string]resource_tenant.NDFCFabricAssociationsValue{
+		tenantFabricTwo: tenant1PrefixOnlyAssociation,
+	}
+	tenant1UpdatedPrefixAssociations := map[string]resource_tenant.NDFCFabricAssociationsValue{
+		tenantFabricTwo: tenant1UpdatedPrefixAssociation,
+	}
+	tenant2Associations := map[string]resource_tenant.NDFCFabricAssociationsValue{
+		tenantFabricOne: tenant2Association,
 	}
 
 	s1 := &helper.StepInfo{}
@@ -160,6 +173,7 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 	s7 := &helper.StepInfo{}
 	s8 := &helper.StepInfo{}
 	s11 := &helper.StepInfo{}
+	s12 := &helper.StepInfo{}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
@@ -168,8 +182,7 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 			// Step 1: Create tenant1 with required attributes only.
 			{
 				Config: func() string {
-					*stepCount++
-					s1.Name = fmt.Sprintf("%s_%d_create_tenant1_required", t.Name(), *stepCount)
+					s1.Name = stepName(1)
 
 					helper.GenerateTenantObject(&tenant1Rsc, tenant1Name, nil)
 					helper.GetTFConfigWithSingleResource(s1.Name, *xTenant1,
@@ -187,7 +200,7 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 							path.Empty(),
 						),
 						resource.TestCheckNoResourceAttr("nd_tenant.tenant_one", "description"),
-						resource.TestCheckResourceAttr("nd_tenant.tenant_one", "fabric_associations.#", "0"),
+						resource.TestCheckResourceAttr("nd_tenant.tenant_one", "fabric_associations.%", "0"),
 					)...,
 				),
 			},
@@ -195,14 +208,11 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 			// optional values. Tenant2 intentionally does not set tenant_prefix.
 			{
 				Config: func() string {
-					*stepCount++
-					s2.Name = fmt.Sprintf("%s_%d_create_tenant2_optional", t.Name(), *stepCount)
+					s2.Name = stepName(2)
 
 					helper.GenerateTenantObject(&tenant2Rsc, tenant2Name, map[string]interface{}{
-						"description": "Tenant2 acceptance test",
-						"fabric_associations": []resource_tenant.NDFCFabricAssociationsValue{
-							tenant2Association,
-						},
+						"description":         "Tenant2 acceptance test",
+						"fabric_associations": tenant2Associations,
 					})
 					helper.GetTFConfigWithSingleResource(s2.Name, *xBothTenants,
 						[]interface{}{tenant1Rsc, tenant2Rsc}, &tfConfig)
@@ -225,7 +235,7 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 								path.Empty(),
 							)...,
 						),
-						tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Association)...,
+						tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Associations)...,
 					)...,
 				),
 			},
@@ -233,15 +243,11 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 			// associations: one required-only and one with optional values.
 			{
 				Config: func() string {
-					*stepCount++
-					s3.Name = fmt.Sprintf("%s_%d_update_tenant1_add_associations", t.Name(), *stepCount)
+					s3.Name = stepName(3)
 
 					helper.ModifyTenantObject(&tenant1Rsc, map[string]interface{}{
-						"description": "Tenant1 acceptance test",
-						"fabric_associations": []resource_tenant.NDFCFabricAssociationsValue{
-							tenant1RequiredAssociation,
-							tenant1FullAssociationCreate,
-						},
+						"description":         "Tenant1 acceptance test",
+						"fabric_associations": tenant1CreateAssociations,
 					})
 					helper.GetTFConfigWithSingleResource(s3.Name, *xBothTenants,
 						[]interface{}{tenant1Rsc, tenant2Rsc}, &tfConfig)
@@ -267,10 +273,9 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 						append(
 							tenantAssociationStateChecks(
 								"nd_tenant.tenant_one",
-								tenant1RequiredAssociation,
-								tenant1FullAssociationCreate,
+								tenant1CreateAssociations,
 							),
-							tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Association)...,
+							tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Associations)...,
 						)...,
 					)...,
 				),
@@ -280,14 +285,11 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 			// association.
 			{
 				Config: func() string {
-					*stepCount++
-					s4.Name = fmt.Sprintf("%s_%d_update_tenant1_remove_and_update_associations", t.Name(), *stepCount)
+					s4.Name = stepName(4)
 
 					helper.ModifyTenantObject(&tenant1Rsc, map[string]interface{}{
-						"description": "",
-						"fabric_associations": []resource_tenant.NDFCFabricAssociationsValue{
-							tenant1FullAssociationUpdate,
-						},
+						"description":         "",
+						"fabric_associations": tenant1UpdateAssociations,
 					})
 					helper.GetTFConfigWithSingleResource(s4.Name, *xBothTenants,
 						[]interface{}{tenant1Rsc, tenant2Rsc}, &tfConfig)
@@ -318,8 +320,8 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 								resource.TestCheckNoResourceAttr("nd_tenant.tenant_one", "description"),
 							},
 							append(
-								tenantAssociationStateChecks("nd_tenant.tenant_one", tenant1FullAssociationUpdate),
-								tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Association)...,
+								tenantAssociationStateChecks("nd_tenant.tenant_one", tenant1UpdateAssociations),
+								tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Associations)...,
 							)...,
 						)...,
 					)...,
@@ -329,13 +331,10 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 			// association while keeping the original tenant_prefix.
 			{
 				Config: func() string {
-					*stepCount++
-					s5.Name = fmt.Sprintf("%s_%d_update_tenant1_remove_association_optional_values", t.Name(), *stepCount)
+					s5.Name = stepName(5)
 
 					helper.ModifyTenantObject(&tenant1Rsc, map[string]interface{}{
-						"fabric_associations": []resource_tenant.NDFCFabricAssociationsValue{
-							tenant1PrefixOnlyAssociation,
-						},
+						"fabric_associations": tenant1PrefixOnlyAssociations,
 					})
 					helper.GetTFConfigWithSingleResource(s5.Name, *xBothTenants,
 						[]interface{}{tenant1Rsc, tenant2Rsc}, &tfConfig)
@@ -364,25 +363,22 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 								tenantAssociationOptionalAttrsAbsent("nd_tenant.tenant_one", tenantFabricTwo),
 							},
 							append(
-								tenantAssociationStateChecks("nd_tenant.tenant_one", tenant1PrefixOnlyAssociation),
-								tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Association)...,
+								tenantAssociationStateChecks("nd_tenant.tenant_one", tenant1PrefixOnlyAssociations),
+								tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Associations)...,
 							)...,
 						)...,
 					)...,
 				),
 			},
-			// Step 6: Try to mutate tenant_prefix on the existing tenant1
-			// association. The backend rejects this unless the association is
-			// deleted and re-created.
+			// Step 6: Update tenant_prefix on the existing tenant1 association.
+			// The provider deletes and recreates the association before applying
+			// the regular update payload.
 			{
 				Config: func() string {
-					*stepCount++
-					s6.Name = fmt.Sprintf("%s_%d_update_tenant1_change_tenant_prefix_error", t.Name(), *stepCount)
+					s6.Name = stepName(6)
 
 					helper.ModifyTenantObject(&tenant1Rsc, map[string]interface{}{
-						"fabric_associations": []resource_tenant.NDFCFabricAssociationsValue{
-							tenant1InvalidPrefixAssociation,
-						},
+						"fabric_associations": tenant1UpdatedPrefixAssociations,
 					})
 					helper.GetTFConfigWithSingleResource(s6.Name, *xBothTenants,
 						[]interface{}{tenant1Rsc, tenant2Rsc}, &tfConfig)
@@ -390,20 +386,38 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 					s6.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 6, s6.Name, s6.Cfg) },
-				ExpectError: regexp.MustCompile(
-					`(?is)tenant\s+prefix\s+cannot\s+be\s+changed\s+unless\s+this\s+association\s+is\s+deleted\s+and\s+re-created`,
+				PreConfig: func() {
+					helper.LogStep(t, 6, s6.Name, s6.Cfg)
+					waitForTenantAssociationOrchestration(t)
+				},
+				Check: resource.ComposeTestCheckFunc(
+					append(
+						append(
+							TenantModelHelperStateCheck(
+								"nd_tenant.tenant_one",
+								*tenant1Rsc,
+								path.Empty(),
+							),
+							TenantModelHelperStateCheck(
+								"nd_tenant.tenant_two",
+								*tenant2Rsc,
+								path.Empty(),
+							)...,
+						),
+						append(
+							tenantAssociationStateChecks("nd_tenant.tenant_one", tenant1UpdatedPrefixAssociations),
+							tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Associations)...,
+						)...,
+					)...,
 				),
 			},
-			// Step 7: Return to a valid tenant1 config and remove every tenant1
-			// fabric association.
+			// Step 7: Remove every tenant1 fabric association.
 			{
 				Config: func() string {
-					*stepCount++
-					s7.Name = fmt.Sprintf("%s_%d_update_tenant1_remove_all_associations", t.Name(), *stepCount)
+					s7.Name = stepName(7)
 
 					helper.ModifyTenantObject(&tenant1Rsc, map[string]interface{}{
-						"fabric_associations": []resource_tenant.NDFCFabricAssociationsValue(nil),
+						"fabric_associations": map[string]resource_tenant.NDFCFabricAssociationsValue(nil),
 					})
 					helper.GetTFConfigWithSingleResource(s7.Name, *xBothTenants,
 						[]interface{}{tenant1Rsc, tenant2Rsc}, &tfConfig)
@@ -432,9 +446,9 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 						append(
 							[]resource.TestCheckFunc{
 								resource.TestCheckNoResourceAttr("nd_tenant.tenant_one", "description"),
-								resource.TestCheckResourceAttr("nd_tenant.tenant_one", "fabric_associations.#", "0"),
+								resource.TestCheckResourceAttr("nd_tenant.tenant_one", "fabric_associations.%", "0"),
 							},
-							tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Association)...,
+							tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Associations)...,
 						)...,
 					)...,
 				),
@@ -442,8 +456,7 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 			// Step 8: Remove tenant1 from Terraform config.
 			{
 				Config: func() string {
-					*stepCount++
-					s8.Name = fmt.Sprintf("%s_%d_delete_tenant1", t.Name(), *stepCount)
+					s8.Name = stepName(8)
 
 					helper.GetTFConfigWithSingleResource(s8.Name, *xTenant2,
 						[]interface{}{tenant2Rsc}, &tfConfig)
@@ -459,7 +472,7 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 							*tenant2Rsc,
 							path.Empty(),
 						),
-						tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Association)...,
+						tenantAssociationStateChecks("nd_tenant.tenant_two", tenant2Associations)...,
 					)...,
 				),
 			},
@@ -468,7 +481,7 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 			// the tenant GET API does not return that collection.
 			{
 				PreConfig: func() {
-					t.Logf("===== STEP 9: %s_9_import_tenant2 =====", t.Name())
+					t.Logf("===== STEP 9: %s =====", stepName(9))
 				},
 				ResourceName:                         "nd_tenant.tenant_two",
 				ImportState:                          true,
@@ -481,21 +494,42 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 			// non-existing tenants.
 			{
 				PreConfig: func() {
-					t.Logf("===== STEP 10: %s_10_import_missing_tenant1 =====", t.Name())
+					t.Logf("===== STEP 10: %s =====", stepName(10))
 				},
 				ResourceName:  "nd_tenant.tenant_two",
 				ImportState:   true,
 				ImportStateId: tenant1Name,
 				ExpectError:   regexp.MustCompile(`(?is)tenant.*not\s+found`),
 			},
-			// Step 11: Clear tenant2 after an outside-Terraform delete. The
+			// Step 11: Change every mutable tenant attribute type covered by this
+			// resource outside Terraform, then verify refresh produces a non-empty
+			// plan. PlanOnly ensures Terraform does not repair the drift.
+			{
+				PreConfig: func() {
+					s11.Name = stepName(11)
+					s11.Cfg = *tfConfig
+					helper.LogStep(t, 11, s11.Name, s11.Cfg)
+					updateTenantConfigurationOutsideTerraform(
+						t,
+						tenant2Name,
+						tenant2DriftDescription,
+						tenantFabricOne,
+						tenant2DriftLocalName,
+						allowedVlansDrift,
+					)
+				},
+				Config:             *tfConfig,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			// Step 12: Clear tenant2 after an outside-Terraform delete. The
 			// provider should treat the backend "tenant not found: <name>"
 			// response as successful cleanup.
 			{
 				PreConfig: func() {
-					s11.Name = fmt.Sprintf("%s_11_clear_tenant2", t.Name())
-					s11.Cfg = *tfConfig
-					helper.LogStep(t, 11, s11.Name, s11.Cfg)
+					s12.Name = stepName(12)
+					s12.Cfg = *tfConfig
+					helper.LogStep(t, 12, s12.Name, s12.Cfg)
 					deleteTenantOutsideTerraform(t, tenant2Name)
 				},
 				Config:  *tfConfig,
@@ -510,6 +544,15 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 func TestAccTenantResourceAssociationRollback(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	suffix := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
+	testCases := []string{
+		"Verify tenant creation rollback after a partial fabric association failure",
+		"Create the tenant update rollback baseline",
+		"Verify tenant update rollback after a partial fabric association failure",
+		"Verify the restored tenant configuration and destroy the tenant",
+	}
+	stepName := func(step int) string {
+		return fmt.Sprintf("%s - %s", t.Name(), testCases[step-1])
+	}
 
 	createTenantName := fmt.Sprintf("tf_create_rollback_%s", suffix)
 	updateTenantName := fmt.Sprintf("tf_update_rollback_%s", suffix)
@@ -517,61 +560,51 @@ func TestAccTenantResourceAssociationRollback(t *testing.T) {
 	originalDescription := "Tenant rollback acceptance test"
 	updatedDescription := "Tenant rollback description must not be applied"
 	originalPrefix := fmt.Sprintf("tn_rollback_%s", suffix)
-	invalidPrefix := fmt.Sprintf("tn_changed_%s", suffix)
 	originalLocalName := fmt.Sprintf("local_rollback_%s", suffix)
 	updatedLocalName := fmt.Sprintf("local_rollback_updated_%s", suffix)
 	originalVlans := []string{"1", "5-10"}
 	updatedVlans := []string{"11-20", "30"}
 
-	createValidAssociation := resource_tenant.NDFCFabricAssociationsValue{
-		FabricName: tenantFabricOne,
-	}
-	createInvalidAssociation := resource_tenant.NDFCFabricAssociationsValue{
-		FabricName: missingFabricName,
-	}
 	originalAssociationOne := resource_tenant.NDFCFabricAssociationsValue{
-		FabricName:   tenantFabricOne,
 		LocalName:    originalLocalName,
 		AllowedVlans: originalVlans,
 	}
 	originalAssociationTwo := resource_tenant.NDFCFabricAssociationsValue{
-		FabricName:   tenantFabricTwo,
 		TenantPrefix: originalPrefix,
 	}
 	updatedAssociationOne := resource_tenant.NDFCFabricAssociationsValue{
-		FabricName:   tenantFabricOne,
 		LocalName:    updatedLocalName,
 		AllowedVlans: updatedVlans,
 	}
-	invalidAssociationTwo := resource_tenant.NDFCFabricAssociationsValue{
-		FabricName:   tenantFabricTwo,
-		TenantPrefix: invalidPrefix,
+	createAssociations := map[string]resource_tenant.NDFCFabricAssociationsValue{
+		tenantFabricOne:   {},
+		missingFabricName: {},
+	}
+	originalUpdateAssociations := map[string]resource_tenant.NDFCFabricAssociationsValue{
+		tenantFabricOne: originalAssociationOne,
+		tenantFabricTwo: originalAssociationTwo,
+	}
+	failedUpdateAssociations := map[string]resource_tenant.NDFCFabricAssociationsValue{
+		tenantFabricOne:   updatedAssociationOne,
+		tenantFabricTwo:   originalAssociationTwo,
+		missingFabricName: {},
 	}
 
 	createTenant := new(resource_tenant.NDFCTenantModel)
 	helper.GenerateTenantObject(&createTenant, createTenantName, map[string]interface{}{
-		"fabric_associations": []resource_tenant.NDFCFabricAssociationsValue{
-			createValidAssociation,
-			createInvalidAssociation,
-		},
+		"fabric_associations": createAssociations,
 	})
 
 	originalUpdateTenant := new(resource_tenant.NDFCTenantModel)
 	helper.GenerateTenantObject(&originalUpdateTenant, updateTenantName, map[string]interface{}{
-		"description": originalDescription,
-		"fabric_associations": []resource_tenant.NDFCFabricAssociationsValue{
-			originalAssociationOne,
-			originalAssociationTwo,
-		},
+		"description":         originalDescription,
+		"fabric_associations": originalUpdateAssociations,
 	})
 
 	failedUpdateTenant := new(resource_tenant.NDFCTenantModel)
 	helper.GenerateTenantObject(&failedUpdateTenant, updateTenantName, map[string]interface{}{
-		"description": updatedDescription,
-		"fabric_associations": []resource_tenant.NDFCFabricAssociationsValue{
-			updatedAssociationOne,
-			invalidAssociationTwo,
-		},
+		"description":         updatedDescription,
+		"fabric_associations": failedUpdateAssociations,
 	})
 
 	createConfigArgs := &map[string]string{
@@ -597,19 +630,19 @@ func TestAccTenantResourceAssociationRollback(t *testing.T) {
 	destroyConfig := new(string)
 	s1 := &helper.StepInfo{
 		Index: 1,
-		Name:  fmt.Sprintf("%s_1_create_partial_association_failure", t.Name()),
+		Name:  stepName(1),
 	}
 	s2 := &helper.StepInfo{
 		Index: 2,
-		Name:  fmt.Sprintf("%s_2_create_update_rollback_baseline", t.Name()),
+		Name:  stepName(2),
 	}
 	s3 := &helper.StepInfo{
 		Index: 3,
-		Name:  fmt.Sprintf("%s_3_update_partial_association_failure", t.Name()),
+		Name:  stepName(3),
 	}
 	s4 := &helper.StepInfo{
 		Index: 4,
-		Name:  fmt.Sprintf("%s_4_verify_update_rollback_and_destroy", t.Name()),
+		Name:  stepName(4),
 	}
 	helper.GetTFConfigWithSingleResource(
 		s1.Name,
@@ -645,11 +678,13 @@ func TestAccTenantResourceAssociationRollback(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// An association API failure after tenant creation must trigger rollback.
-			// Rollback removes any associations the API applied and deletes the tenant.
+			// The backend can reject a missing fabric with HTTP 400 or report it as
+			// a failed item in a 207 response. Rollback removes any associations the
+			// API applied and deletes the tenant.
 			{
 				Config:      *createConfig,
 				PreConfig:   func() { helper.LogStep(t, s1.Index, s1.Name, s1.Cfg) },
-				ExpectError: regexp.MustCompile(`(?is)(tenant fabric association request failed|fabric.*not\s+found|fabric.*does\s+not\s+exist)`),
+				ExpectError: regexp.MustCompile(`(?is)stage=create.*(status="failed"|StatusCode\s+400.*fabric.*does\s+not\s+exist)`),
 			},
 			// Assert rollback directly against the APIs before Terraform can
 			// perform another operation, then create the update-test baseline.
@@ -668,21 +703,19 @@ func TestAccTenantResourceAssociationRollback(t *testing.T) {
 						),
 						tenantAssociationStateChecks(
 							"nd_tenant.tenant_update_rollback",
-							originalAssociationOne,
-							originalAssociationTwo,
+							originalUpdateAssociations,
 						)...,
 					)...,
 				),
 			},
-			// The first association update is valid and the tenant_prefix change
-			// is rejected. Update rollback must restore the complete old set and
-			// must not post the planned description.
+			// The existing association update is valid, but adding the missing
+			// fabric association fails with either HTTP 400 or a failed 207 item.
+			// Update rollback must restore the complete old set and must not post
+			// the planned description.
 			{
-				Config:    *failedUpdateConfig,
-				PreConfig: func() { helper.LogStep(t, s3.Index, s3.Name, s3.Cfg) },
-				ExpectError: regexp.MustCompile(
-					`(?is)tenant\s+prefix\s+cannot\s+be\s+changed\s+unless\s+this\s+association\s+is\s+deleted\s+and\s+re-created`,
-				),
+				Config:      *failedUpdateConfig,
+				PreConfig:   func() { helper.LogStep(t, s3.Index, s3.Name, s3.Cfg) },
+				ExpectError: regexp.MustCompile(`(?is)stage=regular_update.*(status="failed"|StatusCode\s+400.*fabric.*does\s+not\s+exist)`),
 			},
 			{
 				PreConfig: func() {
@@ -692,8 +725,7 @@ func TestAccTenantResourceAssociationRollback(t *testing.T) {
 						t,
 						updateTenantName,
 						originalDescription,
-						originalAssociationOne,
-						originalAssociationTwo,
+						originalUpdateAssociations,
 					)
 				},
 				Config:  *destroyConfig,
@@ -711,31 +743,25 @@ func waitForTenantAssociationOrchestration(t *testing.T) {
 	time.Sleep(tenantAssociationOrchestrationWait)
 }
 
-func tenantAssociationStateChecks(resourceName string, associations ...resource_tenant.NDFCFabricAssociationsValue) []resource.TestCheckFunc {
+func tenantAssociationStateChecks(
+	resourceName string,
+	associations map[string]resource_tenant.NDFCFabricAssociationsValue,
+) []resource.TestCheckFunc {
 	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttr(resourceName, "fabric_associations.#", fmt.Sprintf("%d", len(associations))),
+		resource.TestCheckResourceAttr(resourceName, "fabric_associations.%", fmt.Sprintf("%d", len(associations))),
 	}
 
-	for _, association := range associations {
-		nestedAttrs := map[string]string{
-			"fabric_name": association.FabricName,
-		}
-		if association.TenantPrefix != "" {
-			nestedAttrs["tenant_prefix"] = association.TenantPrefix
-		}
-		if association.LocalName != "" {
-			nestedAttrs["local_name"] = association.LocalName
-		}
+	for fabricName, association := range associations {
+		associationPrefix := fmt.Sprintf("fabric_associations.%s", fabricName)
 		if len(association.AllowedVlans) > 0 {
-			nestedAttrs["allowed_vlans.#"] = fmt.Sprintf("%d", len(association.AllowedVlans))
+			checks = append(checks,
+				resource.TestCheckResourceAttr(resourceName, associationPrefix+".allowed_vlans.#", fmt.Sprintf("%d", len(association.AllowedVlans))),
+			)
 		}
 
-		checks = append(checks,
-			resource.TestCheckTypeSetElemNestedAttrs(resourceName, "fabric_associations.*", nestedAttrs),
-		)
 		for _, vlan := range association.AllowedVlans {
 			checks = append(checks,
-				resource.TestCheckTypeSetElemAttr(resourceName, "fabric_associations.*.allowed_vlans.*", vlan),
+				resource.TestCheckTypeSetElemAttr(resourceName, associationPrefix+".allowed_vlans.*", vlan),
 			)
 		}
 	}
@@ -754,16 +780,15 @@ func tenantAssociationOptionalAttrsAbsent(resourceName string, fabricName string
 		}
 
 		attrs := rs.Primary.Attributes
-		associationPrefix := ""
-		for key, value := range attrs {
-			if strings.HasPrefix(key, "fabric_associations.") &&
-				strings.HasSuffix(key, ".fabric_name") &&
-				value == fabricName {
-				associationPrefix = strings.TrimSuffix(key, ".fabric_name")
+		associationPrefix := fmt.Sprintf("fabric_associations.%s", fabricName)
+		associationFound := false
+		for key := range attrs {
+			if strings.HasPrefix(key, associationPrefix+".") {
+				associationFound = true
 				break
 			}
 		}
-		if associationPrefix == "" {
+		if !associationFound {
 			return fmt.Errorf("resource %q has no fabric association for fabric %q", resourceName, fabricName)
 		}
 
@@ -855,7 +880,7 @@ func assertTenantConfigurationOutsideTerraform(
 	t *testing.T,
 	name string,
 	expectedDescription string,
-	expectedAssociations ...resource_tenant.NDFCFabricAssociationsValue,
+	expectedAssociations map[string]resource_tenant.NDFCFabricAssociationsValue,
 ) {
 	t.Helper()
 
@@ -889,10 +914,10 @@ func assertTenantConfigurationOutsideTerraform(
 		t.Fatalf("tenant %q association count after update rollback: expected %d, got %d (%+v)", name, len(expectedAssociations), len(actualByFabric), actualAssociations)
 	}
 
-	for _, expected := range expectedAssociations {
-		actual, ok := actualByFabric[expected.FabricName]
+	for fabricName, expected := range expectedAssociations {
+		actual, ok := actualByFabric[fabricName]
 		if !ok {
-			t.Fatalf("tenant %q is missing association for fabric %q after update rollback", name, expected.FabricName)
+			t.Fatalf("tenant %q is missing association for fabric %q after update rollback", name, fabricName)
 		}
 
 		actualVlans := append([]string(nil), actual.AllowedVlans...)
@@ -902,21 +927,67 @@ func assertTenantConfigurationOutsideTerraform(
 		if actual.LocalName != expected.LocalName ||
 			actual.TenantPrefix != expected.TenantPrefix ||
 			!slices.Equal(actualVlans, expectedVlans) {
-			t.Fatalf("tenant %q association for fabric %q after update rollback: expected %+v, got %+v", name, expected.FabricName, expected, actual)
+			t.Fatalf("tenant %q association for fabric %q after update rollback: expected %+v, got %+v", name, fabricName, expected, actual)
 		}
 	}
 }
 
-func deleteTenantOutsideTerraform(t *testing.T, name string) {
+func updateTenantConfigurationOutsideTerraform(
+	t *testing.T,
+	name string,
+	description string,
+	fabricName string,
+	localName string,
+	allowedVlans []string,
+) {
 	t.Helper()
 
-	res, err := deleteTenantOutsideTerraformRaw(t, name)
-	if err != nil && !isTenantNotFoundAPIError(err, res, name) {
-		t.Fatalf("failed to delete tenant %q outside Terraform: %v %s", name, err, res)
+	client := newTenantTestClient(t)
+	tenantAPI := api.NewTenantAPI(&client, ndapi.DefaultFabric)
+	tenantAPI.TenantName = name
+
+	tenantPayload, err := json.Marshal(resource_tenant.NDFCTenantModel{
+		Name:        name,
+		Description: description,
+	})
+	if err != nil {
+		t.Fatalf("failed to marshal tenant update payload for tenant %q outside Terraform: %v", name, err)
 	}
+
+	res, err := tenantAPI.Put(tenantPayload, nil)
+	if err != nil {
+		t.Fatalf("failed to update description for tenant %q outside Terraform: %v %s", name, err, res.String())
+	}
+
+	associations := readTenantFabricAssociationsOutsideTerraform(t, &client, name)
+	var associationToUpdate *tenantFabricAssociationTestItem
+	for i := range associations {
+		if associations[i].FabricName != fabricName {
+			continue
+		}
+		if associationToUpdate != nil {
+			t.Fatalf("tenant %q has duplicate backend associations for fabric %q", name, fabricName)
+		}
+		associationToUpdate = &associations[i]
+	}
+	if associationToUpdate == nil {
+		t.Fatalf("tenant %q has no backend association for fabric %q", name, fabricName)
+	}
+
+	associationToUpdate.Associate = true
+	associationToUpdate.LocalName = localName
+	associationToUpdate.AllowedVlans = append([]string(nil), allowedVlans...)
+	postTenantFabricAssociationsOutsideTerraform(
+		t,
+		&client,
+		name,
+		"update",
+		tenantFabricAssociationTestPayload{Items: []tenantFabricAssociationTestItem{*associationToUpdate}},
+	)
+	waitForTenantAssociationOrchestration(t)
 }
 
-func deleteTenantOutsideTerraformRaw(t *testing.T, name string) (string, error) {
+func deleteTenantOutsideTerraform(t *testing.T, name string) {
 	t.Helper()
 
 	client := newTenantTestClient(t)
@@ -925,7 +996,9 @@ func deleteTenantOutsideTerraformRaw(t *testing.T, name string) (string, error) 
 	tenantAPI := api.NewTenantAPI(&client, ndapi.DefaultFabric)
 	tenantAPI.TenantName = name
 	res, err := tenantAPI.Delete()
-	return res.String(), err
+	if err != nil && !isTenantNotFoundAPIError(err, res.String(), name) {
+		t.Fatalf("failed to delete tenant %q outside Terraform: %v %s", name, err, res.String())
+	}
 }
 
 func deleteTenantFabricAssociationsOutsideTerraform(t *testing.T, client *nd.Client, name string) {
@@ -941,27 +1014,44 @@ func deleteTenantFabricAssociationsOutsideTerraform(t *testing.T, client *nd.Cli
 		return
 	}
 
+	waitForTenantAssociationOrchestration(t)
+	postTenantFabricAssociationsOutsideTerraform(t, client, name, "delete", payload)
+}
+
+func postTenantFabricAssociationsOutsideTerraform(
+	t *testing.T,
+	client *nd.Client,
+	tenantName string,
+	operation string,
+	payload tenantFabricAssociationTestPayload,
+) {
+	t.Helper()
+
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		t.Fatalf("failed to marshal tenant fabric association delete payload for tenant %q: %v", name, err)
+		t.Fatalf("failed to marshal tenant fabric association %s payload for tenant %q: %v", operation, tenantName, err)
 	}
 
 	tenantFabricAssocAPI := manageapi.NewTenantFabricAssociationAPI(client, ndapi.DefaultFabric)
-	waitForTenantAssociationOrchestration(t)
 	res, err := tenantFabricAssocAPI.Post(payloadBytes, nil)
 	if err != nil {
-		t.Fatalf("failed to delete tenant fabric associations for tenant %q outside Terraform: %v %s", name, err, res.String())
+		t.Fatalf("failed to %s tenant fabric associations for tenant %q outside Terraform: %v %s", operation, tenantName, err, res.String())
+	}
+
+	results := res.Get("results")
+	if !results.Exists() || !results.IsArray() {
+		t.Fatalf("tenant fabric association %s response for tenant %q did not include a valid results array: %s", operation, tenantName, res.String())
 	}
 
 	var failed []string
-	res.Get("results").ForEach(func(_, item gjson.Result) bool {
+	results.ForEach(func(_, item gjson.Result) bool {
 		if strings.EqualFold(item.Get("status").String(), "failed") {
 			failed = append(failed, fmt.Sprintf("fabricName=%q message=%q", item.Get("fabricName").String(), item.Get("message").String()))
 		}
 		return true
 	})
 	if len(failed) > 0 {
-		t.Fatalf("failed to delete tenant fabric associations for tenant %q outside Terraform: %s", name, strings.Join(failed, "; "))
+		t.Fatalf("failed to %s tenant fabric associations for tenant %q outside Terraform: %s", operation, tenantName, strings.Join(failed, "; "))
 	}
 }
 
