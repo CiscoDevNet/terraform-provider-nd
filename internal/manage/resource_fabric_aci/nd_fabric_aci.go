@@ -71,6 +71,11 @@ func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Dia
 	id := fabricAciModel.Id.ValueString()
 	log.Printf("[INFO] Create nd_fabric_aci id=%s", id)
 
+	// Setting default value false to VerifyCa when it is null/unknown
+	if fabricAciModel.VerifyCa.IsNull() || fabricAciModel.VerifyCa.IsUnknown() {
+		fabricAciModel.VerifyCa = types.BoolValue(false)
+	}
+
 	inData := fabricAciModel.GetModelData()
 	inData.Spec.ClusterType = "APIC"
 	inData.Spec.Aci.Telemetry.TelemetryNetwork = telemetryNetworkToCreatePayload(inData.Spec.Aci.Telemetry.TelemetryNetwork)

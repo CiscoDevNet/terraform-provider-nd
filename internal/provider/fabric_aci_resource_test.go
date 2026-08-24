@@ -140,22 +140,25 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 		restoreTerraformPlanArgs()
 	})
 
-	testCases := []map[string]string{
-		{"name": "create_required", "purpose": "Create Fabric ACI with only required attributes."},
-		{"name": "update_optional", "purpose": "Configure location, license, security, certificate verification, and enable orchestration."},
-		{"name": "update_license", "purpose": "Update the license tier while keeping orchestration enabled."},
-		{"name": "empty_plan", "purpose": "Reapply the unchanged configuration and require an empty plan."},
-		{"name": "destroy_in_use", "purpose": "Verify normal destroy fails while orchestration is enabled."},
-		{"name": "disable_before_force", "purpose": "Disable orchestration before testing forced removal."},
-		{"name": "import_with_credentials", "purpose": "Import the existing fabric with credentials supplied by fabric-scoped environment variables."},
-		{"name": "force_destroy", "purpose": "Verify the fabric-scoped force environment variable permits destroy."},
-		{"name": "import_missing", "purpose": "Verify importing the removed fabric reports resource not found."},
-		{"name": "recreate_enabled", "purpose": "Recreate the fabric with orchestration enabled."},
-		{"name": "disable_before_normal_destroy", "purpose": "Disable orchestration before normal removal."},
-		{"name": "destroy_after_external_delete", "purpose": "Delete outside Terraform and verify provider Delete treats HTTP 404 as success."},
+	testCases := []string{
+		"Create Fabric ACI with only required attributes",
+		"Configure location, license, security, certificate verification, and enable orchestration",
+		"Update the license tier while keeping orchestration enabled",
+		"Reapply the unchanged configuration and require an empty plan",
+		"Verify normal destroy fails while orchestration is enabled",
+		"Disable orchestration before testing forced removal",
+		"Import the existing fabric with credentials supplied by fabric-scoped environment variables",
+		"Verify the fabric-scoped force environment variable permits destroy",
+		"Verify importing the removed fabric reports resource not found",
+		"Recreate the fabric with orchestration enabled",
+		"Disable orchestration before normal removal",
+		"Delete outside Terraform and verify provider Delete treats HTTP 404 as success",
 	}
 	for _, testCase := range testCases {
-		t.Logf("Coverage: %s - %s", testCase["name"], testCase["purpose"])
+		t.Logf("Fabric ACI test case: %s", testCase)
+	}
+	stepName := func(step int) string {
+		return fmt.Sprintf("%s - %s", t.Name(), testCases[step-1])
 	}
 
 	x := &map[string]string{
@@ -228,7 +231,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Config: func() string {
 					*stepCount++
 					s1.Index = *stepCount
-					s1.Name = fmt.Sprintf("%s_%d_create_required", t.Name(), s1.Index)
+					s1.Name = stepName(1)
 
 					helper.GenerateFabricAciObject(
 						&fabricRsc,
@@ -256,7 +259,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Config: func() string {
 					*stepCount++
 					s2.Index = *stepCount
-					s2.Name = fmt.Sprintf("%s_%d_update_optional_enable_orchestration", t.Name(), s2.Index)
+					s2.Name = stepName(2)
 
 					helper.ModifyFabricAciObject(&fabricRsc, map[string]interface{}{
 						"latitude":             float64(9),
@@ -284,7 +287,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Config: func() string {
 					*stepCount++
 					s3.Index = *stepCount
-					s3.Name = fmt.Sprintf("%s_%d_update_license_tier", t.Name(), s3.Index)
+					s3.Name = stepName(3)
 
 					helper.ModifyFabricAciObject(&fabricRsc, map[string]interface{}{
 						"license_tier": "premier",
@@ -307,7 +310,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Config: func() string {
 					*stepCount++
 					s4.Index = *stepCount
-					s4.Name = fmt.Sprintf("%s_%d_reapply_expect_empty_plan", t.Name(), s4.Index)
+					s4.Name = stepName(4)
 
 					helper.GetTFConfigWithSingleResource(s4.Name, *x,
 						[]interface{}{fabricRsc}, &tfConfig)
@@ -327,7 +330,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Config: func() string {
 					*stepCount++
 					s5.Index = *stepCount
-					s5.Name = fmt.Sprintf("%s_%d_destroy_expect_orchestration_error", t.Name(), s5.Index)
+					s5.Name = stepName(5)
 
 					helper.GetTFConfigWithSingleResource(s5.Name, *x,
 						[]interface{}{fabricRsc}, &tfConfig)
@@ -352,7 +355,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Config: func() string {
 					*stepCount++
 					s6.Index = *stepCount
-					s6.Name = fmt.Sprintf("%s_%d_disable_orchestration_before_force", t.Name(), s6.Index)
+					s6.Name = stepName(6)
 
 					helper.ModifyFabricAciObject(&fabricRsc, map[string]interface{}{
 						"orchestration_status": "disabled",
@@ -382,7 +385,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Config: func() string {
 					*stepCount++
 					s7.Index = *stepCount
-					s7.Name = fmt.Sprintf("%s_%d_import_with_environment_credentials", t.Name(), s7.Index)
+					s7.Name = stepName(7)
 
 					helper.GetTFConfigWithSingleResource(s7.Name, *x,
 						[]interface{}{fabricRsc}, &tfConfig)
@@ -420,7 +423,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Config: func() string {
 					*stepCount++
 					s8.Index = *stepCount
-					s8.Name = fmt.Sprintf("%s_%d_force_destroy_imported_fabric", t.Name(), s8.Index)
+					s8.Name = stepName(8)
 
 					helper.GetTFConfigWithSingleResource(s8.Name, *x,
 						[]interface{}{fabricRsc}, &tfConfig)
@@ -455,7 +458,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Config: func() string {
 					*stepCount++
 					s9.Index = *stepCount
-					s9.Name = fmt.Sprintf("%s_%d_import_missing_fabric", t.Name(), s9.Index)
+					s9.Name = stepName(9)
 
 					helper.GetTFConfigWithSingleResource(s9.Name, *x,
 						[]interface{}{fabricRsc}, &tfConfig)
@@ -482,7 +485,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Config: func() string {
 					*stepCount++
 					s10.Index = *stepCount
-					s10.Name = fmt.Sprintf("%s_%d_recreate_with_orchestration_enabled", t.Name(), s10.Index)
+					s10.Name = stepName(10)
 
 					helper.GenerateFabricAciObject(
 						&fabricRsc,
@@ -524,7 +527,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Config: func() string {
 					*stepCount++
 					s11.Index = *stepCount
-					s11.Name = fmt.Sprintf("%s_%d_disable_orchestration_before_external_delete", t.Name(), s11.Index)
+					s11.Name = stepName(11)
 
 					helper.ModifyFabricAciObject(&fabricRsc, map[string]interface{}{
 						"orchestration_status": "disabled",
@@ -548,7 +551,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Config: func() string {
 					*stepCount++
 					s12.Index = *stepCount
-					s12.Name = fmt.Sprintf("%s_%d_destroy_after_external_delete", t.Name(), s12.Index)
+					s12.Name = stepName(12)
 
 					helper.GetTFConfigWithSingleResource(s12.Name, *x,
 						[]interface{}{fabricRsc}, &tfConfig)

@@ -48,12 +48,12 @@ resource "nd_fabric_aci" "test_resource_fabric_aci_1" {
 - `license_tier` (String) The license tier of the APIC cluster. Allowed values are `essentials`, or `advantage`, or `premier`.
 - `login_domain` (String, Sensitive) The APIC login domain. The API does not return this value during import, so set `<FABRIC_PREFIX>_LOGIN_DOMAIN` to store it in state. If unset during import, run `terraform apply` before destroy when the configured login domain is required.
 - `longitude` (Number) The longitude coordinate of the APIC cluster.
-- `orchestration_status` (String) The status of the orchestration feature for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when unset during creation.
-- `security_domain` (String) The name of the security domain for the APIC cluster. Defaults to `all` when unset during creation.
+- `orchestration_status` (String) The status of the orchestration feature for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.
+- `security_domain` (String) The name of the security domain for the APIC cluster. Defaults to `all` when not specified in the configuration.
 - `telemetry_epg` (String) The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.
 - `telemetry_network` (String) The network type for telemetry collection. Allowed values are `inband` or `outband`.
-- `telemetry_status` (String) The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when unset during creation.
-- `telemetry_streaming_protocol` (String) The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Defaults to `ipv4` when unset during creation.
+- `telemetry_status` (String) The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.
+- `telemetry_streaming_protocol` (String) The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Nexus Dashboard defaults this value to `ipv4` when it is not specified in the configuration.
 - `verify_ca` (Boolean) This validates that connected host certificates are signed by a trusted Certificate Authority (CA). Defaults to `false` when not specified in the configuration.
 
 ### Read-Only

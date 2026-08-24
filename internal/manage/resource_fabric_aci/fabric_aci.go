@@ -220,6 +220,9 @@ func (r *fabricAciResource) ImportState(ctx context.Context, req resource.Import
 	state.Id = types.StringValue(req.ID)
 	state.FabricName = state.Id
 
+	// Setting default value false to VerifyCa because the API does not return it.
+	state.VerifyCa = types.BoolValue(false)
+
 	if r.rscGetFabricAci(ctx, &resp.Diagnostics, &state) {
 		resp.Diagnostics.AddError(
 			"Error Importing Fabric ACI",
