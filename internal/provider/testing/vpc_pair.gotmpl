@@ -4,6 +4,93 @@ resource "nd_vpc_pair" "{{.RscName}}" {
     switch_id_1 = "{{.SwitchId1}}"
     switch_id_2 = "{{.SwitchId2}}"
     use_virtual_peerlink = {{deref_bool .UseVirtualPeerlink}}
+    {{- if .VpcPairDetails.TemplateType}}
+    vpc_pair_details = {
+      {{- with .VpcPairDetails}}
+      {{- if .AdminState}}
+      admin_state = {{deref_bool .AdminState}}
+      {{- end}}
+      {{- if .AllowedVlans}}
+      allowed_vlans = "{{.AllowedVlans}}"
+      {{- end}}
+      {{- if .TemplateType}}
+      template_type = "{{.TemplateType}}"
+      {{- end}}
+      {{- if .DomainId}}
+      domain_id = {{deref_int64 .DomainId}}
+      {{- end}}
+      {{- if .EnableMirrorConfig}}
+      enable_mirror_config = {{deref_bool .EnableMirrorConfig}}
+      {{- end}}
+      {{- if .FabricPathSwitchId}}
+      fabric_path_switch_id = {{deref_int64 .FabricPathSwitchId}}
+      {{- end}}
+      {{- if .IsVpcPlus}}
+      is_vpc_plus = {{deref_bool .IsVpcPlus}}
+      {{- end}}
+      {{- if .IsVteps}}
+      is_vteps = {{deref_bool .IsVteps}}
+      {{- end}}
+      {{- if .KeepAliveHoldTimeout}}
+      keep_alive_hold_timeout = {{deref_int64 .KeepAliveHoldTimeout}}
+      {{- end}}
+      {{- if .KeepAliveVrf}}
+      keep_alive_vrf = "{{.KeepAliveVrf}}"
+      {{- end}}
+      {{- if .LoopbackSecondaryIp}}
+      loopback_secondary_ip = "{{.LoopbackSecondaryIp}}"
+      {{- end}}
+      {{- if .NveInterface}}
+      nve_interface = {{deref_int64 .NveInterface}}
+      {{- end}}
+      {{- if .PeerSwitchKeepAliveLocalIp}}
+      peer_switch_keep_alive_local_ip = "{{.PeerSwitchKeepAliveLocalIp}}"
+      {{- end}}
+      {{- if .PeerSwitchMemberInterfaces}}
+      peer_switch_member_interfaces = {{quote_list .PeerSwitchMemberInterfaces}}
+      {{- end}}
+      {{- if .PeerSwitchNativeVlan}}
+      peer_switch_native_vlan = {{deref_int64 .PeerSwitchNativeVlan}}
+      {{- end}}
+      {{- if .PeerSwitchPoDescription}}
+      peer_switch_po_description = "{{.PeerSwitchPoDescription}}"
+      {{- end}}
+      {{- if .PeerSwitchPoId}}
+      peer_switch_po_id = {{deref_int64 .PeerSwitchPoId}}
+      {{- end}}
+      {{- if .PeerSwitchPrimaryIp}}
+      peer_switch_primary_ip = "{{.PeerSwitchPrimaryIp}}"
+      {{- end}}
+      {{- if .PeerSwitchSourceLoopback}}
+      peer_switch_source_loopback = {{deref_int64 .PeerSwitchSourceLoopback}}
+      {{- end}}
+      {{- if .PoMode}}
+      po_mode = "{{.PoMode}}"
+      {{- end}}
+      {{- if .SwitchKeepAliveLocalIp}}
+      switch_keep_alive_local_ip = "{{.SwitchKeepAliveLocalIp}}"
+      {{- end}}
+      {{- if .SwitchMemberInterfaces}}
+      switch_member_interfaces = {{quote_list .SwitchMemberInterfaces}}
+      {{- end}}
+      {{- if .SwitchNativeVlan}}
+      switch_native_vlan = {{deref_int64 .SwitchNativeVlan}}
+      {{- end}}
+      {{- if .SwitchPoDescription}}
+      switch_po_description = "{{.SwitchPoDescription}}"
+      {{- end}}
+      {{- if .SwitchPoId}}
+      switch_po_id = {{deref_int64 .SwitchPoId}}
+      {{- end}}
+      {{- if .SwitchPrimaryIp}}
+      switch_primary_ip = "{{.SwitchPrimaryIp}}"
+      {{- end}}
+      {{- if .SwitchSourceLoopback}}
+      switch_source_loopback = {{deref_int64 .SwitchSourceLoopback}}
+      {{- end}}
+      {{- end}}
+    }
+    {{- end}}
     deploy = {{.Deploy}}
 {{end}}
 }

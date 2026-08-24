@@ -61,9 +61,15 @@ nd:
   # Switches used by vPC pair acceptance tests. If omitted, those tests skip.
   vpc_pair:
     switches:
+      - "SERIAL001"
       - "SERIAL002"
-      - "SERIAL003"
-
+    external:
+      fabric: external
+      peer_switch_id: "SERIAL002"
+      switch_id: "SERIAL001"
+      switches:
+        - "SERIAL001"
+        - "SERIAL002"
   # Inventory-specific test configuration
   inventory:
     fabric: test_fabric_vxlan

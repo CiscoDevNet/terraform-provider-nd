@@ -100,6 +100,7 @@ func (r *vpcPairResource) Create(ctx context.Context, req resource.CreateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	normalizeVpcPairModelState(&in)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &in)...)
@@ -153,6 +154,7 @@ func (r *vpcPairResource) Read(ctx context.Context, req resource.ReadRequest, re
 		outData.UseVirtualPeerlink = state.GetModelData().UseVirtualPeerlink
 	}
 	state.SetModelData(outData)
+	normalizeVpcPairModelState(&state)
 	setVpcPairID(&state)
 
 	tflog.Debug(ctx, "Read vPC pair", map[string]interface{}{
@@ -195,6 +197,7 @@ func (r *vpcPairResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	normalizeVpcPairModelState(&plan)
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -321,9 +324,24 @@ func (r *vpcPairResource) ImportState(ctx context.Context, req resource.ImportSt
 		resp.Diagnostics.Append(diag...)
 		return
 	}
+	normalizeVpcPairModelState(&state)
 
 	setVpcPairID(&state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func normalizeVpcPairModelState(model *VpcPairModel) {
+	if model == nil {
+		return
+	}
+
+	if model.VpcPairDetails.TemplateType.IsUnknown() {
+		return
+	}
+
+	if model.VpcPairDetails.TemplateType.IsNull() || strings.TrimSpace(model.VpcPairDetails.TemplateType.ValueString()) == "" {
+		model.VpcPairDetails = NewVpcPairDetailsValueNull()
+	}
 }
 
 func matchesImportedVpcPair(inData *NDFCVpcPairModel, outData *NDFCVpcPairModel) bool {

@@ -99,6 +99,13 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 		"trimSuffix": func(s, suffix string) string {
 			return strings.TrimSuffix(s, suffix)
 		},
+		"quote_list": func(items []string) string {
+			quoted := make([]string, 0, len(items))
+			for _, item := range items {
+				quoted = append(quoted, fmt.Sprintf("%q", item))
+			}
+			return fmt.Sprintf("[%s]", strings.Join(quoted, ", "))
+		},
 	}
 
 	// Parse all templates
