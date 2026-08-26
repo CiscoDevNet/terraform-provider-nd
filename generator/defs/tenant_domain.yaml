@@ -32,7 +32,7 @@ resource:
 
   - model_name: tenantNames
     tf_name: tenant_names
-    description: List of tenant name in the tenant domain.
+    description: The complete list of tenants associated with the tenant domain.
     type: List:String
     optional: true
     include_empty: true

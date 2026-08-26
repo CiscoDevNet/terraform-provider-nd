@@ -10,9 +10,10 @@ package resource_tenant_domain
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
-	"strings"
+	"net/http"
 
 	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/infra/api"
@@ -54,17 +55,28 @@ func (r *tenantDomainResource) rscCreateTenantDomain(dg *diag.Diagnostics, tenan
 		return
 	}
 
-	if r.rscGetTenantDomain(dg, tenantDomainModel) {
+	modelDiags, err := r.rscGetTenantDomain(tenantDomainModel)
+	dg.Append(modelDiags...)
+	if errors.Is(err, ndapi.ErrNotFound) {
 		dg.AddError(
 			"Error Creating Tenant Domain",
 			fmt.Sprintf("Tenant domain %q was not found after create", id),
 		)
 		return
 	}
+	if err != nil {
+		dg.AddError(
+			"Error Creating Tenant Domain",
+			fmt.Sprintf("Could not read tenant domain %q after create: %s", id, err.Error()),
+		)
+		return
+	}
 }
 
-// rscGetTenantDomain retrieves tenant domain information by name.
-func (r *tenantDomainResource) rscGetTenantDomain(dg *diag.Diagnostics, tenantDomainModel *TenantDomainModel) bool {
+// rscGetTenantDomain retrieves tenant domain information by name. API and
+// response-decoding failures are returned as errors, while model-conversion
+// diagnostics are returned without flattening their Terraform details.
+func (r *tenantDomainResource) rscGetTenantDomain(tenantDomainModel *TenantDomainModel) (diag.Diagnostics, error) {
 	id := tenantDomainModel.Id.ValueString()
 	log.Printf("[INFO] Read nd_tenant_domain id=%s", id)
 
@@ -72,34 +84,24 @@ func (r *tenantDomainResource) rscGetTenantDomain(dg *diag.Diagnostics, tenantDo
 	tenantDomainAPI.TenantDomainName = id
 
 	respData, err := tenantDomainAPI.Get()
+	err = ndapi.ClassifyRequestError(http.MethodGet, tenantDomainAPI.GetUrl(), respData, err)
 	if err != nil {
-		if strings.Contains(err.Error(), "StatusCode 404") {
-			return true
+		responseBody := ""
+		var requestErr *ndapi.RequestError
+		if errors.As(err, &requestErr) {
+			responseBody = string(requestErr.Response)
 		}
-		dg.AddError(
-			"Error Reading Tenant Domain",
-			fmt.Sprintf("Could not read tenant domain, unexpected error: %s %s", err.Error(), string(respData)),
-		)
-		return false
+		return nil, fmt.Errorf("GET tenant domain %q: %w; response: %s", id, err, responseBody)
 	}
 
 	var tenantDomainResp NDFCTenantDomainModel
 	err = json.Unmarshal(respData, &tenantDomainResp)
 	if err != nil {
-		dg.AddError(
-			"Error Reading Tenant Domain",
-			fmt.Sprintf("Could not unmarshal tenant domain response, unexpected error: %s", err.Error()),
-		)
-		return false
+		return nil, fmt.Errorf("could not unmarshal tenant domain %q response: %w", id, err)
 	}
 
 	tenantDomainResp.Id = id
-	dg.Append(tenantDomainModel.SetModelData(&tenantDomainResp)...)
-	if dg.HasError() {
-		return false
-	}
-
-	return false
+	return tenantDomainModel.SetModelData(&tenantDomainResp), nil
 }
 
 // rscUpdateTenantDomain updates a tenant domain resource.
@@ -133,10 +135,19 @@ func (r *tenantDomainResource) rscUpdateTenantDomain(dg *diag.Diagnostics, tenan
 		return
 	}
 
-	if r.rscGetTenantDomain(dg, tenantDomainModel) {
+	modelDiags, err := r.rscGetTenantDomain(tenantDomainModel)
+	dg.Append(modelDiags...)
+	if errors.Is(err, ndapi.ErrNotFound) {
 		dg.AddError(
 			"Error Updating Tenant Domain",
 			fmt.Sprintf("Tenant domain %q was not found after update", id),
+		)
+		return
+	}
+	if err != nil {
+		dg.AddError(
+			"Error Updating Tenant Domain",
+			fmt.Sprintf("Could not read tenant domain %q after update: %s", id, err.Error()),
 		)
 		return
 	}
@@ -151,8 +162,9 @@ func (r *tenantDomainResource) rscDeleteTenantDomain(dg *diag.Diagnostics, tenan
 	tenantDomainAPI.TenantDomainName = id
 
 	res, err := tenantDomainAPI.Delete()
+	err = ndapi.ClassifyRequestError(http.MethodDelete, tenantDomainAPI.DeleteUrl(), []byte(res.String()), err)
 	if err != nil {
-		if strings.Contains(err.Error(), "StatusCode 404") {
+		if errors.Is(err, ndapi.ErrNotFound) {
 			return
 		}
 		dg.AddError(

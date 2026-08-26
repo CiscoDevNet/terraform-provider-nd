@@ -30,7 +30,7 @@ resource "nd_tenant_domain" "test_resource_tenant_domain_1" {
 ### Optional
 
 - `description` (String) The description of the tenant domain.
-- `tenant_names` (Set of String) List of tenant name in the tenant domain.
+- `tenant_names` (Set of String) The complete list of tenants associated with the tenant domain.
 
 ### Read-Only
 
