@@ -22,6 +22,7 @@ import (
 	"terraform-provider-nd/internal/infra/resource_backup"
 	"terraform-provider-nd/internal/infra/resource_local_user"
 	"terraform-provider-nd/internal/infra/resource_multi_cluster_connectivity"
+	"terraform-provider-nd/internal/infra/resource_tenant_domain"
 	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
 	"terraform-provider-nd/internal/manage/resource_vpc_pair"
@@ -206,6 +207,14 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 			err = t.ExecuteTemplate(&output, "ND_MULTI_CLUSTER_CONNECTIVITY_RSC", args)
 			if err != nil {
 				panic(fmt.Sprintf("Failed to execute ND_MULTI_CLUSTER_CONNECTIVITY_RSC template: %v", err))
+			}
+
+		case *resource_tenant_domain.NDFCTenantDomainModel:
+			args["TenantDomain"] = v
+			args["RscName"] = rscName
+			err = t.ExecuteTemplate(&output, "ND_TENANT_DOMAIN_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_TENANT_DOMAIN_RSC template: %v", err))
 			}
 
 		case *resource_backup.NDFCBackupModel:
