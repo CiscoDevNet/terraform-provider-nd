@@ -10,9 +10,11 @@ package resource_tenant_domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
+	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/infra"
 	"terraform-provider-nd/internal/registry"
 
@@ -120,9 +122,18 @@ func (r *tenantDomainResource) Read(ctx context.Context, req resource.ReadReques
 	id := state.Id.ValueString()
 	log.Printf("[DEBUG] Reading Tenant Domain: id=%s", id)
 
-	if r.rscGetTenantDomain(&resp.Diagnostics, &state) {
+	modelDiags, err := r.rscGetTenantDomain(&state)
+	resp.Diagnostics.Append(modelDiags...)
+	if errors.Is(err, ndapi.ErrNotFound) {
 		log.Printf("[DEBUG] Tenant domain %q not found, removing from state", id)
 		resp.State.RemoveResource(ctx)
+		return
+	}
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading Tenant Domain",
+			fmt.Sprintf("Could not read tenant domain %q: %s", id, err.Error()),
+		)
 		return
 	}
 	if resp.Diagnostics.HasError() {
@@ -188,10 +199,19 @@ func (r *tenantDomainResource) ImportState(ctx context.Context, req resource.Imp
 	state.Name = types.StringValue(req.ID)
 	state.Id = state.Name
 
-	if r.rscGetTenantDomain(&resp.Diagnostics, &state) {
+	modelDiags, err := r.rscGetTenantDomain(&state)
+	resp.Diagnostics.Append(modelDiags...)
+	if errors.Is(err, ndapi.ErrNotFound) {
 		resp.Diagnostics.AddError(
 			"Error Importing Tenant Domain",
 			fmt.Sprintf("Tenant domain %q was not found", req.ID),
+		)
+		return
+	}
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Importing Tenant Domain",
+			fmt.Sprintf("Could not read tenant domain %q during import: %s", req.ID, err.Error()),
 		)
 		return
 	}

@@ -38,8 +38,8 @@ func TenantDomainResourceSchema(ctx context.Context) schema.Schema {
 			"tenant_names": schema.SetAttribute{
 				ElementType:         types.StringType,
 				Optional:            true,
-				Description:         "List of tenant name in the tenant domain.",
-				MarkdownDescription: "List of tenant name in the tenant domain.",
+				Description:         "The complete list of tenants associated with the tenant domain.",
+				MarkdownDescription: "The complete list of tenants associated with the tenant domain.",
 			},
 		},
 		Description:         "Manages tenant domain for Nexus Dashboard",
