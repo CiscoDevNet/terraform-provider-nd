@@ -78,7 +78,8 @@ func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Dia
 
 	inData := fabricAciModel.GetModelData()
 	inData.Spec.ClusterType = "APIC"
-	inData.Spec.Aci.Telemetry.TelemetryNetwork = telemetryNetworkToCreatePayload(inData.Spec.Aci.Telemetry.TelemetryNetwork)
+	inData.Spec.Aci.Telemetry.Status = fabricAciTelemetryStatus(fabricAciModel.Telemetry)
+	inData.Spec.Aci.Telemetry.Network = telemetryNetworkToCreatePayload(inData.Spec.Aci.Telemetry.Network)
 	createPayload := aciClusterCreatePayload{Spec: inData.Spec}
 
 	clusterAPI := api.NewFabricAciAPI(r.manageClient.ApiClient, ndapi.DefaultFabric)

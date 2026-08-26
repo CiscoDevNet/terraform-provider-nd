@@ -39,20 +39,6 @@ func FabricAciModelHelperStateCheck(RscName string, c resource_fabric_aci.NDFCFa
 	if c.Spec.Aci.LicenseTier != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("license_tier").String(), c.Spec.Aci.LicenseTier))
 	}
-	if c.Spec.Aci.Telemetry.TelemetryStatus != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("telemetry_status").String(), c.Spec.Aci.Telemetry.TelemetryStatus))
-	} else {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("telemetry_status").String(), "disabled"))
-	}
-	if c.Spec.Aci.Telemetry.TelemetryNetwork != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("telemetry_network").String(), c.Spec.Aci.Telemetry.TelemetryNetwork))
-	}
-	if c.Spec.Aci.Telemetry.TelemetryEpg != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("telemetry_epg").String(), c.Spec.Aci.Telemetry.TelemetryEpg))
-	}
-	if c.Spec.Aci.Telemetry.TelemetryStreamingProtocol != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("telemetry_streaming_protocol").String(), c.Spec.Aci.Telemetry.TelemetryStreamingProtocol))
-	}
 	if c.Spec.Aci.Orchestration.OrchestrationStatus != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("orchestration_status").String(), c.Spec.Aci.Orchestration.OrchestrationStatus))
 	} else {

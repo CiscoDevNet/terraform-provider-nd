@@ -18,10 +18,12 @@ import (
 // PUT /manage/fabrics/{fabricName}. The generated NDFCFabricAciModel
 // is kept for the infra /clusters create/read/delete payload.
 type fabricAciManageUpdatePayload struct {
-	Category                   string                     `json:"category,omitempty"`
-	FabricName                 string                     `json:"name,omitempty"`
-	LicenseTier                string                     `json:"licenseTier,omitempty"`
-	SecurityDomain             string                     `json:"securityDomain,omitempty"`
+	Category       string `json:"category,omitempty"`
+	FabricName     string `json:"name,omitempty"`
+	LicenseTier    string `json:"licenseTier,omitempty"`
+	SecurityDomain string `json:"securityDomain,omitempty"`
+	// TelemetryCollection is derived from whether the Terraform telemetry object
+	// is configured, rather than from its computed status attribute.
 	TelemetryCollection        *bool                      `json:"telemetryCollection,omitempty"`
 	TelemetryCollectionType    string                     `json:"telemetryCollectionType,omitempty"`
 	TelemetryStreamingProtocol string                     `json:"telemetryStreamingProtocol,omitempty"`
@@ -54,15 +56,18 @@ func (v FabricAciModel) manageUpdatePayload() *fabricAciManageUpdatePayload {
 		data.SecurityDomain = v.SecurityDomain.ValueString()
 	}
 
-	if !v.TelemetryStatus.IsNull() && !v.TelemetryStatus.IsUnknown() {
-		telemetryCollection := utils.EnabledDisabledToBool(v.TelemetryStatus.ValueString())
-		data.TelemetryCollection = &telemetryCollection
-	}
-	if !v.TelemetryNetwork.IsNull() && !v.TelemetryNetwork.IsUnknown() {
-		data.TelemetryCollectionType = telemetryNetworkToCollectionType(v.TelemetryNetwork.ValueString())
-	}
-	if !v.TelemetryStreamingProtocol.IsNull() && !v.TelemetryStreamingProtocol.IsUnknown() {
-		data.TelemetryStreamingProtocol = v.TelemetryStreamingProtocol.ValueString()
+	telemetryCollection := fabricAciTelemetryEnabled(v.Telemetry)
+	data.TelemetryCollection = &telemetryCollection
+	if telemetryCollection {
+		if !v.Telemetry.Network.IsNull() && !v.Telemetry.Network.IsUnknown() {
+			data.TelemetryCollectionType = telemetryNetworkToCollectionType(v.Telemetry.Network.ValueString())
+		}
+		if !v.Telemetry.StreamingProtocol.IsNull() && !v.Telemetry.StreamingProtocol.IsUnknown() {
+			data.TelemetryStreamingProtocol = v.Telemetry.StreamingProtocol.ValueString()
+		}
+		if !v.Telemetry.Epg.IsNull() && !v.Telemetry.Epg.IsUnknown() {
+			data.Management.Epg = v.Telemetry.Epg.ValueString()
+		}
 	}
 	if !v.Latitude.IsNull() && !v.Latitude.IsUnknown() {
 		if data.Location == nil {
@@ -82,19 +87,23 @@ func (v FabricAciModel) manageUpdatePayload() *fabricAciManageUpdatePayload {
 		orchestration := utils.EnabledDisabledToBool(v.OrchestrationStatus.ValueString())
 		data.Management.Orchestration = &orchestration
 	}
-	if !v.TelemetryEpg.IsNull() && !v.TelemetryEpg.IsUnknown() {
-		data.Management.Epg = v.TelemetryEpg.ValueString()
-	}
-
 	return data
 }
 
+func fabricAciTelemetryEnabled(telemetry TelemetryValue) bool {
+	return !telemetry.IsNull() && !telemetry.IsUnknown()
+}
+
+func fabricAciTelemetryStatus(telemetry TelemetryValue) string {
+	return utils.BoolToEnabledDisabled(fabricAciTelemetryEnabled(telemetry))
+}
+
 func (v *FabricAciModel) NormalizeTelemetryNetworkState() {
-	if v == nil || v.TelemetryNetwork.IsNull() || v.TelemetryNetwork.IsUnknown() {
+	if v == nil || v.Telemetry.IsNull() || v.Telemetry.IsUnknown() || v.Telemetry.Network.IsNull() || v.Telemetry.Network.IsUnknown() {
 		return
 	}
 
-	v.TelemetryNetwork = types.StringValue(normalizeTelemetryNetworkState(v.TelemetryNetwork.ValueString()))
+	v.Telemetry.Network = types.StringValue(normalizeTelemetryNetworkState(v.Telemetry.Network.ValueString()))
 }
 
 func telemetryNetworkToCollectionType(network string) string {

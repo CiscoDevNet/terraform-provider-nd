@@ -16,17 +16,8 @@ import (
 )
 
 type NDFCFabricAciModel struct {
-	Status NDFCStatusValue `json:"status,omitempty"`
 	Spec   NDFCSpecValue   `json:"spec,omitempty"`
-}
-
-type NDFCStatusValue struct {
-	State      string                    `json:"-"`
-	LastUpdate NDFCStatusLastUpdateValue `json:"lastUpdate,omitempty"`
-}
-
-type NDFCStatusLastUpdateValue struct {
-	LastUpdateMessage string `json:"-"`
+	Status NDFCStatusValue `json:"status,omitempty"`
 }
 
 type NDFCSpecValue struct {
@@ -51,21 +42,30 @@ type NDFCSpecCredentialsValue struct {
 type NDFCSpecAciValue struct {
 	FabricName     string                    `json:"name,omitempty"`
 	LicenseTier    string                    `json:"licenseTier,omitempty"`
+	Telemetry      NDFCTelemetryValue        `json:"telemetry,omitempty"`
 	SecurityDomain string                    `json:"securityDomain,omitempty"`
 	VerifyCa       *bool                     `json:"verifyCA,omitempty"`
-	Telemetry      NDFCAciTelemetryValue     `json:"telemetry,omitempty"`
 	Orchestration  NDFCAciOrchestrationValue `json:"orchestration,omitempty"`
 }
 
-type NDFCAciTelemetryValue struct {
-	TelemetryStatus            string `json:"status,omitempty"`
-	TelemetryNetwork           string `json:"network,omitempty"`
-	TelemetryEpg               string `json:"epg,omitempty"`
-	TelemetryStreamingProtocol string `json:"streamingProtocol,omitempty"`
+type NDFCTelemetryValue struct {
+	Status            string `json:"status,omitempty"`
+	Network           string `json:"network,omitempty"`
+	Epg               string `json:"epg,omitempty"`
+	StreamingProtocol string `json:"streamingProtocol,omitempty"`
 }
 
 type NDFCAciOrchestrationValue struct {
 	OrchestrationStatus string `json:"status,omitempty"`
+}
+
+type NDFCStatusValue struct {
+	State      string                    `json:"-"`
+	LastUpdate NDFCStatusLastUpdateValue `json:"lastUpdate,omitempty"`
+}
+
+type NDFCStatusLastUpdateValue struct {
+	LastUpdateMessage string `json:"-"`
 }
 
 func (v *FabricAciModel) SetModelData(jsonData *NDFCFabricAciModel) diag.Diagnostics {
@@ -128,34 +128,7 @@ func (v *FabricAciModel) SetModelData(jsonData *NDFCFabricAciModel) diag.Diagnos
 		v.LicenseTier = types.StringNull()
 	}
 
-	if jsonData.Spec.Aci.Telemetry.TelemetryStatus != "" {
-		v.TelemetryStatus = types.StringValue(jsonData.Spec.Aci.Telemetry.TelemetryStatus)
-
-	} else {
-		v.TelemetryStatus = types.StringNull()
-	}
-
-	if jsonData.Spec.Aci.Telemetry.TelemetryNetwork != "" {
-		v.TelemetryNetwork = types.StringValue(jsonData.Spec.Aci.Telemetry.TelemetryNetwork)
-
-	} else {
-		v.TelemetryNetwork = types.StringNull()
-	}
-
-	if jsonData.Spec.Aci.Telemetry.TelemetryEpg != "" {
-		v.TelemetryEpg = types.StringValue(jsonData.Spec.Aci.Telemetry.TelemetryEpg)
-
-	} else {
-		v.TelemetryEpg = types.StringNull()
-	}
-
-	if jsonData.Spec.Aci.Telemetry.TelemetryStreamingProtocol != "" {
-		v.TelemetryStreamingProtocol = types.StringValue(jsonData.Spec.Aci.Telemetry.TelemetryStreamingProtocol)
-
-	} else {
-		v.TelemetryStreamingProtocol = types.StringNull()
-	}
-
+	v.Telemetry.SetValue(&jsonData.Spec.Aci.Telemetry)
 	if jsonData.Spec.Aci.Orchestration.OrchestrationStatus != "" {
 		v.OrchestrationStatus = types.StringValue(jsonData.Spec.Aci.Orchestration.OrchestrationStatus)
 
@@ -189,6 +162,38 @@ func (v *FabricAciModel) SetModelData(jsonData *NDFCFabricAciModel) diag.Diagnos
 
 	} else {
 		v.LastUpdateMessage = types.StringNull()
+	}
+
+	return err
+}
+
+func (v *TelemetryValue) SetValue(jsonData *NDFCTelemetryValue) diag.Diagnostics {
+
+	var err diag.Diagnostics
+	err = nil
+
+	if jsonData.Status != "" {
+		v.Status = types.StringValue(jsonData.Status)
+	} else {
+		v.Status = types.StringNull()
+	}
+
+	if jsonData.Network != "" {
+		v.Network = types.StringValue(jsonData.Network)
+	} else {
+		v.Network = types.StringNull()
+	}
+
+	if jsonData.Epg != "" {
+		v.Epg = types.StringValue(jsonData.Epg)
+	} else {
+		v.Epg = types.StringNull()
+	}
+
+	if jsonData.StreamingProtocol != "" {
+		v.StreamingProtocol = types.StringValue(jsonData.StreamingProtocol)
+	} else {
+		v.StreamingProtocol = types.StringNull()
 	}
 
 	return err
@@ -249,30 +254,6 @@ func (v FabricAciModel) GetModelData() *NDFCFabricAciModel {
 		data.Spec.Aci.LicenseTier = ""
 	}
 
-	if !v.TelemetryStatus.IsNull() && !v.TelemetryStatus.IsUnknown() {
-		data.Spec.Aci.Telemetry.TelemetryStatus = v.TelemetryStatus.ValueString()
-	} else {
-		data.Spec.Aci.Telemetry.TelemetryStatus = ""
-	}
-
-	if !v.TelemetryNetwork.IsNull() && !v.TelemetryNetwork.IsUnknown() {
-		data.Spec.Aci.Telemetry.TelemetryNetwork = v.TelemetryNetwork.ValueString()
-	} else {
-		data.Spec.Aci.Telemetry.TelemetryNetwork = ""
-	}
-
-	if !v.TelemetryEpg.IsNull() && !v.TelemetryEpg.IsUnknown() {
-		data.Spec.Aci.Telemetry.TelemetryEpg = v.TelemetryEpg.ValueString()
-	} else {
-		data.Spec.Aci.Telemetry.TelemetryEpg = ""
-	}
-
-	if !v.TelemetryStreamingProtocol.IsNull() && !v.TelemetryStreamingProtocol.IsUnknown() {
-		data.Spec.Aci.Telemetry.TelemetryStreamingProtocol = v.TelemetryStreamingProtocol.ValueString()
-	} else {
-		data.Spec.Aci.Telemetry.TelemetryStreamingProtocol = ""
-	}
-
 	if !v.OrchestrationStatus.IsNull() && !v.OrchestrationStatus.IsUnknown() {
 		data.Spec.Aci.Orchestration.OrchestrationStatus = v.OrchestrationStatus.ValueString()
 	} else {
@@ -302,6 +283,29 @@ func (v FabricAciModel) GetModelData() *NDFCFabricAciModel {
 		data.Status.LastUpdate.LastUpdateMessage = v.LastUpdateMessage.ValueString()
 	} else {
 		data.Status.LastUpdate.LastUpdateMessage = ""
+	}
+
+	//MARSHAL_BODY
+
+	// Nested types Telemetry # network
+	if !v.Telemetry.Network.IsNull() && !v.Telemetry.Network.IsUnknown() {
+		data.Spec.Aci.Telemetry.Network = v.Telemetry.Network.ValueString()
+	} else {
+		data.Spec.Aci.Telemetry.Network = ""
+	}
+
+	// Nested types Telemetry # epg
+	if !v.Telemetry.Epg.IsNull() && !v.Telemetry.Epg.IsUnknown() {
+		data.Spec.Aci.Telemetry.Epg = v.Telemetry.Epg.ValueString()
+	} else {
+		data.Spec.Aci.Telemetry.Epg = ""
+	}
+
+	// Nested types Telemetry # streaming_protocol
+	if !v.Telemetry.StreamingProtocol.IsNull() && !v.Telemetry.StreamingProtocol.IsUnknown() {
+		data.Spec.Aci.Telemetry.StreamingProtocol = v.Telemetry.StreamingProtocol.ValueString()
+	} else {
+		data.Spec.Aci.Telemetry.StreamingProtocol = ""
 	}
 
 	return data

@@ -4,13 +4,19 @@ package resource_fabric_aci
 
 import (
 	"context"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
@@ -111,40 +117,47 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"telemetry_epg": schema.StringAttribute{
-				Optional:            true,
-				Description:         "The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.",
-				MarkdownDescription: "The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.",
-			},
-			"telemetry_network": schema.StringAttribute{
-				Optional:            true,
-				Description:         "The network type for telemetry collection. Allowed values are `inband` or `outband`.",
-				MarkdownDescription: "The network type for telemetry collection. Allowed values are `inband` or `outband`.",
-				Validators: []validator.String{
-					stringvalidator.OneOf("inband", "outband"),
+			"telemetry": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"epg": schema.StringAttribute{
+						Optional:            true,
+						Description:         "The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.",
+						MarkdownDescription: "The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.",
+					},
+					"network": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "The network type for telemetry collection. Allowed values are `inband` or `outband`.",
+						MarkdownDescription: "The network type for telemetry collection. Allowed values are `inband` or `outband`.",
+						Validators: []validator.String{
+							stringvalidator.OneOf("inband", "outband"),
+						},
+						Default: stringdefault.StaticString("inband"),
+					},
+					"status": schema.StringAttribute{
+						Computed:            true,
+						Description:         "The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.",
+						MarkdownDescription: "The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.",
+					},
+					"streaming_protocol": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Defaults to `ipv4` when not specified in the configuration.",
+						MarkdownDescription: "The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Defaults to `ipv4` when not specified in the configuration.",
+						Validators: []validator.String{
+							stringvalidator.OneOf("ipv4", "ipv6"),
+						},
+						Default: stringdefault.StaticString("ipv4"),
+					},
 				},
-			},
-			"telemetry_status": schema.StringAttribute{
+				CustomType: TelemetryType{
+					ObjectType: types.ObjectType{
+						AttrTypes: TelemetryValue{}.AttributeTypes(ctx),
+					},
+				},
 				Optional:            true,
-				Computed:            true,
-				Description:         "The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.",
-				MarkdownDescription: "The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.",
-				Validators: []validator.String{
-					stringvalidator.OneOf("enabled", "disabled"),
-				},
-				Default: stringdefault.StaticString("disabled"),
-			},
-			"telemetry_streaming_protocol": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Nexus Dashboard defaults this value to `ipv4` when it is not specified in the configuration.",
-				MarkdownDescription: "The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Nexus Dashboard defaults this value to `ipv4` when it is not specified in the configuration.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-				Validators: []validator.String{
-					stringvalidator.OneOf("ipv4", "ipv6"),
-				},
+				Description:         "Configures telemetry collection for the APIC cluster.",
+				MarkdownDescription: "Configures telemetry collection for the APIC cluster.",
 			},
 			"username": schema.StringAttribute{
 				Required:            true,
@@ -165,22 +178,508 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 }
 
 type FabricAciModel struct {
-	FabricName                 types.String  `tfsdk:"fabric_name"`
-	Hostname                   types.String  `tfsdk:"hostname"`
-	Id                         types.String  `tfsdk:"id"`
-	LastUpdateMessage          types.String  `tfsdk:"last_update_message"`
-	Latitude                   types.Float64 `tfsdk:"latitude"`
-	LicenseTier                types.String  `tfsdk:"license_tier"`
-	LoginDomain                types.String  `tfsdk:"login_domain"`
-	Longitude                  types.Float64 `tfsdk:"longitude"`
-	OrchestrationStatus        types.String  `tfsdk:"orchestration_status"`
-	Password                   types.String  `tfsdk:"password"`
-	SecurityDomain             types.String  `tfsdk:"security_domain"`
-	State                      types.String  `tfsdk:"state"`
-	TelemetryEpg               types.String  `tfsdk:"telemetry_epg"`
-	TelemetryNetwork           types.String  `tfsdk:"telemetry_network"`
-	TelemetryStatus            types.String  `tfsdk:"telemetry_status"`
-	TelemetryStreamingProtocol types.String  `tfsdk:"telemetry_streaming_protocol"`
-	Username                   types.String  `tfsdk:"username"`
-	VerifyCa                   types.Bool    `tfsdk:"verify_ca"`
+	FabricName          types.String   `tfsdk:"fabric_name"`
+	Hostname            types.String   `tfsdk:"hostname"`
+	Id                  types.String   `tfsdk:"id"`
+	LastUpdateMessage   types.String   `tfsdk:"last_update_message"`
+	Latitude            types.Float64  `tfsdk:"latitude"`
+	LicenseTier         types.String   `tfsdk:"license_tier"`
+	LoginDomain         types.String   `tfsdk:"login_domain"`
+	Longitude           types.Float64  `tfsdk:"longitude"`
+	OrchestrationStatus types.String   `tfsdk:"orchestration_status"`
+	Password            types.String   `tfsdk:"password"`
+	SecurityDomain      types.String   `tfsdk:"security_domain"`
+	State               types.String   `tfsdk:"state"`
+	Telemetry           TelemetryValue `tfsdk:"telemetry"`
+	Username            types.String   `tfsdk:"username"`
+	VerifyCa            types.Bool     `tfsdk:"verify_ca"`
+}
+
+var _ basetypes.ObjectTypable = TelemetryType{}
+
+type TelemetryType struct {
+	basetypes.ObjectType
+}
+
+func (t TelemetryType) Equal(o attr.Type) bool {
+	other, ok := o.(TelemetryType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t TelemetryType) String() string {
+	return "TelemetryType"
+}
+
+func (t TelemetryType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	epgAttribute, ok := attributes["epg"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`epg is missing from object`)
+
+		return nil, diags
+	}
+
+	epgVal, ok := epgAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`epg expected to be basetypes.StringValue, was: %T`, epgAttribute))
+	}
+
+	networkAttribute, ok := attributes["network"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`network is missing from object`)
+
+		return nil, diags
+	}
+
+	networkVal, ok := networkAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`network expected to be basetypes.StringValue, was: %T`, networkAttribute))
+	}
+
+	statusAttribute, ok := attributes["status"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`status is missing from object`)
+
+		return nil, diags
+	}
+
+	statusVal, ok := statusAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`status expected to be basetypes.StringValue, was: %T`, statusAttribute))
+	}
+
+	streamingProtocolAttribute, ok := attributes["streaming_protocol"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`streaming_protocol is missing from object`)
+
+		return nil, diags
+	}
+
+	streamingProtocolVal, ok := streamingProtocolAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`streaming_protocol expected to be basetypes.StringValue, was: %T`, streamingProtocolAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return TelemetryValue{
+		Epg:               epgVal,
+		Network:           networkVal,
+		Status:            statusVal,
+		StreamingProtocol: streamingProtocolVal,
+		state:             attr.ValueStateKnown,
+	}, diags
+}
+
+func NewTelemetryValueNull() TelemetryValue {
+	return TelemetryValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewTelemetryValueUnknown() TelemetryValue {
+	return TelemetryValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewTelemetryValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (TelemetryValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing TelemetryValue Attribute Value",
+				"While creating a TelemetryValue value, a missing attribute value was detected. "+
+					"A TelemetryValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("TelemetryValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid TelemetryValue Attribute Type",
+				"While creating a TelemetryValue value, an invalid attribute value was detected. "+
+					"A TelemetryValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("TelemetryValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("TelemetryValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra TelemetryValue Attribute Value",
+				"While creating a TelemetryValue value, an extra attribute value was detected. "+
+					"A TelemetryValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra TelemetryValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewTelemetryValueUnknown(), diags
+	}
+
+	epgAttribute, ok := attributes["epg"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`epg is missing from object`)
+
+		return NewTelemetryValueUnknown(), diags
+	}
+
+	epgVal, ok := epgAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`epg expected to be basetypes.StringValue, was: %T`, epgAttribute))
+	}
+
+	networkAttribute, ok := attributes["network"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`network is missing from object`)
+
+		return NewTelemetryValueUnknown(), diags
+	}
+
+	networkVal, ok := networkAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`network expected to be basetypes.StringValue, was: %T`, networkAttribute))
+	}
+
+	statusAttribute, ok := attributes["status"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`status is missing from object`)
+
+		return NewTelemetryValueUnknown(), diags
+	}
+
+	statusVal, ok := statusAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`status expected to be basetypes.StringValue, was: %T`, statusAttribute))
+	}
+
+	streamingProtocolAttribute, ok := attributes["streaming_protocol"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`streaming_protocol is missing from object`)
+
+		return NewTelemetryValueUnknown(), diags
+	}
+
+	streamingProtocolVal, ok := streamingProtocolAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`streaming_protocol expected to be basetypes.StringValue, was: %T`, streamingProtocolAttribute))
+	}
+
+	if diags.HasError() {
+		return NewTelemetryValueUnknown(), diags
+	}
+
+	return TelemetryValue{
+		Epg:               epgVal,
+		Network:           networkVal,
+		Status:            statusVal,
+		StreamingProtocol: streamingProtocolVal,
+		state:             attr.ValueStateKnown,
+	}, diags
+}
+
+func NewTelemetryValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) TelemetryValue {
+	object, diags := NewTelemetryValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewTelemetryValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t TelemetryType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewTelemetryValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewTelemetryValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewTelemetryValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewTelemetryValueMust(TelemetryValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t TelemetryType) ValueType(ctx context.Context) attr.Value {
+	return TelemetryValue{}
+}
+
+var _ basetypes.ObjectValuable = TelemetryValue{}
+
+type TelemetryValue struct {
+	Epg               basetypes.StringValue `tfsdk:"epg"`
+	Network           basetypes.StringValue `tfsdk:"network"`
+	Status            basetypes.StringValue `tfsdk:"status"`
+	StreamingProtocol basetypes.StringValue `tfsdk:"streaming_protocol"`
+	state             attr.ValueState
+}
+
+func (v TelemetryValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["epg"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["network"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["status"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["streaming_protocol"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.Epg.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["epg"] = val
+
+		val, err = v.Network.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["network"] = val
+
+		val, err = v.Status.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["status"] = val
+
+		val, err = v.StreamingProtocol.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["streaming_protocol"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v TelemetryValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v TelemetryValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v TelemetryValue) String() string {
+	return "TelemetryValue"
+}
+
+func (v TelemetryValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributeTypes := map[string]attr.Type{
+		"epg":                basetypes.StringType{},
+		"network":            basetypes.StringType{},
+		"status":             basetypes.StringType{},
+		"streaming_protocol": basetypes.StringType{},
+	}
+
+	if v.IsNull() {
+		return types.ObjectNull(attributeTypes), diags
+	}
+
+	if v.IsUnknown() {
+		return types.ObjectUnknown(attributeTypes), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		attributeTypes,
+		map[string]attr.Value{
+			"epg":                v.Epg,
+			"network":            v.Network,
+			"status":             v.Status,
+			"streaming_protocol": v.StreamingProtocol,
+		})
+
+	return objVal, diags
+}
+
+func (v TelemetryValue) Equal(o attr.Value) bool {
+	other, ok := o.(TelemetryValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.Epg.Equal(other.Epg) {
+		return false
+	}
+
+	if !v.Network.Equal(other.Network) {
+		return false
+	}
+
+	if !v.Status.Equal(other.Status) {
+		return false
+	}
+
+	if !v.StreamingProtocol.Equal(other.StreamingProtocol) {
+		return false
+	}
+
+	return true
+}
+
+func (v TelemetryValue) Type(ctx context.Context) attr.Type {
+	return TelemetryType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v TelemetryValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"epg":                basetypes.StringType{},
+		"network":            basetypes.StringType{},
+		"status":             basetypes.StringType{},
+		"streaming_protocol": basetypes.StringType{},
+	}
 }

@@ -17,15 +17,19 @@ Environment variables use the uppercase `fabric_name` with hyphens replaced by u
 
 ```terraform
 resource "nd_fabric_aci" "test_resource_fabric_aci_1" {
-  hostname             = "1.1.1.1"
-  latitude             = 37.3
-  longitude            = -121.8
-  username             = "admin"
-  password             = "**********"
-  login_domain         = "DefaultAuth"
-  fabric_name          = "apic1"
-  license_tier         = "premier"
-  telemetry_status     = "disabled"
+  hostname     = "1.1.1.1"
+  latitude     = 37.3
+  longitude    = -121.8
+  username     = "admin"
+  password     = "**********"
+  login_domain = "DefaultAuth"
+  fabric_name  = "apic1"
+  license_tier = "premier"
+  telemetry = {
+    network            = "inband"
+    epg                = "uni/tn-tf_tenant/ap-tf_ap/epg-tf_epg"
+    streaming_protocol = "ipv4"
+  }
   orchestration_status = "disabled"
   security_domain      = "all"
   verify_ca            = false
@@ -50,10 +54,7 @@ resource "nd_fabric_aci" "test_resource_fabric_aci_1" {
 - `longitude` (Number) The longitude coordinate of the APIC cluster.
 - `orchestration_status` (String) The status of the orchestration feature for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.
 - `security_domain` (String) The name of the security domain for the APIC cluster. Defaults to `all` when not specified in the configuration.
-- `telemetry_epg` (String) The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.
-- `telemetry_network` (String) The network type for telemetry collection. Allowed values are `inband` or `outband`.
-- `telemetry_status` (String) The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.
-- `telemetry_streaming_protocol` (String) The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Nexus Dashboard defaults this value to `ipv4` when it is not specified in the configuration.
+- `telemetry` (Attributes) Configures telemetry collection for the APIC cluster. (see [below for nested schema](#nestedatt--telemetry))
 - `verify_ca` (Boolean) This validates that connected host certificates are signed by a trusted Certificate Authority (CA). Defaults to `false` when not specified in the configuration.
 
 ### Read-Only
@@ -61,6 +62,19 @@ resource "nd_fabric_aci" "test_resource_fabric_aci_1" {
 - `id` (String) The unique identifier for the resource, it is the name of the fabric aci (for example, apic1).
 - `last_update_message` (String) The last update message of the APIC cluster.
 - `state` (String) The state of the APIC cluster.
+
+<a id="nestedatt--telemetry"></a>
+### Nested Schema for `telemetry`
+
+Optional:
+
+- `epg` (String) The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.
+- `network` (String) The network type for telemetry collection. Allowed values are `inband` or `outband`.
+- `streaming_protocol` (String) The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Defaults to `ipv4` when not specified in the configuration.
+
+Read-Only:
+
+- `status` (String) The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.
 
 ## Import
 

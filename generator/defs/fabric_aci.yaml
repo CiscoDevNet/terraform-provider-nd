@@ -114,52 +114,44 @@ resource:
     validator: 'OneOf("essentials", "advantage", "premier")'
     example: premier
 
-  - model_name: status
-    tf_name: telemetry_status
-    description: The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.
-    type: String
-    default_value: disabled
-    ndfc_nested:
-    - spec
-    - aci
-    - telemetry
-    validator: 'OneOf("enabled", "disabled")'
-    example: disabled
-
-  - model_name: network
-    tf_name: telemetry_network
-    description: The network type for telemetry collection. Allowed values are `inband` or `outband`.
-    type: String
+  - model_name: telemetry
+    tf_name: telemetry
+    description: Configures telemetry collection for the APIC cluster.
+    type: Struct
     optional: true
     ndfc_nested:
     - spec
     - aci
-    - telemetry
-    validator: 'OneOf("inband", "outband")'
+    attributes:
+    - model_name: status
+      tf_name: status
+      description: The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.
+      type: String
+      computed: true
+      example: enabled
 
-  - model_name: epg
-    tf_name: telemetry_epg
-    description: The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.
-    type: String
-    optional: true
-    ndfc_nested:
-    - spec
-    - aci
-    - telemetry
+    - model_name: network
+      tf_name: network
+      description: The network type for telemetry collection. Allowed values are `inband` or `outband`.
+      type: String
+      default_value: inband
+      validator: 'OneOf("inband", "outband")'
+      example: inband
 
-  # The telemetry_streaming_protocol attribute depends on whether telemetry is enabled, so applying a resource-level default could introduce an incorrect value in both the Terraform state and the API payload.
-  - model_name: streamingProtocol
-    tf_name: telemetry_streaming_protocol
-    description: The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Nexus Dashboard defaults this value to `ipv4` when it is not specified in the configuration.
-    type: String
-    optional: true
-    computed: true
-    use_state: true
-    ndfc_nested:
-    - spec
-    - aci
-    - telemetry
-    validator: 'OneOf("ipv4", "ipv6")'
+    - model_name: epg
+      tf_name: epg
+      description: The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.
+      type: String
+      optional: true
+      example: uni/tn-tf_tenant/ap-tf_ap/epg-tf_epg
+
+    - model_name: streamingProtocol
+      tf_name: streaming_protocol
+      description: The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Defaults to `ipv4` when not specified in the configuration.
+      type: String
+      default_value: ipv4
+      validator: 'OneOf("ipv4", "ipv6")'
+      example: ipv4
 
   - model_name: status
     tf_name: orchestration_status
