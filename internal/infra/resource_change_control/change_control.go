@@ -15,6 +15,7 @@ import (
 	"terraform-provider-nd/internal/infra"
 	"terraform-provider-nd/internal/registry"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -26,9 +27,10 @@ const (
 )
 
 var (
-	_ resource.Resource                = &changeControlResource{}
-	_ resource.ResourceWithConfigure   = &changeControlResource{}
-	_ resource.ResourceWithImportState = &changeControlResource{}
+	_ resource.Resource                   = &changeControlResource{}
+	_ resource.ResourceWithConfigure      = &changeControlResource{}
+	_ resource.ResourceWithImportState    = &changeControlResource{}
+	_ resource.ResourceWithValidateConfig = &changeControlResource{}
 )
 
 func NewChangeControlResource() resource.Resource {
@@ -45,6 +47,50 @@ func (r *changeControlResource) Metadata(_ context.Context, req resource.Metadat
 
 func (r *changeControlResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = ChangeControlResourceSchema(ctx)
+}
+
+// ValidateConfig validates the relationship between the change control
+// feature flags before Terraform creates a plan.
+func (r *changeControlResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config ChangeControlModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// ValidateConfig receives configuration, so omitted attributes can still be
+	// null even though their schema defaults will be present in the plan.
+	adminStatus := false
+	if !config.AdminStatus.IsNull() {
+		if config.AdminStatus.IsUnknown() {
+			return
+		}
+		adminStatus = config.AdminStatus.ValueBool()
+	}
+
+	orchestration := false
+	if !config.Orchestration.IsNull() {
+		if config.Orchestration.IsUnknown() {
+			return
+		}
+		orchestration = config.Orchestration.ValueBool()
+	}
+
+	ndManagedFabrics := false
+	if !config.NdManagedFabrics.IsNull() {
+		if config.NdManagedFabrics.IsUnknown() {
+			return
+		}
+		ndManagedFabrics = config.NdManagedFabrics.ValueBool()
+	}
+
+	if adminStatus && !orchestration && !ndManagedFabrics {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("admin_status"),
+			"Invalid Change Control Configuration",
+			"admin_status can be enabled only when orchestration or nd_managed_fabrics is enabled.",
+		)
+	}
 }
 
 func (r *changeControlResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

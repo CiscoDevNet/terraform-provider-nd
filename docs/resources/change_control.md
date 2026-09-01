@@ -9,6 +9,10 @@ description: |-
   to see differences before applying changes.
   During destroy, Terraform uses PUT to restore the default Change Control settings
   before removing the resource from state. The built-in object remains in Nexus Dashboard.
+  If you want to stop managing Change Control without resetting its current Nexus Dashboard
+  settings, remove the resource from Terraform state with terraform state rm
+  nd_change_control.<name> and remove the resource block from the configuration. This
+  bypasses the provider destroy operation and leaves the Nexus Dashboard settings unchanged.
 ---
 
 # nd_change_control (Resource)
@@ -21,6 +25,11 @@ to see differences before applying changes.
 
 During destroy, Terraform uses PUT to restore the default Change Control settings
 before removing the resource from state. The built-in object remains in Nexus Dashboard.
+
+If you want to stop managing Change Control without resetting its current Nexus Dashboard
+settings, remove the resource from Terraform state with `terraform state rm
+nd_change_control.<name>` and remove the resource block from the configuration. This
+bypasses the provider destroy operation and leaves the Nexus Dashboard settings unchanged.
 
 ## Example Usage
 

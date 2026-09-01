@@ -59,21 +59,6 @@ func (r *changeControlResource) rscGetChangeControl(ctx context.Context, dg *dia
 func (r *changeControlResource) rscPutChangeControl(ctx context.Context, dg *diag.Diagnostics, model *ChangeControlModel) {
 	changeControlAPI := api.NewChangeControlAPI(r.infraClient.ApiClient, ndapi.DefaultFabric)
 
-	if !model.AdminStatus.IsNull() && !model.AdminStatus.IsUnknown() {
-		if !model.Orchestration.IsNull() && !model.Orchestration.IsUnknown() &&
-			!model.NdManagedFabrics.IsNull() && !model.NdManagedFabrics.IsUnknown() {
-			if model.AdminStatus.ValueBool() &&
-				!model.Orchestration.ValueBool() &&
-				!model.NdManagedFabrics.ValueBool() {
-				dg.AddError(
-					"Invalid Change Control Configuration",
-					"admin_status can be enabled only when orchestration or nd_managed_fabrics is enabled.",
-				)
-				return
-			}
-		}
-	}
-
 	payload, err := json.Marshal(model.GetModelData())
 	if err != nil {
 		dg.AddError(

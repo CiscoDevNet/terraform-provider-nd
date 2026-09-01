@@ -38,17 +38,7 @@ func (c *ChangeControlAPI) GetUrl() string {
 	return UrlChangeControl
 }
 
-func (c *ChangeControlAPI) PostUrl() string {
-	// Required by NexusDashboardAPI; the change_control API does not support POST.
-	return UrlChangeControl
-}
-
 func (c *ChangeControlAPI) PutUrl() string {
-	return UrlChangeControl
-}
-
-func (c *ChangeControlAPI) DeleteUrl() string {
-	// Required by NexusDashboardAPI; the change_control API does not support DELETE.
 	return UrlChangeControl
 }
 
