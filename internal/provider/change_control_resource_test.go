@@ -278,6 +278,100 @@ func TestAccChangeControlResource(t *testing.T) {
 	})
 }
 
+func TestAccChangeControlResourceManagedFabrics(t *testing.T) {
+	cfg := helper.GetConfig("global")
+	client := newChangeControlAcceptanceClient(t)
+	cleanupEnabled := false
+	defer func() {
+		if cleanupEnabled {
+			putChangeControlOutsideTerraform(t, client, changeControlModel(false, false, false, false, 1, true, "TICKET_"))
+		}
+	}()
+
+	x := &map[string]string{
+		"RscType":  "nd_change_control",
+		"RscName":  "change_control_managed_fabrics_test",
+		"User":     cfg.ND.User,
+		"Password": cfg.ND.Password,
+		"Host":     cfg.ND.URL,
+		"Insecure": cfg.ND.Insecure,
+	}
+
+	tfConfig := new(string)
+	changeControl := new(resource_change_control.NDFCChangeControlModel)
+	resourceName := "nd_change_control.change_control_managed_fabrics_test"
+
+	s1 := &helper.StepInfo{}
+	s2 := &helper.StepInfo{}
+	s3 := &helper.StepInfo{}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t, "global")
+			cleanupEnabled = true
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: func() string {
+					s1.Index = 1
+					s1.Name = fmt.Sprintf("%s - Enable change control for ND-managed fabrics with telemetry bypass", t.Name())
+
+					helper.GenerateChangeControlObject(&changeControl, map[string]interface{}{
+						"admin_status":                    true,
+						"orchestration":                   false,
+						"nd_managed_fabrics":              true,
+						"bypass_telemetry_change_control": true,
+						"ticket_name_prefix":              "TF_FABRIC_CC_",
+					})
+					helper.GetTFConfigWithSingleResource(s1.Name, *x, []interface{}{changeControl}, &tfConfig)
+					s1.Cfg = *tfConfig
+					return *tfConfig
+				}(),
+				PreConfig: func() {
+					helper.LogStep(t, s1.Index, s1.Name, s1.Cfg)
+					putChangeControlOutsideTerraform(t, client, changeControlModel(false, false, false, false, 1, true, "TICKET_"))
+				},
+				Check: resource.ComposeTestCheckFunc(changeControlStateChecks(resourceName, *changeControl)...),
+			},
+			{
+				Config: func() string {
+					s2.Index = 2
+					s2.Name = fmt.Sprintf("%s - Update telemetry bypass and ticket prefix for ND-managed fabrics", t.Name())
+
+					helper.ModifyChangeControlObject(&changeControl, map[string]interface{}{
+						"admin_status":                    true,
+						"orchestration":                   false,
+						"nd_managed_fabrics":              true,
+						"bypass_telemetry_change_control": false,
+						"ticket_name_prefix":              "UPDATED_FABRIC_CC_",
+					})
+					helper.GetTFConfigWithSingleResource(s2.Name, *x, []interface{}{changeControl}, &tfConfig)
+					s2.Cfg = *tfConfig
+					return *tfConfig
+				}(),
+				PreConfig: func() { helper.LogStep(t, s2.Index, s2.Name, s2.Cfg) },
+				Check:     resource.ComposeTestCheckFunc(changeControlStateChecks(resourceName, *changeControl)...),
+			},
+			{
+				Config: func() string {
+					s3.Index = 3
+					s3.Name = fmt.Sprintf("%s - Reset managed-fabrics change control settings and remove Terraform state", t.Name())
+					helper.GetTFConfigWithSingleResource(s3.Name, *x, []interface{}{changeControl}, &tfConfig)
+					s3.Cfg = *tfConfig
+					return *tfConfig
+				}(),
+				PreConfig: func() { helper.LogStep(t, s3.Index, s3.Name, s3.Cfg) },
+				Destroy:   true,
+				Check: checkChangeControlBackend(
+					client,
+					changeControlModel(false, false, false, false, 1, true, "TICKET_"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccChangeControlResourceInvalidConfiguration(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	x := &map[string]string{
