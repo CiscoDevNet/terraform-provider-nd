@@ -15,8 +15,11 @@ import (
 	"terraform-provider-nd/internal/infra"
 	"terraform-provider-nd/internal/registry"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/defaults"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -191,15 +194,9 @@ func (r *changeControlResource) Update(ctx context.Context, req resource.UpdateR
 }
 
 func (r *changeControlResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
-	defaults := ChangeControlModel{
-		Id:                           types.StringValue(changeControlImportID),
-		AdminStatus:                  types.BoolValue(false),
-		Orchestration:                types.BoolValue(false),
-		NumberOfApprovers:            types.Int64Value(1),
-		AllowSelfApproval:            types.BoolValue(true),
-		NdManagedFabrics:             types.BoolValue(false),
-		BypassTelemetryChangeControl: types.BoolValue(false),
-		TicketNamePrefix:             types.StringValue("TICKET_"),
+	defaultModel := changeControlDefaultsFromSchema(ctx, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// The API does not support DELETE because change control is a built-in
@@ -209,10 +206,68 @@ func (r *changeControlResource) Delete(ctx context.Context, _ resource.DeleteReq
 		"resource": changeControlImportID,
 	})
 
-	r.rscPutChangeControl(ctx, &resp.Diagnostics, &defaults)
+	r.rscPutChangeControl(ctx, &resp.Diagnostics, defaultModel)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+}
+
+// changeControlDefaultsFromSchema keeps the singleton reset payload aligned
+// with the generated Terraform schema defaults.
+func changeControlDefaultsFromSchema(ctx context.Context, dg *diag.Diagnostics) *ChangeControlModel {
+	resourceSchema := ChangeControlResourceSchema(ctx)
+	boolDefault := func(name string) types.Bool {
+		attribute := resourceSchema.Attributes[name].(schema.BoolAttribute)
+		defaultResp := defaults.BoolResponse{}
+		attribute.Default.DefaultBool(
+			ctx,
+			defaults.BoolRequest{Path: path.Root(name)},
+			&defaultResp,
+		)
+		dg.Append(defaultResp.Diagnostics...)
+		return defaultResp.PlanValue
+	}
+
+	int64Default := func(name string) types.Int64 {
+		attribute := resourceSchema.Attributes[name].(schema.Int64Attribute)
+		defaultResp := defaults.Int64Response{}
+		attribute.Default.DefaultInt64(
+			ctx,
+			defaults.Int64Request{Path: path.Root(name)},
+			&defaultResp,
+		)
+		dg.Append(defaultResp.Diagnostics...)
+		return defaultResp.PlanValue
+	}
+
+	stringDefault := func(name string) types.String {
+		attribute := resourceSchema.Attributes[name].(schema.StringAttribute)
+		defaultResp := defaults.StringResponse{}
+		attribute.Default.DefaultString(
+			ctx,
+			defaults.StringRequest{Path: path.Root(name)},
+			&defaultResp,
+		)
+		dg.Append(defaultResp.Diagnostics...)
+		return defaultResp.PlanValue
+	}
+
+	model := &ChangeControlModel{
+		Id:                           types.StringValue(changeControlImportID),
+		AdminStatus:                  boolDefault("admin_status"),
+		Orchestration:                boolDefault("orchestration"),
+		NumberOfApprovers:            int64Default("number_of_approvers"),
+		AllowSelfApproval:            boolDefault("allow_self_approval"),
+		NdManagedFabrics:             boolDefault("nd_managed_fabrics"),
+		BypassTelemetryChangeControl: boolDefault("bypass_telemetry_change_control"),
+		TicketNamePrefix:             stringDefault("ticket_name_prefix"),
+	}
+
+	if dg.HasError() {
+		return nil
+	}
+
+	return model
 }
 
 func (r *changeControlResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
