@@ -4,14 +4,17 @@ page_title: "nd_fabric_aci Resource - terraform-provider-nd"
 subcategory: ""
 description: |-
   Manages Fabric ACI for Nexus Dashboard.
-  Environment variables use the uppercase fabric_name with hyphens replaced by underscores as the prefix; for example, tf-apic1 becomes TF_APIC1. <FABRIC_PREFIX>_FORCE is a Boolean for forced destroy (default: false).
+  <FABRIC_PREFIX>_FORCE controls forced fabric removal during terraform destroy and defaults to false. Set it to true only when the APIC cluster is unhealthy or unreachable and normal removal cannot complete. Before using forced removal, remove the fabric from deployed templates and ensure that it is no longer used by Nexus Dashboard services.
+  Environment variable names use the uppercase fabric_name with hyphens replaced by underscores. For example, fabric_name = "tf-apic1" uses TF_APIC1_FORCE. To request forced removal, run TF_APIC1_FORCE=true terraform destroy.
 ---
 
 # nd_fabric_aci (Resource)
 
 Manages Fabric ACI for Nexus Dashboard.
 
-Environment variables use the uppercase `fabric_name` with hyphens replaced by underscores as the prefix; for example, `tf-apic1` becomes `TF_APIC1`. `<FABRIC_PREFIX>_FORCE` is a Boolean for forced destroy (default: `false`).
+`<FABRIC_PREFIX>_FORCE` controls forced fabric removal during `terraform destroy` and defaults to `false`. Set it to `true` only when the APIC cluster is unhealthy or unreachable and normal removal cannot complete. Before using forced removal, remove the fabric from deployed templates and ensure that it is no longer used by Nexus Dashboard services.
+
+Environment variable names use the uppercase `fabric_name` with hyphens replaced by underscores. For example, `fabric_name = "tf-apic1"` uses `TF_APIC1_FORCE`. To request forced removal, run `TF_APIC1_FORCE=true terraform destroy`.
 
 ## Example Usage
 
@@ -69,7 +72,7 @@ resource "nd_fabric_aci" "test_resource_fabric_aci_1" {
 Optional:
 
 - `epg` (String) The APIC End Point Group (EPG) Distinguished Name (DN) used by `inband` telemetry.
-- `network` (String) The network type for telemetry collection. Allowed values are `inband` or `outband`.
+- `network` (String) The network type for telemetry collection. Allowed values are `inband` or `outband`. Defaults to `inband` when not specified in the configuration.
 - `streaming_protocol` (String) The streaming protocol used for telemetry collection. Allowed values are `ipv4` or `ipv6`. Defaults to `ipv4` when not specified in the configuration.
 
 Read-Only:

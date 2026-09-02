@@ -19,6 +19,7 @@ import (
 	"terraform-provider-nd/internal/manage"
 	"terraform-provider-nd/internal/registry"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -28,9 +29,10 @@ const ModuleKey = "manage"
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource                = &fabricAciResource{}
-	_ resource.ResourceWithConfigure   = &fabricAciResource{}
-	_ resource.ResourceWithImportState = &fabricAciResource{}
+	_ resource.Resource                   = &fabricAciResource{}
+	_ resource.ResourceWithConfigure      = &fabricAciResource{}
+	_ resource.ResourceWithImportState    = &fabricAciResource{}
+	_ resource.ResourceWithValidateConfig = &fabricAciResource{}
 )
 
 // NewFabricAciResource is a helper function to simplify the provider implementation.
@@ -51,6 +53,28 @@ func (r *fabricAciResource) Metadata(_ context.Context, req resource.MetadataReq
 // Schema defines the schema for the resource.
 func (r *fabricAciResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = FabricAciResourceSchema(ctx)
+}
+
+// ValidateConfig enforces conditional validation that generated schema
+// validators cannot express.
+func (r *fabricAciResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config FabricAciModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if !config.Telemetry.IsNull() && !config.Telemetry.IsUnknown() {
+		if config.Telemetry.Network.ValueString() == "outband" {
+			if !config.Telemetry.Epg.IsNull() && !config.Telemetry.Epg.IsUnknown() {
+				resp.Diagnostics.AddAttributeError(
+					path.Root("telemetry").AtName("epg"),
+					"Invalid attribute for telemetry network",
+					"Attribute `telemetry.epg` can only be set when `telemetry.network` is `inband`. Remove `telemetry.epg` when `telemetry.network` is `outband`.",
+				)
+			}
+		}
+	}
 }
 
 // Configure adds the provider configured client to the resource.

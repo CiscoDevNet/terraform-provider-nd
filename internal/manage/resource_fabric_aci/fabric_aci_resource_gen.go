@@ -127,8 +127,8 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 					"network": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "The network type for telemetry collection. Allowed values are `inband` or `outband`.",
-						MarkdownDescription: "The network type for telemetry collection. Allowed values are `inband` or `outband`.",
+						Description:         "The network type for telemetry collection. Allowed values are `inband` or `outband`. Defaults to `inband` when not specified in the configuration.",
+						MarkdownDescription: "The network type for telemetry collection. Allowed values are `inband` or `outband`. Defaults to `inband` when not specified in the configuration.",
 						Validators: []validator.String{
 							stringvalidator.OneOf("inband", "outband"),
 						},
@@ -172,8 +172,8 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "This validates that connected host certificates are signed by a trusted Certificate Authority (CA). Defaults to `false` when not specified in the configuration.",
 			},
 		},
-		Description:         "Manages Fabric ACI for Nexus Dashboard.\n\nEnvironment variables use the uppercase `fabric_name` with hyphens replaced by underscores as the prefix; for example, `tf-apic1` becomes `TF_APIC1`. `<FABRIC_PREFIX>_FORCE` is a Boolean for forced destroy (default: `false`).\n",
-		MarkdownDescription: "Manages Fabric ACI for Nexus Dashboard.\n\nEnvironment variables use the uppercase `fabric_name` with hyphens replaced by underscores as the prefix; for example, `tf-apic1` becomes `TF_APIC1`. `<FABRIC_PREFIX>_FORCE` is a Boolean for forced destroy (default: `false`).\n",
+		Description:         "Manages Fabric ACI for Nexus Dashboard.\n\n`<FABRIC_PREFIX>_FORCE` controls forced fabric removal during `terraform destroy` and defaults to `false`. Set it to `true` only when the APIC cluster is unhealthy or unreachable and normal removal cannot complete. Before using forced removal, remove the fabric from deployed templates and ensure that it is no longer used by Nexus Dashboard services.\n\nEnvironment variable names use the uppercase `fabric_name` with hyphens replaced by underscores. For example, `fabric_name = \"tf-apic1\"` uses `TF_APIC1_FORCE`. To request forced removal, run `TF_APIC1_FORCE=true terraform destroy`.\n",
+		MarkdownDescription: "Manages Fabric ACI for Nexus Dashboard.\n\n`<FABRIC_PREFIX>_FORCE` controls forced fabric removal during `terraform destroy` and defaults to `false`. Set it to `true` only when the APIC cluster is unhealthy or unreachable and normal removal cannot complete. Before using forced removal, remove the fabric from deployed templates and ensure that it is no longer used by Nexus Dashboard services.\n\nEnvironment variable names use the uppercase `fabric_name` with hyphens replaced by underscores. For example, `fabric_name = \"tf-apic1\"` uses `TF_APIC1_FORCE`. To request forced removal, run `TF_APIC1_FORCE=true terraform destroy`.\n",
 	}
 }
 
