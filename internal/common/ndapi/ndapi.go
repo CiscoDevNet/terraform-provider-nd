@@ -135,3 +135,19 @@ func (c NexusDashboardAPICommon) DeployPost(payload []byte, opts *APIOptions) (g
 
 	return c.Client.Post(url, string(payload), opts.Mods(payload)...)
 }
+
+func (c NexusDashboardAPICommon) GetUrl() string {
+	panic("GetUrl() not implemented")
+}
+
+func (c NexusDashboardAPICommon) PostUrl() string {
+	panic("PostUrl() not implemented")
+}
+
+func (c NexusDashboardAPICommon) PutUrl() string {
+	panic("PutUrl() not implemented")
+}
+
+func (c NexusDashboardAPICommon) DeleteUrl() string {
+	panic("DeleteUrl() not implemented")
+}

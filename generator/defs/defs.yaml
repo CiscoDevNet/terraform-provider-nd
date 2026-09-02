@@ -12,4 +12,5 @@ files:
   - local_user.yaml
   - backup.yaml
   - remote_storage_location.yaml
+  - change_control.yaml
   #- sample.yaml
