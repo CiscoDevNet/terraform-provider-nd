@@ -22,6 +22,7 @@ import (
 	"terraform-provider-nd/internal/infra/resource_backup"
 	"terraform-provider-nd/internal/infra/resource_local_user"
 	"terraform-provider-nd/internal/infra/resource_multi_cluster_connectivity"
+	"terraform-provider-nd/internal/manage/resource_fabric_aci"
 	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
 	"terraform-provider-nd/internal/manage/resource_vpc_pair"
@@ -91,6 +92,12 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 			return *a
 		},
 		"deref_int64": func(a *int64) int64 {
+			if a == nil {
+				return 0
+			}
+			return *a
+		},
+		"deref_float64": func(a *float64) float64 {
 			if a == nil {
 				return 0
 			}
@@ -222,6 +229,14 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 			err = t.ExecuteTemplate(&output, "ND_REMOTE_STORAGE_LOCATION_RSC", args)
 			if err != nil {
 				panic(fmt.Sprintf("Failed to execute ND_REMOTE_STORAGE_LOCATION_RSC template: %v", err))
+			}
+
+		case *resource_fabric_aci.NDFCFabricAciModel:
+			args["FabricAci"] = v
+			args["RscName"] = rscName
+			err = t.ExecuteTemplate(&output, "ND_FABRIC_ACI_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_FABRIC_ACI_RSC template: %v", err))
 			}
 
 		default:
