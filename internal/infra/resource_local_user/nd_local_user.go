@@ -4,55 +4,57 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
 	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/infra/api"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // rscCreateLocalUser creates a nd local user resource
 func (r *localUserNdResource) rscCreateLocalUser(ctx context.Context, dg *diag.Diagnostics, input *LocalUserModel) {
-	if input == nil {
-		dg.AddError(
-			"Invalid Input",
-			"The input model is nil",
-		)
-		return
-	}
-
 	id := input.LoginId.ValueString()
-	log.Printf("[INFO] Create nd_local_user id=%s", id)
+	input.Id = input.LoginId
 	inData := input.GetModelData()
 
 	// Create nd local user API client
 	localUserAPI := api.NewLocalUserAPI(r.infraClient.ApiClient)
+	localUserAPI.LoginId = id
 
 	// Convert model data to JSON
 	localUserPayload, err := json.Marshal(inData)
 	if err != nil {
 		dg.AddError(
 			"Error Creating ND Local User",
-			fmt.Sprintf("Could not create nd local user, Data Marshall error: %v", err),
+			fmt.Sprintf("Could not marshal nd_local_user create payload: %s", err.Error()),
 		)
 		return
 	}
 
 	// Call the API to create the nd local user
-	res, err := localUserAPI.Post(localUserPayload, &ndapi.APIOptions{DisablePayloadLog: true})
+	_, err = localUserAPI.Post(localUserPayload, &ndapi.APIOptions{DisablePayloadLog: true})
 	if err != nil {
+		tflog.Error(ctx, "ND local user create request failed", map[string]interface{}{
+			"login_id": id,
+			"error":    err.Error(),
+		})
 		dg.AddError(
 			"Error Creating ND Local User",
-			fmt.Sprintf("Could not create nd local user, unexpected error: %v %v", err, res),
+			fmt.Sprintf("Could not create nd_local_user with login_id %q: %s", id, err.Error()),
 		)
 		return
 	}
-	if r.rscGetLocalUser(ctx, dg, input) {
+
+	notFound := r.rscGetLocalUser(ctx, dg, input)
+	if dg.HasError() {
+		return
+	}
+	if notFound {
 		dg.AddError(
 			"Error Reading ND Local User",
-			fmt.Sprintf("Could not read nd local user with id %q after create: resource not found", id),
+			fmt.Sprintf("Could not read nd_local_user with login_id %q after create: resource not found", id),
 		)
 	}
 }
@@ -60,8 +62,7 @@ func (r *localUserNdResource) rscCreateLocalUser(ctx context.Context, dg *diag.D
 // rscGetLocalUser retrieves nd local user information by login_id
 func (r *localUserNdResource) rscGetLocalUser(ctx context.Context, dg *diag.Diagnostics, in *LocalUserModel) bool {
 	id := in.LoginId.ValueString()
-	log.Printf("[INFO] Read nd_local_user id=%s", id)
-	// Preserve sensitive fields that are not returned by the API
+	// Nexus Dashboard deliberately omits the password from GET responses.
 	preservedUserPassword := in.UserPassword
 
 	localUserAPI := api.NewLocalUserAPI(r.infraClient.ApiClient)
@@ -72,9 +73,13 @@ func (r *localUserNdResource) rscGetLocalUser(ctx context.Context, dg *diag.Diag
 		if strings.Contains(err.Error(), "StatusCode 404") {
 			return true
 		}
+		tflog.Error(ctx, "ND local user read request failed", map[string]interface{}{
+			"login_id": id,
+			"error":    err.Error(),
+		})
 		dg.AddError(
 			"Error Reading ND Local User",
-			fmt.Sprintf("Could not read nd local user, unexpected error: %v %v", err, respData),
+			fmt.Sprintf("Could not read nd_local_user with login_id %q: %s. Response: %s", id, err.Error(), string(respData)),
 		)
 		return false
 	}
@@ -84,18 +89,27 @@ func (r *localUserNdResource) rscGetLocalUser(ctx context.Context, dg *diag.Diag
 	if err != nil {
 		dg.AddError(
 			"Error Reading ND Local User",
-			fmt.Sprintf("Could not unmarshal nd local user response, unexpected error: %v", err),
+			fmt.Sprintf("Could not unmarshal nd_local_user response for login_id %q: %s", id, err.Error()),
+		)
+		return false
+	}
+	if localUserResp.LoginId == "" {
+		dg.AddError(
+			"Error Reading ND Local User",
+			fmt.Sprintf("The nd_local_user response for login_id %q did not contain loginID.", id),
 		)
 		return false
 	}
 
-	localUserResp.Id = localUserResp.LoginId
 	dg.Append(in.SetModelData(&localUserResp)...)
 	if dg.HasError() {
 		return false
 	}
+	// The resource ID is Terraform-only and is derived from the API login ID.
+	in.Id = in.LoginId
 
-	// Restore sensitive fields after SetModelData (API does not return them)
+	// Restore the configured value after generated hydration clears the
+	// API-omitted password field.
 	in.UserPassword = preservedUserPassword
 	return false
 }
@@ -106,7 +120,7 @@ func (r *localUserNdResource) rscGetLocalUser(ctx context.Context, dg *diag.Diag
 // payload to avoid resending an unchanged password to the API.
 func (r *localUserNdResource) rscUpdateLocalUser(ctx context.Context, dg *diag.Diagnostics, plan *LocalUserModel, state *LocalUserModel) {
 	id := plan.LoginId.ValueString()
-	log.Printf("[INFO] Update nd_local_user id=%s", id)
+	plan.Id = plan.LoginId
 	inData := plan.GetModelData()
 
 	// The plan's user_password reflects the value from the configuration file.
@@ -114,10 +128,12 @@ func (r *localUserNdResource) rscUpdateLocalUser(ctx context.Context, dg *diag.D
 	// the password in the config), omit the password from the update payload to
 	// avoid resending an unchanged password to the API.
 	planPasswordSet := !plan.UserPassword.IsNull() && !plan.UserPassword.IsUnknown()
-	statePasswordSet := state != nil && !state.UserPassword.IsNull() && !state.UserPassword.IsUnknown()
+	statePasswordSet := !state.UserPassword.IsNull() && !state.UserPassword.IsUnknown()
 	passwordUnchanged := statePasswordSet && plan.UserPassword.ValueString() == state.UserPassword.ValueString()
 	if planPasswordSet && passwordUnchanged {
-		log.Printf("[DEBUG] Skipping user_password in update payload for id=%s (unchanged)", id)
+		tflog.Debug(ctx, "Omitting unchanged password from ND local user update payload", map[string]interface{}{
+			"login_id": id,
+		})
 		inData.UserPassword = ""
 	}
 
@@ -128,26 +144,32 @@ func (r *localUserNdResource) rscUpdateLocalUser(ctx context.Context, dg *diag.D
 	if err != nil {
 		dg.AddError(
 			"Error Updating ND Local User",
-			fmt.Sprintf("Could not update nd local user, Data Marshall error: %v", err),
+			fmt.Sprintf("Could not marshal nd_local_user update payload: %s", err.Error()),
 		)
-		log.Printf("[ERROR] Error Updating ND Local User: error=%s", err.Error())
 		return
 	}
-	res, err := localUserAPI.Put(inDataBytes, &ndapi.APIOptions{DisablePayloadLog: true})
+	_, err = localUserAPI.Put(inDataBytes, &ndapi.APIOptions{DisablePayloadLog: true})
 
 	if err != nil {
+		tflog.Error(ctx, "ND local user update request failed", map[string]interface{}{
+			"login_id": id,
+			"error":    err.Error(),
+		})
 		dg.AddError(
 			"Error Updating ND Local User",
-			fmt.Sprintf("Could not update nd local user, unexpected error: %v %v", err, res),
+			fmt.Sprintf("Could not update nd_local_user with login_id %q: %s", id, err.Error()),
 		)
-		log.Printf("[ERROR] Error Updating ND Local User: error=%s", err.Error())
 		return
 	}
 	// Read the updated nd local user
-	if r.rscGetLocalUser(ctx, dg, plan) {
+	notFound := r.rscGetLocalUser(ctx, dg, plan)
+	if dg.HasError() {
+		return
+	}
+	if notFound {
 		dg.AddError(
 			"Error Reading ND Local User",
-			fmt.Sprintf("Could not read nd local user with id %q after update: resource not found", id),
+			fmt.Sprintf("Could not read nd_local_user with login_id %q after update: resource not found", id),
 		)
 	}
 }
@@ -155,21 +177,25 @@ func (r *localUserNdResource) rscUpdateLocalUser(ctx context.Context, dg *diag.D
 // rscDeleteLocalUser deletes a nd local user by login_id
 func (r *localUserNdResource) rscDeleteLocalUser(ctx context.Context, dg *diag.Diagnostics, state *LocalUserModel) {
 	id := state.LoginId.ValueString()
-	log.Printf("[INFO] Delete nd_local_user id=%s", id)
 	localUserAPI := api.NewLocalUserAPI(r.infraClient.ApiClient)
-	localUserAPI.LoginId = state.LoginId.ValueString()
+	localUserAPI.LoginId = id
 
 	res, err := localUserAPI.Delete(nil)
 	if err != nil {
 		if strings.Contains(err.Error(), "StatusCode 404") {
-			log.Printf("[DEBUG] ND Local User already absent during delete: id=%s", id)
+			tflog.Debug(ctx, "ND local user is already absent during delete", map[string]interface{}{
+				"login_id": id,
+			})
 			return
 		}
+		tflog.Error(ctx, "ND local user delete request failed", map[string]interface{}{
+			"login_id": id,
+			"error":    err.Error(),
+		})
 		dg.AddError(
 			"Error Deleting ND Local User",
-			fmt.Sprintf("Could not delete nd local user, unexpected error: %v %v", err, res),
+			fmt.Sprintf("Could not delete nd_local_user with login_id %q: %s. Response: %s", id, err.Error(), res.String()),
 		)
-		log.Printf("[ERROR] Error Deleting ND Local User: error=%s", err.Error())
 		return
 	}
 }

@@ -38,3 +38,14 @@ resource "nd_local_user" "{{.RscName}}" {
 {{end}}
 }
 {{end}}
+
+{{define "ND_LOCAL_USER_DS"}}
+{{with .LocalUserDataSource}}
+data "nd_local_user" "{{.RscName}}" {
+    login_id = "{{.LoginId}}"
+    {{if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+    {{end}}
+}
+{{end}}
+{{end}}

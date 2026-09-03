@@ -21,9 +21,6 @@ import (
 func LocalUserModelHelperStateCheck(RscName string, c resource_local_user.NDFCLocalUserModel, attrPath path.Path) []resource.TestCheckFunc {
 	ret := []resource.TestCheckFunc{}
 
-	if c.Id != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("id").String(), c.Id))
-	}
 	if c.LoginId != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("login_id").String(), c.LoginId))
 	}
@@ -49,6 +46,8 @@ func LocalUserModelHelperStateCheck(RscName string, c resource_local_user.NDFCLo
 	}
 	if c.Rbac.TenantDomain != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("tenant_domain").String(), c.Rbac.TenantDomain))
+	} else {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("tenant_domain").String(), "all-tenants-domain"))
 	}
 	for key, value := range c.Rbac.SecurityDomains {
 		attrNewPath := attrPath.AtName("security_domains").AtName(key)
