@@ -22,6 +22,7 @@ import (
 	"terraform-provider-nd/internal/infra/resource_backup"
 	"terraform-provider-nd/internal/infra/resource_local_user"
 	"terraform-provider-nd/internal/infra/resource_multi_cluster_connectivity"
+	"terraform-provider-nd/internal/infra/resource_tenant"
 	"terraform-provider-nd/internal/manage/resource_fabric_aci"
 	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
@@ -205,6 +206,14 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 			err = t.ExecuteTemplate(&output, "ND_LOCAL_USER_RSC", args)
 			if err != nil {
 				panic(fmt.Sprintf("Failed to execute ND_LOCAL_USER_RSC template: %v", err))
+			}
+
+		case *resource_tenant.NDFCTenantModel:
+			args["Tenant"] = v
+			args["RscName"] = rscName
+			err = t.ExecuteTemplate(&output, "ND_TENANT_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_TENANT_RSC template: %v", err))
 			}
 
 		case *resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel:
