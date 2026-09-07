@@ -62,8 +62,8 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"login_id": schema.StringAttribute{
 				Required:            true,
-				Description:         "The User ID of the local user.",
-				MarkdownDescription: "The User ID of the local user.",
+				Description:         "The login id of the local user.",
+				MarkdownDescription: "The login id of the local user.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -121,8 +121,8 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "The password of the local user. User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.",
 			},
 		},
-		Description:         "Manages local user for Nexus Dashboard.",
-		MarkdownDescription: "Manages local user for Nexus Dashboard.",
+		Description:         "Manages local user for Nexus Dashboard",
+		MarkdownDescription: "Manages local user for Nexus Dashboard",
 	}
 }
 

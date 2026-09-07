@@ -4,7 +4,7 @@ resource:
   category: infra
   generate_tf_resource: true
   skip_equality: true
-  description: Manages local user for Nexus Dashboard.
+  description: Manages local user for Nexus Dashboard
   attributes:
   - model_name: id
     tf_name: id
@@ -17,7 +17,7 @@ resource:
 
   - model_name: loginID
     tf_name: login_id
-    description: The User ID of the local user.
+    description: The login id of the local user.
     type: String
     mandatory: true
     tf_requires_replace: true
@@ -115,18 +115,11 @@ datasource:
   category: infra
   generate_tf_resource: true
   skip_equality: true
-  description: Datasource of the local user for Nexus Dashboard.
+  description: Datasource of the local user for Nexus Dashboard
   attributes:
-  - model_name: id
-    tf_name: id
-    description: The unique identifier for the datasource, it is the `login_id` of the local user (for example, local_user_123).
-    type: String
-    computed: true
-    payload_hide: true
-
   - model_name: loginID
     tf_name: login_id
-    description: The User ID of the local user.
+    description: The login id that uniquely identifies the local user datasource.
     type: String
     mandatory: true
     tf_requires_replace: true

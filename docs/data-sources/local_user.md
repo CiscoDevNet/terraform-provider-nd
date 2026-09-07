@@ -3,12 +3,12 @@
 page_title: "nd_local_user Data Source - terraform-provider-nd"
 subcategory: ""
 description: |-
-  Datasource of the local user for Nexus Dashboard.
+  Datasource of the local user for Nexus Dashboard
 ---
 
 # nd_local_user (Data Source)
 
-Datasource of the local user for Nexus Dashboard.
+Datasource of the local user for Nexus Dashboard
 
 ## Example Usage
 
@@ -23,13 +23,12 @@ data "nd_local_user" "test_resource_local_user_1" {
 
 ### Required
 
-- `login_id` (String) The User ID of the local user.
+- `login_id` (String) The login id that uniquely identifies the local user datasource.
 
 ### Read-Only
 
 - `email` (String) The email address of the local user.
 - `first_name` (String) The first name of the local user.
-- `id` (String) The unique identifier for the datasource, it is the `login_id` of the local user (for example, local_user_123).
 - `last_name` (String) The last name of the local user.
 - `remote_id_claim` (String) The Remote ID claim of the local user.
 - `remote_user_authorization` (Boolean) The Remote user authorization is used for signing into Nexus Dashboard when using identity providers that cannot provide authorization claims.

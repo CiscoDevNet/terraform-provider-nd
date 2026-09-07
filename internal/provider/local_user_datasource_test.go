@@ -65,7 +65,6 @@ func TestAccLocalUserDataSource(t *testing.T) {
 	s4 := &helper.StepInfo{}
 
 	matchingChecks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttrPair(dataSourceName, "id", resourceName, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceName, "login_id", resourceName, "login_id"),
 		resource.TestCheckResourceAttrPair(dataSourceName, "email", resourceName, "email"),
 		resource.TestCheckResourceAttrPair(dataSourceName, "first_name", resourceName, "first_name"),
@@ -140,7 +139,6 @@ func TestAccLocalUserDataSource(t *testing.T) {
 				}(),
 				PreConfig: func() { helper.LogStep(t, s2.Index, s2.Name, s2.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(dataSourceName, "id", loginID),
 					resource.TestCheckResourceAttr(dataSourceName, "login_id", loginID),
 				),
 			},
@@ -187,7 +185,7 @@ func TestAccLocalUserDataSource(t *testing.T) {
 				}(),
 				PreConfig: func() { helper.LogStep(t, s4.Index, s4.Name, s4.Cfg) },
 				ExpectError: regexp.MustCompile(
-					fmt.Sprintf(`Could not read nd local user with id\s+%q:\s+resource not found`, missingID),
+					fmt.Sprintf(`Could not read nd local user with login_id\s+%q:\s+resource not found`, missingID),
 				),
 			},
 		},

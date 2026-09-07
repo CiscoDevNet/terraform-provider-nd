@@ -104,25 +104,25 @@ func (d *localUserNdDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	id := data.LoginId.ValueString()
-	log.Printf("[DEBUG] Reading ND Local User: id=%s", id)
+	loginID := data.LoginId.ValueString()
+	log.Printf("[DEBUG] Reading ND Local User: login_id=%s", loginID)
 
 	localUserAPI := api.NewLocalUserAPI(d.infraClient.ApiClient)
-	localUserAPI.LoginId = id
+	localUserAPI.LoginId = loginID
 
 	respData, err := localUserAPI.Get()
 	if err != nil {
 		if strings.Contains(err.Error(), "StatusCode 404") {
 			resp.Diagnostics.AddError(
 				"Error Reading ND Local User",
-				fmt.Sprintf("Could not read nd local user with id %q: resource not found", id),
+				fmt.Sprintf("Could not read nd local user with login_id %q: resource not found", loginID),
 			)
 			return
 		}
 
 		resp.Diagnostics.AddError(
 			"Error Reading ND Local User",
-			fmt.Sprintf("Could not read nd local user with id %q, unexpected error: %s %s", id, err.Error(), string(respData)),
+			fmt.Sprintf("Could not read nd local user with login_id %q, unexpected error: %s %s", loginID, err.Error(), string(respData)),
 		)
 		return
 	}
@@ -131,7 +131,7 @@ func (d *localUserNdDataSource) Read(ctx context.Context, req datasource.ReadReq
 	if err := json.Unmarshal(respData, &localUserResp); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading ND Local User",
-			fmt.Sprintf("Could not unmarshal nd local user response with id %q, unexpected error: %s", id, err.Error()),
+			fmt.Sprintf("Could not unmarshal nd local user response with login_id %q, unexpected error: %s", loginID, err.Error()),
 		)
 		return
 	}
@@ -141,12 +141,11 @@ func (d *localUserNdDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 	// The data source ID is Terraform-only and is derived from the API login ID.
-	data.Id = data.LoginId
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	log.Printf("[DEBUG] End read of datasource nd_local_user with id=%s", data.Id.ValueString())
+	log.Printf("[DEBUG] End read of datasource nd_local_user with login_id=%s", data.LoginId.ValueString())
 }

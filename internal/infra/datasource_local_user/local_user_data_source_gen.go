@@ -28,11 +28,6 @@ func LocalUserDataSourceSchema(ctx context.Context) schema.Schema {
 				Description:         "The first name of the local user.",
 				MarkdownDescription: "The first name of the local user.",
 			},
-			"id": schema.StringAttribute{
-				Computed:            true,
-				Description:         "The unique identifier for the datasource, it is the `login_id` of the local user (for example, local_user_123).",
-				MarkdownDescription: "The unique identifier for the datasource, it is the `login_id` of the local user (for example, local_user_123).",
-			},
 			"last_name": schema.StringAttribute{
 				Computed:            true,
 				Description:         "The last name of the local user.",
@@ -40,8 +35,8 @@ func LocalUserDataSourceSchema(ctx context.Context) schema.Schema {
 			},
 			"login_id": schema.StringAttribute{
 				Required:            true,
-				Description:         "The User ID of the local user.",
-				MarkdownDescription: "The User ID of the local user.",
+				Description:         "The login id that uniquely identifies the local user datasource.",
+				MarkdownDescription: "The login id that uniquely identifies the local user datasource.",
 			},
 			"remote_id_claim": schema.StringAttribute{
 				Computed:            true,
@@ -84,15 +79,14 @@ func LocalUserDataSourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "The password of the local user.",
 			},
 		},
-		Description:         "Datasource of the local user for Nexus Dashboard.",
-		MarkdownDescription: "Datasource of the local user for Nexus Dashboard.",
+		Description:         "Datasource of the local user for Nexus Dashboard",
+		MarkdownDescription: "Datasource of the local user for Nexus Dashboard",
 	}
 }
 
 type LocalUserModel struct {
 	Email                   types.String `tfsdk:"email"`
 	FirstName               types.String `tfsdk:"first_name"`
-	Id                      types.String `tfsdk:"id"`
 	LastName                types.String `tfsdk:"last_name"`
 	LoginId                 types.String `tfsdk:"login_id"`
 	RemoteIdClaim           types.String `tfsdk:"remote_id_claim"`
