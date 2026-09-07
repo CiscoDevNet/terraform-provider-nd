@@ -1,6 +1,6 @@
 module terraform-provider-nd
 
-go 1.24.2
+go 1.25
 
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0
@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/terraform-plugin-testing v1.14.0
 	github.com/looplab/fsm v1.0.3
 	github.com/netascode/go-nd v0.1.3
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
 	golang.org/x/net v0.47.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -72,7 +72,7 @@ require (
 	github.com/posener/complete v1.2.3 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
@@ -95,3 +95,5 @@ require (
 	google.golang.org/protobuf v1.36.9 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace github.com/netascode/go-nd => ../../go/go-nd
