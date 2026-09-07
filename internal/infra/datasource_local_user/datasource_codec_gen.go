@@ -1,6 +1,6 @@
 // Code generated;  DO NOT EDIT.
 
-package resource_local_user
+package datasource_local_user
 
 import (
 	"context"
@@ -146,78 +146,6 @@ func (v LocalUserModel) GetModelData() *NDFCLocalUserModel {
 		data.LoginId = v.LoginId.ValueString()
 	} else {
 		data.LoginId = ""
-	}
-
-	if !v.UserPassword.IsNull() && !v.UserPassword.IsUnknown() {
-		data.UserPassword = v.UserPassword.ValueString()
-	} else {
-		data.UserPassword = ""
-	}
-
-	if !v.Email.IsNull() && !v.Email.IsUnknown() {
-		data.Email = v.Email.ValueString()
-	} else {
-		data.Email = ""
-	}
-
-	if !v.FirstName.IsNull() && !v.FirstName.IsUnknown() {
-		data.FirstName = v.FirstName.ValueString()
-	} else {
-		data.FirstName = ""
-	}
-
-	if !v.LastName.IsNull() && !v.LastName.IsUnknown() {
-		data.LastName = v.LastName.ValueString()
-	} else {
-		data.LastName = ""
-	}
-
-	if !v.RemoteIdClaim.IsNull() && !v.RemoteIdClaim.IsUnknown() {
-		data.RemoteIdClaim = v.RemoteIdClaim.ValueString()
-	} else {
-		data.RemoteIdClaim = ""
-	}
-
-	if !v.RemoteUserAuthorization.IsNull() && !v.RemoteUserAuthorization.IsUnknown() {
-		data.RemoteUserAuthorization = new(bool)
-		*data.RemoteUserAuthorization = v.RemoteUserAuthorization.ValueBool()
-	} else {
-		data.RemoteUserAuthorization = nil
-	}
-
-	if !v.TenantDomain.IsNull() && !v.TenantDomain.IsUnknown() {
-		data.Rbac.TenantDomain = v.TenantDomain.ValueString()
-	} else {
-		data.Rbac.TenantDomain = ""
-	}
-
-	if !v.SecurityDomains.IsNull() && !v.SecurityDomains.IsUnknown() {
-		elements1 := make(map[string]SecurityDomainsValue, len(v.SecurityDomains.Elements()))
-
-		data.Rbac.SecurityDomains = make(map[string]NDFCSecurityDomainsValue)
-
-		diag := v.SecurityDomains.ElementsAs(context.Background(), &elements1, false)
-		if diag != nil {
-			panic(diag)
-		}
-		for k1, ele1 := range elements1 {
-			data1 := new(NDFCSecurityDomainsValue)
-
-			// roles | List:String| []| false
-			if !ele1.Roles.IsNull() && !ele1.Roles.IsUnknown() {
-
-				listStringData := make([]string, len(ele1.Roles.Elements()))
-				dg := ele1.Roles.ElementsAs(context.Background(), &listStringData, false)
-				if dg.HasError() {
-					panic(dg.Errors())
-				}
-				data1.Roles = make([]string, len(listStringData))
-				copy(data1.Roles, listStringData)
-			}
-
-			data.Rbac.SecurityDomains[k1] = *data1
-
-		}
 	}
 
 	return data

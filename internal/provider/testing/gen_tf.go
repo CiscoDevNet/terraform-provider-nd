@@ -70,7 +70,7 @@ func init() {
 // Parameters:
 //   - tt: test step name (used for snapshot filename)
 //   - cfg: provider config map with keys: User, Password, Host, Insecure, RscType, RscName
-//   - rscs: slice of resource model pointers
+//   - rscs: slice of resource or datasource test model pointers
 //   - out: output pointer that receives the generated HCL string
 func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []interface{}, out **string) {
 	// Find the directory containing templates (same directory as this file)
@@ -155,7 +155,7 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 		}
 	}
 
-	// Execute resource-specific templates
+	// Execute resource-specific and datasource-specific templates
 	invSwitchIdx := 0
 	for i, rsc := range rscs {
 		args := make(map[string]interface{})
@@ -214,6 +214,13 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 			err = t.ExecuteTemplate(&output, "ND_TENANT_RSC", args)
 			if err != nil {
 				panic(fmt.Sprintf("Failed to execute ND_TENANT_RSC template: %v", err))
+			}
+
+		case *LocalUserDataSourceTestData:
+			args["LocalUserDataSource"] = v
+			err = t.ExecuteTemplate(&output, "ND_LOCAL_USER_DS", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_LOCAL_USER_DS template: %v", err))
 			}
 
 		case *resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel:
