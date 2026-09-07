@@ -17,7 +17,6 @@ import (
 
 	"terraform-provider-nd/internal/infra"
 	"terraform-provider-nd/internal/infra/api"
-	"terraform-provider-nd/internal/infra/resource_local_user"
 	"terraform-provider-nd/internal/registry"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -90,7 +89,7 @@ func (d *localUserNdDataSource) Configure(_ context.Context, req datasource.Conf
 func (d *localUserNdDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	log.Printf("[DEBUG] Start read of datasource: nd_local_user")
 
-	var data resource_local_user.LocalUserModel
+	var data LocalUserModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
@@ -128,7 +127,7 @@ func (d *localUserNdDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	var localUserResp resource_local_user.NDFCLocalUserModel
+	var localUserResp NDFCLocalUserModel
 	if err := json.Unmarshal(respData, &localUserResp); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading ND Local User",

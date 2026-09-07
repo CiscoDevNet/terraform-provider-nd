@@ -116,7 +116,6 @@ datasource:
   generate_tf_resource: true
   skip_equality: true
   description: Datasource of the local user for Nexus Dashboard.
-  skip_codec: true
   attributes:
   - model_name: id
     tf_name: id
