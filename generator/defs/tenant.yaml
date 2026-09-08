@@ -59,3 +59,51 @@ resource:
       ndfc_type: string
       optional: true
       example: '["7", "10-20", "30-40"]'
+
+datasource:
+  name: tenant
+  generate_tf_resource: true
+  skip_equality: true
+  category: infra
+  description: Datasource of the tenant and its fabric associations for Nexus Dashboard
+  doc_category: Multi Tenancy
+  attributes:
+  - model_name: name
+    tf_name: name
+    description: The name that uniquely identifies the tenant datasource.
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    example: tenant1
+
+  - model_name: description
+    tf_name: description
+    description: The description of the tenant.
+    type: String
+    computed: true
+
+  - model_name: fabricAssociations
+    tf_name: fabric_associations
+    description: The map of fabric associations for the tenant, keyed by fabric name.
+    type: Map
+    computed: true
+    payload_hide: true
+    attributes:
+    - model_name: tenantPrefix
+      tf_name: tenant_prefix
+      description: The tenant prefix for ACI fabrics.
+      type: String
+      computed: true
+
+    - model_name: localName
+      tf_name: local_name
+      description: The local name for the tenant in the fabric.
+      type: String
+      computed: true
+
+    - model_name: allowedVlans
+      tf_name: allowed_vlans
+      description: The list of allowed VLANs for the tenant in the fabric.
+      type: List:String
+      ndfc_type: string
+      computed: true

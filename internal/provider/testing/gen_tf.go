@@ -216,6 +216,13 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 				panic(fmt.Sprintf("Failed to execute ND_TENANT_RSC template: %v", err))
 			}
 
+		case *TenantDataSourceTestData:
+			args["TenantDataSource"] = v
+			err = t.ExecuteTemplate(&output, "ND_TENANT_DS", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_TENANT_DS template: %v", err))
+			}
+
 		case *resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel:
 			args["MultiClusterConnectivity"] = v
 			args["RscName"] = rscName
