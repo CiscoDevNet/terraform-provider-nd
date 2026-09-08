@@ -12,6 +12,14 @@ import (
 	"terraform-provider-nd/internal/infra/resource_tenant"
 )
 
+// TenantDataSourceTestData contains the values rendered by the tenant
+// datasource acceptance-test template.
+type TenantDataSourceTestData struct {
+	RscName   string
+	Name      string
+	DependsOn string
+}
+
 func defaultTenantValues() map[string]interface{} {
 	return map[string]interface{}{}
 }

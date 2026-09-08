@@ -28,3 +28,14 @@ resource "nd_tenant" "{{.RscName}}" {
 {{end}}
 }
 {{end}}
+
+{{define "ND_TENANT_DS"}}
+{{with .TenantDataSource}}
+data "nd_tenant" "{{.RscName}}" {
+    name = "{{.Name}}"
+    {{if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+    {{end}}
+}
+{{end}}
+{{end}}
