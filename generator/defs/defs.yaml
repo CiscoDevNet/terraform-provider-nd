@@ -14,4 +14,5 @@ files:
   - remote_storage_location.yaml
   - fabric_aci.yaml
   - tenant.yaml
+  - change_control.yaml
   #- sample.yaml

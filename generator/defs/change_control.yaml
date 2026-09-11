@@ -1,0 +1,87 @@
+---
+resource:
+  name: change_control
+  generate_tf_resource: true
+  skip_equality: true
+  category: infra
+  doc_category: System Settings
+  description: |
+    Manages change control system settings for Nexus Dashboard.
+
+    Change Control is a built-in Nexus Dashboard setting rather than a new object.
+    During Terraform creation, import the existing Change Control object first,
+    to see differences before applying changes.
+
+    During destroy, Terraform uses PUT to restore the default Change Control settings
+    before removing the resource from state. The built-in object remains in Nexus Dashboard.
+
+    If you want to stop managing Change Control without resetting its current Nexus Dashboard
+    settings, remove the resource from Terraform state with `terraform state rm
+    nd_change_control.<name>` and remove the resource block from the configuration. This
+    bypasses the provider destroy operation and leaves the Nexus Dashboard settings unchanged.
+
+  attributes:
+  - model_name: id
+    tf_name: id
+    description: The fixed Terraform identifier for the Change Control settings is changeControl.
+    type: String
+    id: true
+    computed: true
+    use_state: true
+    payload_hide: true
+
+  - model_name: changeControlAdminStatus
+    tf_name: admin_status
+    description: The admin status of the change control. The API requires at least one of `orchestration` or `nd_managed_fabrics` to be `true` when this is enabled. Defaults to `false` when not specified in the configuration.
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    example: true
+
+  - model_name: changeControlOrchestration
+    tf_name: orchestration
+    description: The orchestration status of the change control for ACI fabrics. Defaults to `false` when not specified in the configuration.
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    example: true
+
+  - model_name: numberOfApprovers
+    tf_name: number_of_approvers
+    description: The number of approvals required for orchestration templates. This applies when `orchestration` is enabled and must be between `1` and `10`. Defaults to `1` when not specified in the configuration.
+    type: Int64
+    default_value: 1
+    validator: 'Between(1, 10)'
+    example: 3
+
+  - model_name: allowSelfApproval
+    tf_name: allow_self_approval
+    description: The self approval status of the change control for an orchestration action to approve that ticket. Defaults to `true` when not specified in the configuration.
+    type: Bool
+    ndfc_type: bool
+    default_value: true
+    example: true
+
+  - model_name: changeControlNDManagedFabrics
+    tf_name: nd_managed_fabrics
+    description: The Nexus Dashboard managed fabrics status of the change control. Defaults to `false` when not specified in the configuration.
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    example: true
+
+  - model_name: byPassTelemetryChangeControl
+    tf_name: bypass_telemetry_change_control
+    description: Bypasses change control for telemetry operations in Nexus Dashboard managed fabrics. Defaults to `false` when not specified in the configuration.
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    example: true
+
+  - model_name: ticketNamePrefix
+    tf_name: ticket_name_prefix
+    description: The prefix of the ticket name for the change control. The ticket name must start with a letter followed by one or more letters, digits, underscores, or hyphens. Defaults to `TICKET_` when not specified in the configuration.
+    type: String
+    default_value: TICKET_
+    validator: 'LengthBetween(1, 255), stringvalidator.RegexMatches(regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]+$`), "must start with a letter and contain only letters, digits, underscores, or hyphens")'
+    example: TICKET_

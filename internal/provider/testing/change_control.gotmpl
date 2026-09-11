@@ -1,0 +1,27 @@
+{{define "ND_CHANGE_CONTROL_RSC"}}
+resource "nd_change_control" "{{.RscName}}" {
+{{- with .ChangeControl}}
+    {{- if ne .AdminStatus nil}}
+    admin_status = {{deref_bool .AdminStatus}}
+    {{- end}}
+    {{- if ne .Orchestration nil}}
+    orchestration = {{deref_bool .Orchestration}}
+    {{- end}}
+    {{- if ne .NdManagedFabrics nil}}
+    nd_managed_fabrics = {{deref_bool .NdManagedFabrics}}
+    {{- end}}
+    {{- if ne .BypassTelemetryChangeControl nil}}
+    bypass_telemetry_change_control = {{deref_bool .BypassTelemetryChangeControl}}
+    {{- end}}
+    {{- if ne .NumberOfApprovers nil}}
+    number_of_approvers = {{deref_int64 .NumberOfApprovers}}
+    {{- end}}
+    {{- if ne .AllowSelfApproval nil}}
+    allow_self_approval = {{deref_bool .AllowSelfApproval}}
+    {{- end}}
+    {{- if .TicketNamePrefix}}
+    ticket_name_prefix = {{printf "%q" .TicketNamePrefix}}
+    {{- end}}
+{{- end}}
+}
+{{end}}
