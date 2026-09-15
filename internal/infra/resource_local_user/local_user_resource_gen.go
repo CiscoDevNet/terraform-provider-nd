@@ -27,21 +27,13 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 		Attributes: map[string]schema.Attribute{
 			"email": schema.StringAttribute{
 				Optional:            true,
-				Computed:            true,
 				Description:         "The email address of the local user.",
 				MarkdownDescription: "The email address of the local user.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"first_name": schema.StringAttribute{
 				Optional:            true,
-				Computed:            true,
 				Description:         "The first name of the local user.",
 				MarkdownDescription: "The first name of the local user.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -53,12 +45,8 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"last_name": schema.StringAttribute{
 				Optional:            true,
-				Computed:            true,
 				Description:         "The last name of the local user.",
 				MarkdownDescription: "The last name of the local user.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"login_id": schema.StringAttribute{
 				Required:            true,
@@ -70,12 +58,8 @@ func LocalUserResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"remote_id_claim": schema.StringAttribute{
 				Optional:            true,
-				Computed:            true,
 				Description:         "The Remote ID claim of the local user. This is required when the `remote_user_authorization` option is `true` for the local user.",
 				MarkdownDescription: "The Remote ID claim of the local user. This is required when the `remote_user_authorization` option is `true` for the local user.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"remote_user_authorization": schema.BoolAttribute{
 				Optional:            true,

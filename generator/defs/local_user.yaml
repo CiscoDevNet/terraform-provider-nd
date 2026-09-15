@@ -36,8 +36,7 @@ resource:
     description: The email address of the local user.
     type: String
     optional: true
-    computed: true
-    use_state: true
+    include_empty: true
     example: local_user_123@mail.com
 
   - model_name: firstName
@@ -45,8 +44,7 @@ resource:
     description: The first name of the local user.
     type: String
     optional: true
-    computed: true
-    use_state: true
+    include_empty: true
     example: first_name
 
   - model_name: lastName
@@ -54,8 +52,7 @@ resource:
     description: The last name of the local user.
     type: String
     optional: true
-    computed: true
-    use_state: true
+    include_empty: true
     example: last_name
 
   - model_name: remoteIDClaim
@@ -63,8 +60,7 @@ resource:
     description: The Remote ID claim of the local user. This is required when the `remote_user_authorization` option is `true` for the local user.
     type: String
     optional: true
-    computed: true
-    use_state: true
+    include_empty: true
     example: tf_remote_id_claim
 
   - model_name: xLaunch

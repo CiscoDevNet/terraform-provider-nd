@@ -14,10 +14,10 @@ import (
 type NDFCLocalUserModel struct {
 	LoginId                 string        `json:"loginID,omitempty"`
 	UserPassword            string        `json:"password,omitempty"`
-	Email                   string        `json:"email,omitempty"`
-	FirstName               string        `json:"firstName,omitempty"`
-	LastName                string        `json:"lastName,omitempty"`
-	RemoteIdClaim           string        `json:"remoteIDClaim,omitempty"`
+	Email                   string        `json:"email"`
+	FirstName               string        `json:"firstName"`
+	LastName                string        `json:"lastName"`
+	RemoteIdClaim           string        `json:"remoteIDClaim"`
 	RemoteUserAuthorization *bool         `json:"xLaunch,omitempty"`
 	Rbac                    NDFCRbacValue `json:"rbac,omitempty"`
 }

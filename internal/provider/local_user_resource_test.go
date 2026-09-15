@@ -40,11 +40,11 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 	}
 
 	tfConfig := new(string)
-	stepCount := new(int)
-	*stepCount = 0
+	missingTFConfig := new(string)
 
 	user1 := new(resource_local_user.NDFCLocalUserModel)
 	user2 := new(resource_local_user.NDFCLocalUserModel)
+	missingUser := new(resource_local_user.NDFCLocalUserModel)
 
 	domains := luCfg.SecurityDomains
 	if len(domains) == 0 {
@@ -53,23 +53,21 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 
 	loginIDA := luCfg.LoginID + "_a"
 	loginIDB := luCfg.LoginID + "_b"
+	missingLoginID := loginIDA + "_missing"
 
-	// Per-step info objects captured by both the Config builder (write) and
-	// PreConfig logger (read). Declared up-front so each step's closures
-	// reference an independent struct.
 	s1 := &helper.StepInfo{}
 	s2 := &helper.StepInfo{}
+	s3 := &helper.StepInfo{}
+	s4 := &helper.StepInfo{}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Step 1: Create both users. Neither carries remote_id_claim or
-			// tenant_domain at this point.
 			{
 				Config: func() string {
-					*stepCount++
-					s1.Name = fmt.Sprintf("%s_%d_create_both_users", t.Name(), *stepCount)
+					s1.Index = 1
+					s1.Name = fmt.Sprintf("%s - %s", t.Name(), "Create both local users")
 
 					helper.GenerateLocalUserObject(&user1,
 						loginIDA,
@@ -90,7 +88,7 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 					s1.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 1, s1.Name, s1.Cfg) },
+				PreConfig: func() { helper.LogStep(t, s1.Index, s1.Name, s1.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					append(
 						LocalUserModelHelperStateCheck(
@@ -106,12 +104,10 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 					)...,
 				),
 			},
-			// Step 2: Update user_one to add remote_id_claim and
-			// tenant_domain. user_two is re-rendered unchanged.
 			{
 				Config: func() string {
-					*stepCount++
-					s2.Name = fmt.Sprintf("%s_%d_update_user_one_add_remote_id_claim_and_tenant_domain", t.Name(), *stepCount)
+					s2.Index = 2
+					s2.Name = fmt.Sprintf("%s - %s", t.Name(), "Add a remote ID claim and tenant domain to the first local user")
 
 					helper.ModifyLocalUserObject(&user1, map[string]interface{}{
 						"remote_id_claim": "tf_remote_id_claim_a",
@@ -124,7 +120,7 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 					s2.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 2, s2.Name, s2.Cfg) },
+				PreConfig: func() { helper.LogStep(t, s2.Index, s2.Name, s2.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					append(
 						LocalUserModelHelperStateCheck(
@@ -140,14 +136,12 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 					)...,
 				),
 			},
-			// Step 3: ImportState verification for user_one. The API GET
-			// does not echo write-only / non-returned fields, so they are
-			// excluded from the ImportStateVerify diff comparison:
-			//   - user_password (write-only / sensitive)
-			//   - tenant_domain (not returned)
 			{
 				PreConfig: func() {
-					t.Logf("===== STEP 3: %s_3_import_user_one =====", t.Name())
+					s3.Index = 3
+					s3.Name = fmt.Sprintf("%s - %s", t.Name(), "Import the first local user and verify API readback")
+					s3.Cfg = *tfConfig
+					helper.LogStep(t, s3.Index, s3.Name, s3.Cfg)
 				},
 				ResourceName:                         "nd_local_user.user_one",
 				ImportState:                          true,
@@ -156,28 +150,32 @@ func TestAccLocalUserMultiResource(t *testing.T) {
 				ImportStateVerifyIdentifierAttribute: "login_id",
 				ImportStateVerifyIgnore: []string{
 					"user_password",
-					"tenant_domain",
 				},
 			},
-			// Step 4: ImportState with a missing login_id. This exercises the
-			// local-user 404 handling without creating and deleting another user.
 			{
 				PreConfig: func() {
-					t.Logf("===== STEP 4: %s_4_import_missing_user =====", t.Name())
+					s4.Index = 4
+					s4.Name = fmt.Sprintf("%s - %s", t.Name(), "Reject import of a missing local user")
+					helper.GenerateLocalUserObject(&missingUser, missingLoginID, luCfg.UserPassword, domains, nil)
+					helper.GetTFConfigWithSingleResource(s4.Name, *x,
+						[]interface{}{missingUser}, &missingTFConfig)
+					s4.Cfg = *missingTFConfig
+					helper.LogStep(t, s4.Index, s4.Name, s4.Cfg)
 				},
 				ResourceName:  "nd_local_user.user_one",
 				ImportState:   true,
-				ImportStateId: loginIDA + "_missing",
+				ImportStateId: missingLoginID,
 				ExpectError: regexp.MustCompile(
-					fmt.Sprintf(`Could not import nd local user with id %q:\s+resource not found`, loginIDA+"_missing"),
+					fmt.Sprintf(`Could not import nd local user with id %q:\s+resource not found`, missingLoginID),
 				),
 			},
 		},
 	})
 }
 
-// TestAccLocalUserResourceCRUD exercises create, modify (multiple field
-// updates), security-domain add/remove, and final delete of a local user.
+// TestAccLocalUserResourceCRUD exercises required-only create, optional
+// attribute configuration, clearing omitted optional strings, an empty plan
+// with those attributes omitted, and re-adding the optional values.
 func TestAccLocalUserResourceCRUD(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	luCfg := cfg.ND.LocalUser
@@ -192,8 +190,6 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 	}
 
 	tfConfig := new(string)
-	stepCount := new(int)
-	*stepCount = 0
 
 	userRsc := new(resource_local_user.NDFCLocalUserModel)
 
@@ -212,31 +208,43 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 			"all": {"approver", "designer"},
 		}
 	}
+	optionalValues := map[string]interface{}{
+		"email":                     "tf_local_user_test@example.com",
+		"first_name":                "Test",
+		"last_name":                 "User",
+		"remote_id_claim":           "tf_remote_id_claim_crud",
+		"remote_user_authorization": true,
+		"tenant_domain":             "all-tenants-domain",
+	}
+	optionalStringsAbsentChecks := func() []resource.TestCheckFunc {
+		return []resource.TestCheckFunc{
+			resource.TestCheckNoResourceAttr("nd_local_user.user_test", "email"),
+			resource.TestCheckNoResourceAttr("nd_local_user.user_test", "first_name"),
+			resource.TestCheckNoResourceAttr("nd_local_user.user_test", "last_name"),
+			resource.TestCheckNoResourceAttr("nd_local_user.user_test", "remote_id_claim"),
+		}
+	}
 
 	s1 := &helper.StepInfo{}
 	s2 := &helper.StepInfo{}
 	s3 := &helper.StepInfo{}
 	s4 := &helper.StepInfo{}
+	s5 := &helper.StepInfo{}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Step 1: Create local user with defaults from helper
 			{
 				Config: func() string {
-					*stepCount++
-					s1.Name = fmt.Sprintf("%s_%d_create_local_user", t.Name(), *stepCount)
+					s1.Index = 1
+					s1.Name = fmt.Sprintf("%s - %s", t.Name(), "Create a local user with required attributes")
 
-					helper.GenerateLocalUserObject(&userRsc,
-						loginID,
-						userPassword,
-						initialDomains,
-						map[string]interface{}{
-							"remote_id_claim": "tf_remote_id_claim_crud",
-							"tenant_domain":   "all-tenants-domain",
-						},
-					)
+					helper.GenerateLocalUserObject(&userRsc, loginID, userPassword, initialDomains, nil)
+					userRsc.Email = ""
+					userRsc.FirstName = ""
+					userRsc.LastName = ""
+					userRsc.RemoteUserAuthorization = nil
 
 					helper.GetTFConfigWithSingleResource(s1.Name, *x,
 						[]interface{}{userRsc}, &tfConfig)
@@ -244,34 +252,31 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 					s1.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 1, s1.Name, s1.Cfg) },
+				PreConfig: func() { helper.LogStep(t, s1.Index, s1.Name, s1.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
-					LocalUserModelHelperStateCheck(
-						"nd_local_user.user_test",
-						*userRsc,
-						path.Empty(),
+					append(
+						LocalUserModelHelperStateCheck(
+							"nd_local_user.user_test",
+							*userRsc,
+							path.Empty(),
+						),
+						optionalStringsAbsentChecks()...,
 					)...,
 				),
 			},
-			// Step 2: Modify scalar fields (names, email, limits)
 			{
 				Config: func() string {
-					*stepCount++
-					s2.Name = fmt.Sprintf("%s_%d_modify_scalars", t.Name(), *stepCount)
+					s2.Index = 2
+					s2.Name = fmt.Sprintf("%s - %s", t.Name(), "Configure optional local-user attributes")
 
-					helper.ModifyLocalUserObject(&userRsc, map[string]interface{}{
-						"first_name": "updated_first",
-						"last_name":  "updated_last",
-						"email":      "updated_user@mail.com",
-					})
-
+					helper.ModifyLocalUserObject(&userRsc, optionalValues)
 					helper.GetTFConfigWithSingleResource(s2.Name, *x,
 						[]interface{}{userRsc}, &tfConfig)
 
 					s2.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 2, s2.Name, s2.Cfg) },
+				PreConfig: func() { helper.LogStep(t, s2.Index, s2.Name, s2.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					LocalUserModelHelperStateCheck(
 						"nd_local_user.user_test",
@@ -280,19 +285,16 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 					)...,
 				),
 			},
-			// Step 3: Toggle remote_user_authorization and extend the roles
-			// of the existing security domain.
 			{
 				Config: func() string {
-					*stepCount++
-					s3.Name = fmt.Sprintf("%s_%d_toggle_xlaunch_extend_roles", t.Name(), *stepCount)
+					s3.Index = 3
+					s3.Name = fmt.Sprintf("%s - %s", t.Name(), "Remove optional local-user attributes")
 
-					helper.ModifyLocalUserObject(&userRsc, map[string]interface{}{
-						"remote_user_authorization": true,
-					})
-					helper.AddSecurityDomain(&userRsc, "all",
-						[]string{"approver", "designer", "observer"},
-					)
+					helper.GenerateLocalUserObject(&userRsc, loginID, userPassword, initialDomains, nil)
+					userRsc.Email = ""
+					userRsc.FirstName = ""
+					userRsc.LastName = ""
+					userRsc.RemoteUserAuthorization = nil
 
 					helper.GetTFConfigWithSingleResource(s3.Name, *x,
 						[]interface{}{userRsc}, &tfConfig)
@@ -300,25 +302,22 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 					s3.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 3, s3.Name, s3.Cfg) },
+				PreConfig: func() { helper.LogStep(t, s3.Index, s3.Name, s3.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
-					LocalUserModelHelperStateCheck(
-						"nd_local_user.user_test",
-						*userRsc,
-						path.Empty(),
+					append(
+						LocalUserModelHelperStateCheck(
+							"nd_local_user.user_test",
+							*userRsc,
+							path.Empty(),
+						),
+						optionalStringsAbsentChecks()...,
 					)...,
 				),
 			},
-			// Step 4: Shrink roles back to the original set on the same
-			// security domain.
 			{
 				Config: func() string {
-					*stepCount++
-					s4.Name = fmt.Sprintf("%s_%d_shrink_roles", t.Name(), *stepCount)
-
-					helper.AddSecurityDomain(&userRsc, "all",
-						[]string{"approver", "designer"},
-					)
+					s4.Index = 4
+					s4.Name = fmt.Sprintf("%s - %s", t.Name(), "Verify an empty plan with optional local-user attributes omitted")
 
 					helper.GetTFConfigWithSingleResource(s4.Name, *x,
 						[]interface{}{userRsc}, &tfConfig)
@@ -326,7 +325,22 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 					s4.Cfg = *tfConfig
 					return *tfConfig
 				}(),
-				PreConfig: func() { helper.LogStep(t, 4, s4.Name, s4.Cfg) },
+				PreConfig: func() { helper.LogStep(t, s4.Index, s4.Name, s4.Cfg) },
+				PlanOnly:  true,
+			},
+			{
+				Config: func() string {
+					s5.Index = 5
+					s5.Name = fmt.Sprintf("%s - %s", t.Name(), "Re-add optional local-user attributes and verify the object")
+
+					helper.ModifyLocalUserObject(&userRsc, optionalValues)
+					helper.GetTFConfigWithSingleResource(s5.Name, *x,
+						[]interface{}{userRsc}, &tfConfig)
+
+					s5.Cfg = *tfConfig
+					return *tfConfig
+				}(),
+				PreConfig: func() { helper.LogStep(t, s5.Index, s5.Name, s5.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
 					LocalUserModelHelperStateCheck(
 						"nd_local_user.user_test",
