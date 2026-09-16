@@ -15,12 +15,12 @@ Manages local user for Nexus Dashboard
 ```terraform
 resource "nd_local_user" "test_resource_local_user_1" {
   login_id                  = "local_user_123"
-  user_password             = "local_user_123"
+  user_password             = "password"
   email                     = "local_user_123@mail.com"
   first_name                = "first_name"
   last_name                 = "last_name"
   remote_id_claim           = "tf_remote_id_claim"
-  remote_user_authorization = false
+  remote_user_authorization = true
   tenant_domain             = "all-tenants-domain"
   security_domains = {
     "all" = {
@@ -36,7 +36,7 @@ resource "nd_local_user" "test_resource_local_user_1" {
 
 ### Required
 
-- `login_id` (String) The User ID of the local user.
+- `login_id` (String) The login id of the local user.
 - `security_domains` (Attributes Map) The security domains of the local user. At least one security domain must be provided when creating the user. (see [below for nested schema](#nestedatt--security_domains))
 - `user_password` (String, Sensitive) The password of the local user. User accounts are provisioned with temporary credentials and require a mandatory password reset at first login to complete onboarding.
 
@@ -45,17 +45,17 @@ resource "nd_local_user" "test_resource_local_user_1" {
 - `email` (String) The email address of the local user.
 - `first_name` (String) The first name of the local user.
 - `last_name` (String) The last name of the local user.
-- `remote_id_claim` (String) The Remote ID claim of the local user. This is required when the remote user authorization option is enabled for the local user.
-- `remote_user_authorization` (Boolean) The Remote user authorization is used for signing into Nexus Dashboard when using identity providers that cannot provide authorization claims. Once this attribute is enabled, the local user ID cannot be used to directly login to Nexus Dashboard.
-- `tenant_domain` (String) The name of the tenant domain of the local user.
+- `remote_id_claim` (String) The Remote ID claim of the local user. This is required when the `remote_user_authorization` option is `true` for the local user.
+- `remote_user_authorization` (Boolean) The Remote user authorization is used for signing into Nexus Dashboard when using identity providers that cannot provide authorization claims. Once this attribute is enabled, the local user ID cannot be used to directly login to Nexus Dashboard. Defaults to `false` when not specified in the configuration.
+- `tenant_domain` (String) The name of the tenant domain of the local user. Defaults to `all-tenants-domain` when not specified in the configuration.
 
 ### Read-Only
 
-- `id` (String) The unique identifier of the local user.
+- `id` (String) The unique identifier for the resource, it is the `login_id` of the local user (for example, local_user_123).
 
 <a id="nestedatt--security_domains"></a>
 ### Nested Schema for `security_domains`
 
 Required:
 
-- `roles` (Set of String) The list of Nexus Dashboard Roles of the local user.
+- `roles` (Set of String) The list of Nexus Dashboard Roles of the local user. Allowed values are `approver`, `designer`, `fabric-admin`, `observer`, `super-admin`, and `support-engineer`. At least one role must be configured for each security domain.
