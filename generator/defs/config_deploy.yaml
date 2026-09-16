@@ -1,0 +1,145 @@
+resource:
+  name: config_deploy
+  generate_tf_resource: true
+  skip_equality: true
+  category: manage
+  description: >
+    Triggers fabric configuration save (recalculate) and/or deployment operations
+    on an ND-managed fabric. This is an action resource — it executes config-save
+    and deploy operations rather than managing a persistent API object.
+  attributes:
+  - model_name: id
+    tf_name: id
+    description: The unique identifier of the config_deploy resource
+    type: String
+    computed: true
+    use_state: true
+
+  - model_name: fabricName
+    tf_name: fabric_name
+    description: Name of the fabric to perform config-save and/or deploy on
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    example: my_fabric
+
+  - model_name: deploy
+    tf_name: deploy
+    description: >
+      When true, deploy the fabric configuration to switches after config-save.
+      At least one of `deploy` or `config_save` must be true.
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    payload_hide: true
+    example: true
+
+  - model_name: configSave
+    tf_name: config_save
+    description: >
+      When true, perform a config-save (recalculate) operation on the fabric
+      before deployment. Also known as recalculate in the API.
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    payload_hide: true
+    example: true
+
+  - model_name: switchIds
+    tf_name: switch_ids
+    description: >
+      List of switch serial numbers or IP addresses to deploy configuration to.
+      Use `["ALL"]` to deploy to all switches in the fabric.
+      When omitted, a fabric-wide deploy is performed. Note: IP address support is TBD
+    type: List:String
+    optional: true
+    payload_hide: true
+    example: '["ALL"]'
+
+  - model_name: forceShowRun
+    tf_name: force_show_run
+    description: >
+      When true, fetch the latest running configuration from each switch
+      instead of using the cached version before deployment.
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    payload_hide: true
+    example: false
+
+  - model_name: inclAllFabricGroupsSwitches
+    tf_name: include_all_fabric_group_switches
+    description: >
+      When true and the target is a fabric group, deploy changes to switches
+      in all member fabrics. Only applicable for fabric-wide deploy.
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    payload_hide: true
+    example: false
+
+  - model_name: alwaysExecute
+    tf_name: always_deploy
+    description: >
+      When false (default), the operations are executed only once during the
+      initial create and are not re-executed on subsequent `terraform apply` runs.
+      When true, the operations are always executed on every apply, which shows
+      as an update to the resource in the plan.
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    payload_hide: true
+    example: false
+
+  - model_name: behaviour
+    tf_name: behaviour
+    description: >
+      Controls when the config-save and deploy operations are executed
+      during the Terraform resource lifecycle.
+    type: Struct
+    payload_hide: true
+    default_value: true
+    attributes:
+    - model_name: onCreate
+      tf_name: deploy_on_create
+      description: >
+        When true, execute config-save and/or deploy when the resource is created.
+      type: Bool
+      ndfc_type: bool
+      default_value: true
+
+    - model_name: onUpdate
+      tf_name: deploy_on_update
+      description: >
+        When true, execute config-save and/or deploy when the resource is updated.
+      type: Bool
+      ndfc_type: bool
+      default_value: true
+
+    - model_name: onDestroy
+      tf_name: deploy_on_destroy
+      description: >
+        When true, execute config-save and/or deploy when the resource is destroyed.
+        Useful for deploying configuration removal to switches.
+      type: Bool
+      ndfc_type: bool
+      default_value: false
+
+  - model_name: status
+    tf_name: status
+    description: >
+      Status message from the last config-save or deploy operation.
+      Read-only, populated by NDFC after the operation completes.
+    type: String
+    computed: true
+
+  - model_name: ticketId
+    tf_name: ticket_id
+    description: >
+      Change Control ticket ID to associate with the config-save operation.
+      Must begin with a letter; remaining characters may be letters, numbers,
+      underscores, or hyphens. Length: 1–64 characters.
+    type: String
+    optional: true
+    payload_hide: true
+    example: Ticket_001

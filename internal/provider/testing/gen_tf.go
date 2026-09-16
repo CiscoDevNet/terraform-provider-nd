@@ -23,6 +23,7 @@ import (
 	"terraform-provider-nd/internal/infra/resource_local_user"
 	"terraform-provider-nd/internal/infra/resource_multi_cluster_connectivity"
 	"terraform-provider-nd/internal/infra/resource_tenant"
+	"terraform-provider-nd/internal/manage/resource_config_deploy"
 	"terraform-provider-nd/internal/manage/resource_fabric_aci"
 	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
@@ -238,6 +239,21 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 			err = t.ExecuteTemplate(&output, "ND_REMOTE_STORAGE_LOCATION_RSC", args)
 			if err != nil {
 				panic(fmt.Sprintf("Failed to execute ND_REMOTE_STORAGE_LOCATION_RSC template: %v", err))
+			}
+
+		case *resource_config_deploy.NDFCConfigDeployModel:
+			args["ConfigDeploy"] = v
+			args["RscName"] = rscName
+			if len(dependsOnList) > 0 {
+				// Config deploy depends on the last entry (typically the inventory switch)
+				idx := len(dependsOnList) - 1
+				if dependsOnList[idx] != "" {
+					args["DependsOn"] = dependsOnList[idx]
+				}
+			}
+			err = t.ExecuteTemplate(&output, "ND_CONFIG_DEPLOY_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_CONFIG_DEPLOY_RSC template: %v", err))
 			}
 
 		case *resource_fabric_aci.NDFCFabricAciModel:

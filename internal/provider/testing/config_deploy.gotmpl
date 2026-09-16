@@ -1,0 +1,40 @@
+{{define "ND_CONFIG_DEPLOY_RSC"}}
+resource "nd_config_deploy" "{{.RscName}}" {
+{{- if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+{{- end}}
+{{with .ConfigDeploy}}
+    fabric_name = "{{.FabricName}}"
+    deploy = {{.Deploy}}
+    config_save = {{.ConfigSave}}
+    {{- if .SwitchIds}}
+    switch_ids = [{{range $i, $v := .SwitchIds}}{{if $i}}, {{end}}"{{$v}}"{{end}}]
+    {{- end}}
+    {{- if .ForceShowRun}}
+    force_show_run = true
+    {{- end}}
+    {{- if .IncludeAllFabricGroupSwitches}}
+    include_all_fabric_group_switches = true
+    {{- end}}
+    {{- if .AlwaysDeploy}}
+    always_deploy = true
+    {{- end}}
+    {{- if .TicketId}}
+    ticket_id = "{{.TicketId}}"
+    {{- end}}
+    {{- if .Behaviour}}
+    behaviour = {
+        {{- if .Behaviour.DeployOnCreate}}
+        deploy_on_create = {{deref_bool .Behaviour.DeployOnCreate}}
+        {{- end}}
+        {{- if .Behaviour.DeployOnUpdate}}
+        deploy_on_update = {{deref_bool .Behaviour.DeployOnUpdate}}
+        {{- end}}
+        {{- if .Behaviour.DeployOnDestroy}}
+        deploy_on_destroy = {{deref_bool .Behaviour.DeployOnDestroy}}
+        {{- end}}
+    }
+    {{- end}}
+{{end}}
+}
+{{end}}
