@@ -33,9 +33,6 @@ func GenerateInventorySwitchObject(
 	preserveConfig := false
 	inv.PreserveConfig = &preserveConfig
 
-	maxHop := int64(0)
-	inv.MaxHop = &maxHop
-
 	if role == "" {
 		role = "leaf"
 	}
@@ -97,9 +94,6 @@ func GenerateBootstrapSwitchObject(
 
 	preserveConfig := false
 	inv.PreserveConfig = &preserveConfig
-
-	maxHop := int64(0)
-	inv.MaxHop = &maxHop
 
 	if role == "" {
 		role = "leaf"

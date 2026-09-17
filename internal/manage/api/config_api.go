@@ -10,6 +10,7 @@ package api
 
 import (
 	"fmt"
+	"strings"
 
 	"terraform-provider-nd/internal/common/ndapi"
 
@@ -18,8 +19,12 @@ import (
 
 // Config API endpoints
 const (
-	UrlFabricConfigSave   = "/manage/fabrics/%s/actions/configSave"
-	UrlFabricConfigDeploy = "/manage/fabrics/%s/actions/configDeploy"
+	UrlFabricConfigSave    = "/manage/fabrics/%s/actions/configSave"
+	UrlFabricDeploy        = "/manage/fabrics/%s/actions/deploy"
+	UrlSwitchDeploy        = "/manage/fabrics/%s/switchActions/deploy"
+	UrlFabricPreview       = "/manage/fabrics/%s/actions/preview"
+	UrlSwitchPreview       = "/manage/fabrics/%s/switchActions/preview"
+	UrlFabricDeployHistory = "/manage/fabrics/%s/deploymentHistory"
 )
 
 const RscNameConfig = "config"
@@ -27,8 +32,9 @@ const RscNameConfig = "config"
 // ConfigAPI is the API client for fabric config operations (save/deploy)
 type ConfigAPI struct {
 	ndapi.NexusDashboardAPICommon
-	FabricName string
-	Operation  ConfigOperation
+	FabricName  string
+	Operation   ConfigOperation
+	QueryParams []string
 }
 
 // ConfigOperation defines the type of config operation
@@ -36,7 +42,11 @@ type ConfigOperation int
 
 const (
 	OpConfigSave ConfigOperation = iota
-	OpConfigDeploy
+	OpFabricDeploy
+	OpSwitchDeploy
+	OpFabricPreview
+	OpSwitchPreview
+	OpDeployHistory
 )
 
 // NewConfigAPI creates a new ConfigAPI instance
@@ -48,31 +58,56 @@ func NewConfigAPI(client *nd.Client, fabric string) *ConfigAPI {
 	return papi
 }
 
-func (c *ConfigAPI) GetUrl() string {
+func (c *ConfigAPI) urlForOp() string {
 	switch c.Operation {
 	case OpConfigSave:
 		return fmt.Sprintf(UrlFabricConfigSave, c.FabricName)
-	case OpConfigDeploy:
-		return fmt.Sprintf(UrlFabricConfigDeploy, c.FabricName)
+	case OpFabricDeploy:
+		return fmt.Sprintf(UrlFabricDeploy, c.FabricName)
+	case OpSwitchDeploy:
+		return fmt.Sprintf(UrlSwitchDeploy, c.FabricName)
+	case OpFabricPreview:
+		return fmt.Sprintf(UrlFabricPreview, c.FabricName)
+	case OpSwitchPreview:
+		return fmt.Sprintf(UrlSwitchPreview, c.FabricName)
+	case OpDeployHistory:
+		return fmt.Sprintf(UrlFabricDeployHistory, c.FabricName)
 	default:
 		return fmt.Sprintf(UrlFabricConfigSave, c.FabricName)
 	}
 }
 
+func (c *ConfigAPI) appendQueryParams(url string) string {
+	if len(c.QueryParams) > 0 {
+		return url + "?" + strings.Join(c.QueryParams, "&")
+	}
+	return url
+}
+
+func (c *ConfigAPI) GetUrl() string {
+	return c.appendQueryParams(c.urlForOp())
+}
+
 func (c *ConfigAPI) PostUrl() string {
-	return c.GetUrl()
+	return c.appendQueryParams(c.urlForOp())
 }
 
 func (c *ConfigAPI) PutUrl() string {
-	return c.GetUrl()
+	return c.urlForOp()
 }
 
 func (c *ConfigAPI) DeleteUrl() string {
-	return c.GetUrl()
+	return c.urlForOp()
 }
 
 func (c *ConfigAPI) GetDeleteQP() []string {
 	return nil
+}
+
+// SetQueryParams sets query parameters for the API call
+func (c *ConfigAPI) SetQueryParams(params ...string) *ConfigAPI {
+	c.QueryParams = params
+	return c
 }
 
 func (c *ConfigAPI) RscName() string {

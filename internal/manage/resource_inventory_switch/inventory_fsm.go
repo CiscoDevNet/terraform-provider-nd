@@ -58,6 +58,7 @@ const (
 
 const (
 	DefaultWaitForReady = 30 * time.Minute // Default wait_for_ready timeout
+	MinReadyDuration    = 5 * time.Minute  // Minimum time switch must be seen as ready before declaring done
 )
 
 // jitteredInterval returns a duration randomly varied around base by ±jitterFraction.
@@ -96,6 +97,7 @@ type InventoryFSM struct {
 	isCreate         bool
 	lastErr          error
 	serialSet        map[string]bool
+	readySince       time.Time
 }
 
 // NewInventoryFSM creates a new FSM for switch creation.
@@ -478,10 +480,30 @@ func (inv *InventoryFSM) onCheckReadiness(ctx context.Context, e *fsm.Event) {
 	}
 
 	if result.Ready {
-		tflog.Info(ctx, "Switch ready", map[string]interface{}{
-			"count": len(inv.serialSet),
+		if inv.readySince.IsZero() {
+			inv.readySince = time.Now()
+			tflog.Info(ctx, "Switch ready - starting stability wait", map[string]interface{}{
+				"count":        len(inv.serialSet),
+				"min_duration": MinReadyDuration.String(),
+			})
+			e.FSM.Event(ctx, EventWait)
+			return
+		}
+		elapsed := time.Since(inv.readySince)
+		if elapsed >= MinReadyDuration {
+			tflog.Info(ctx, "Switch ready and stable", map[string]interface{}{
+				"count":           len(inv.serialSet),
+				"stable_duration": elapsed.Round(time.Second).String(),
+			})
+			e.FSM.Event(ctx, EventFinish)
+			return
+		}
+		tflog.Info(ctx, "Switch ready - waiting for stability", map[string]interface{}{
+			"count":     len(inv.serialSet),
+			"elapsed":   elapsed.Round(time.Second).String(),
+			"remaining": (MinReadyDuration - elapsed).Round(time.Second).String(),
 		})
-		e.FSM.Event(ctx, EventFinish)
+		e.FSM.Event(ctx, EventWait)
 		return
 	}
 
