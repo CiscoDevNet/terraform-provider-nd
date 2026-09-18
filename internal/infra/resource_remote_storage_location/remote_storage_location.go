@@ -20,6 +20,7 @@ var (
 	_ resource.Resource                   = &remoteStorageLocationResource{}
 	_ resource.ResourceWithConfigure      = &remoteStorageLocationResource{}
 	_ resource.ResourceWithImportState    = &remoteStorageLocationResource{}
+	_ resource.ResourceWithModifyPlan     = &remoteStorageLocationResource{}
 	_ resource.ResourceWithValidateConfig = &remoteStorageLocationResource{}
 )
 
@@ -46,28 +47,124 @@ func (r *remoteStorageLocationResource) Schema(ctx context.Context, _ resource.S
 // ValidateConfig enforces conditional validation that generated schema
 // validators cannot express.
 func (r *remoteStorageLocationResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var storageType types.String
-	var readWrite types.Bool
-
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("storage_location_type"), &storageType)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("read_write"), &readWrite)...)
+	var config RemoteStorageLocationModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if storageType.IsNull() || storageType.IsUnknown() {
+	nfsKnown := !config.Nfs.IsNull() && !config.Nfs.IsUnknown()
+	scpSftpKnown := !config.ScpSftp.IsNull() && !config.ScpSftp.IsUnknown()
+
+	if !config.Nfs.IsUnknown() && !config.ScpSftp.IsUnknown() && nfsKnown == scpSftpKnown {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("nfs"),
+			"Invalid remote storage configuration",
+			"Configure exactly one of `nfs` or `scp_sftp`.",
+		)
+	}
+
+	if !scpSftpKnown {
 		return
 	}
 
-	storageTypeValue := storageType.ValueString()
-	if storageTypeValue == "scp" || storageTypeValue == "sftp" {
-		if !readWrite.IsNull() && !readWrite.IsUnknown() {
-			resp.Diagnostics.AddAttributeError(
-				path.Root("read_write"),
-				"Invalid attribute for storage location type",
-				"Attribute `read_write` can only be set when `storage_location_type` is `nfs`. Remove `read_write` for `scp` or `sftp` remote storage locations.",
-			)
+	passwordConfigured := !config.ScpSftp.Password.IsNull() &&
+		!config.ScpSftp.Password.IsUnknown() &&
+		config.ScpSftp.Password.ValueString() != ""
+	sshKeyConfigured := !config.ScpSftp.SshKey.IsNull() &&
+		!config.ScpSftp.SshKey.IsUnknown() &&
+		config.ScpSftp.SshKey.ValueString() != ""
+
+	if !config.ScpSftp.Password.IsUnknown() && !config.ScpSftp.SshKey.IsUnknown() &&
+		!passwordConfigured && !sshKeyConfigured {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("scp_sftp").AtName("password"),
+			"Missing SCP/SFTP authentication",
+			"Configure exactly one of `scp_sftp.password` or `scp_sftp.ssh_key`.",
+		)
+	}
+
+	if !config.ScpSftp.Passphrase.IsNull() && !config.ScpSftp.Passphrase.IsUnknown() &&
+		config.ScpSftp.Passphrase.ValueString() != "" &&
+		!config.ScpSftp.SshKey.IsUnknown() && !sshKeyConfigured {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("scp_sftp").AtName("passphrase"),
+			"Invalid SCP/SFTP passphrase configuration",
+			"Attribute `scp_sftp.passphrase` requires `scp_sftp.ssh_key`.",
+		)
+	}
+
+	if !config.ScpSftp.AcceptHostKey.IsNull() && !config.ScpSftp.AcceptHostKey.IsUnknown() &&
+		config.ScpSftp.AcceptHostKey.ValueBool() &&
+		!config.ScpSftp.IgnoreHostKeyValidation.IsNull() && !config.ScpSftp.IgnoreHostKeyValidation.IsUnknown() &&
+		config.ScpSftp.IgnoreHostKeyValidation.ValueBool() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("scp_sftp").AtName("accept_host_key"),
+			"Invalid host-key configuration",
+			"Attributes `scp_sftp.accept_host_key` and `scp_sftp.ignore_host_key_validation` cannot both be true.",
+		)
+	}
+}
+
+// ModifyPlan rejects changes to the immutable path of an existing NFS location
+// and requires replacement when the selected remote storage protocol family
+// changes between NFS and SCP/SFTP.
+func (r *remoteStorageLocationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
+		return
+	}
+
+	var state RemoteStorageLocationModel
+	var plan RemoteStorageLocationModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	stateNFSKnown := !state.Nfs.IsNull() && !state.Nfs.IsUnknown()
+	planNFSKnown := !plan.Nfs.IsNull() && !plan.Nfs.IsUnknown()
+	if stateNFSKnown && planNFSKnown &&
+		!state.Path.IsNull() && !state.Path.IsUnknown() &&
+		!plan.Path.IsNull() && !plan.Path.IsUnknown() &&
+		!state.Path.Equal(plan.Path) {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("path"),
+			"NFS path cannot be changed",
+			"The path of an existing NFS remote storage location cannot be updated. Delete the resource and create it again with the new path.",
+		)
+		return
+	}
+
+	stateBranch, stateBranchKnown := remoteStorageLocationBranch(state)
+	planBranch, planBranchKnown := remoteStorageLocationBranch(plan)
+	if !stateBranchKnown || !planBranchKnown {
+		return
+	}
+
+	if stateBranch != planBranch {
+		switch planBranch {
+		case "nfs":
+			resp.RequiresReplace = append(resp.RequiresReplace, path.Root("nfs"))
+		case "scp_sftp":
+			resp.RequiresReplace = append(resp.RequiresReplace, path.Root("scp_sftp"))
 		}
+		return
+	}
+}
+
+func remoteStorageLocationBranch(model RemoteStorageLocationModel) (string, bool) {
+	if model.Nfs.IsUnknown() || model.ScpSftp.IsUnknown() {
+		return "", false
+	}
+
+	switch {
+	case !model.Nfs.IsNull() && model.ScpSftp.IsNull():
+		return "nfs", true
+	case model.Nfs.IsNull() && !model.ScpSftp.IsNull():
+		return "scp_sftp", true
+	default:
+		return "", false
 	}
 }
 
