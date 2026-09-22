@@ -1,0 +1,39 @@
+---
+resource:
+  name: tenant_domain
+  generate_tf_resource: true
+  skip_equality: true
+  category: infra
+  description: Manages tenant domain for Nexus Dashboard
+  doc_category: Multi Tenancy
+  attributes:
+  - model_name: id
+    tf_name: id
+    description: The unique identifier for the resource, it is the name of the tenant domain (for example, tenant_domain1).
+    type: String
+    computed: true
+    use_state: true
+    payload_hide: true
+
+  - model_name: name
+    tf_name: name
+    description: The name of the tenant domain.
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    example: tenant_domain1
+
+  - model_name: description
+    tf_name: description
+    description: The description of the tenant domain.
+    type: String
+    optional: true
+    example: Tenant domain description
+
+  - model_name: tenantNames
+    tf_name: tenant_names
+    description: The complete list of tenants associated with the tenant domain.
+    type: List:String
+    optional: true
+    include_empty: true
+    example: '["tenant1", "tenant2"]'

@@ -1,0 +1,13 @@
+{{define "ND_TENANT_DOMAIN_RSC"}}
+resource "nd_tenant_domain" "{{.RscName}}" {
+{{- with .TenantDomain }}
+    name = {{printf "%q" .Name}}
+    {{- if .Description}}
+    description = {{printf "%q" .Description}}
+    {{- end}}
+    {{- if .TenantNames}}
+    tenant_names = {{quote_list .TenantNames}}
+    {{- end}}
+{{- end}}
+}
+{{end}}
