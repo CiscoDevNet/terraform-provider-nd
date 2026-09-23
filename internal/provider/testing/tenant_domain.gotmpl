@@ -1,5 +1,8 @@
 {{define "ND_TENANT_DOMAIN_RSC"}}
 resource "nd_tenant_domain" "{{.RscName}}" {
+{{- if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+{{- end}}
 {{- with .TenantDomain }}
     name = {{printf "%q" .Name}}
     {{- if .Description}}
@@ -10,4 +13,15 @@ resource "nd_tenant_domain" "{{.RscName}}" {
     {{- end}}
 {{- end}}
 }
+{{end}}
+
+{{define "ND_TENANT_DOMAIN_DS"}}
+{{with .TenantDomainDataSource}}
+data "nd_tenant_domain" "{{.RscName}}" {
+    name = {{printf "%q" .Name}}
+    {{- if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+    {{- end}}
+}
+{{end}}
 {{end}}

@@ -241,6 +241,22 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 				panic(fmt.Sprintf("Failed to execute ND_TENANT_DOMAIN_RSC template: %v", err))
 			}
 
+		case *TenantDomainTestResource:
+			args["TenantDomain"] = v.Model
+			args["RscName"] = rscName
+			args["DependsOn"] = v.DependsOn
+			err = t.ExecuteTemplate(&output, "ND_TENANT_DOMAIN_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_TENANT_DOMAIN_RSC template: %v", err))
+			}
+
+		case *TenantDomainDataSourceTestData:
+			args["TenantDomainDataSource"] = v
+			err = t.ExecuteTemplate(&output, "ND_TENANT_DOMAIN_DS", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_TENANT_DOMAIN_DS template: %v", err))
+			}
+
 		case *resource_backup.NDFCBackupModel:
 			args["Backup"] = v
 			args["RscName"] = rscName
