@@ -10,6 +10,21 @@ package testing
 
 import "terraform-provider-nd/internal/infra/resource_tenant_domain"
 
+// TenantDomainTestResource pairs a tenant-domain model with test-only
+// dependency metadata used while rendering its Terraform configuration.
+type TenantDomainTestResource struct {
+	Model     *resource_tenant_domain.NDFCTenantDomainModel
+	DependsOn string
+}
+
+// TenantDomainDataSourceTestData contains the values rendered by the
+// tenant-domain datasource acceptance-test template.
+type TenantDomainDataSourceTestData struct {
+	RscName   string
+	Name      string
+	DependsOn string
+}
+
 // GenerateTenantDomainObject builds a fresh tenant-domain model from the
 // supplied Terraform attribute values.
 func GenerateTenantDomainObject(

@@ -21,6 +21,7 @@ resource:
     type: String
     mandatory: true
     tf_requires_replace: true
+    validator: 'LengthBetween(1, 63)'
     example: tenant_domain1
 
   - model_name: description
@@ -37,3 +38,32 @@ resource:
     optional: true
     include_empty: true
     example: '["tenant1", "tenant2"]'
+
+datasource:
+  name: tenant_domain
+  generate_tf_resource: true
+  skip_equality: true
+  category: infra
+  description: Datasource of the tenant domain for Nexus Dashboard
+  doc_category: Multi Tenancy
+  attributes:
+  - model_name: name
+    tf_name: name
+    description: The name that uniquely identifies the tenant domain datasource.
+    type: String
+    mandatory: true
+    validator: 'LengthBetween(1, 63)'
+    tf_requires_replace: true
+    example: tenant_domain1
+
+  - model_name: description
+    tf_name: description
+    description: The description of the tenant domain.
+    type: String
+    computed: true
+
+  - model_name: tenantNames
+    tf_name: tenant_names
+    description: The complete list of tenants associated with the tenant domain.
+    type: List:String
+    computed: true
