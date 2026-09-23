@@ -12,6 +12,14 @@ import (
 	"terraform-provider-nd/internal/infra/resource_local_user"
 )
 
+// LocalUserDataSourceTestData contains the values rendered by the local-user
+// datasource acceptance-test template.
+type LocalUserDataSourceTestData struct {
+	RscName   string
+	LoginId   string
+	DependsOn string
+}
+
 // defaultLocalUserValues returns sensible defaults for a local user.
 // Tests can override any of these via the overrides map passed to
 // GenerateLocalUserObject.
@@ -22,12 +30,11 @@ func defaultLocalUserValues() map[string]interface{} {
 		"last_name":                 "last_name",
 		"remote_user_authorization": false,
 		// Note: `remote_id_claim` and `tenant_domain` are intentionally
-		// omitted from defaults. `remote_id_claim` must be unique per user
-		// (API rejects duplicates with HTTP 500). `tenant_domain` is not
-		// echoed back by the GET API today, so setting it produces a
-		// "Provider produced inconsistent result after apply" diff.
-		// Tests that need either field should pass it explicitly via
-		// overrides.
+		// omitted from the configured defaults. `remote_id_claim` must be
+		// unique per user (API rejects duplicates with HTTP 500). When
+		// `tenant_domain` is omitted, the API returns `all-tenants-domain`.
+		// Tests that need a non-default tenant domain should pass it
+		// explicitly via overrides.
 	}
 }
 
@@ -47,7 +54,6 @@ func GenerateLocalUserObject(
 ) {
 	user := new(resource_local_user.NDFCLocalUserModel)
 
-	user.Id = loginID
 	user.LoginId = loginID
 	user.UserPassword = userPassword
 
