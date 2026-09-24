@@ -4,15 +4,23 @@ package resource_remote_storage_location
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
@@ -20,32 +28,10 @@ import (
 func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"accept_host_key": schema.BoolAttribute{
-				Optional:            true,
-				Description:         "Indicates whether to accept host key for the remote storage location when the type is SCP or SFTP.",
-				MarkdownDescription: "Indicates whether to accept host key for the remote storage location when the type is SCP or SFTP.",
-				Validators: []validator.Bool{
-					boolvalidator.ConflictsWith(path.MatchRoot("limit"), path.MatchRoot("alert_threshold"), path.MatchRoot("ignore_host_key_validation")),
-				},
-			},
-			"alert_threshold": schema.Int64Attribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If omitted during creation, it defaults to 80. Valid values are between 1 and 100. Remove this attribute from the configuration to reset it to the default value.",
-				MarkdownDescription: "The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If omitted during creation, it defaults to 80. Valid values are between 1 and 100. Remove this attribute from the configuration to reset it to the default value.",
-				Validators: []validator.Int64{
-					int64validator.Between(1, 100), int64validator.ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation")),
-				},
-			},
-			"authentication_type": schema.StringAttribute{
-				Computed:            true,
-				Description:         "The authentication type for the remote storage location when the type is SCP or SFTP.",
-				MarkdownDescription: "The authentication type for the remote storage location when the type is SCP or SFTP.",
-			},
 			"description": schema.StringAttribute{
 				Optional:            true,
-				Description:         "The description of the remote storage location. Remove this attribute from the configuration to reset it to the default value.",
-				MarkdownDescription: "The description of the remote storage location. Remove this attribute from the configuration to reset it to the default value.",
+				Description:         "The description of the remote storage location.",
+				MarkdownDescription: "The description of the remote storage location.",
 			},
 			"health_state": schema.StringAttribute{
 				Computed:            true,
@@ -61,6 +47,12 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 				Required:            true,
 				Description:         "The hostname or IP address of the remote storage server.",
 				MarkdownDescription: "The hostname or IP address of the remote storage server.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -68,22 +60,6 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "The unique identifier for the resource, it is the name of the remote storage location (for example, scp-server).",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"ignore_host_key_validation": schema.BoolAttribute{
-				Optional:            true,
-				Description:         "Indicates whether to ignore host key validation for the remote storage location when the type is SCP or SFTP.",
-				MarkdownDescription: "Indicates whether to ignore host key validation for the remote storage location when the type is SCP or SFTP.",
-				Validators: []validator.Bool{
-					boolvalidator.ConflictsWith(path.MatchRoot("limit"), path.MatchRoot("alert_threshold")),
-				},
-			},
-			"limit": schema.StringAttribute{
-				Optional:            true,
-				Description:         "The storage capacity limit for the remote storage location. Valid for NFS storage type. The value should be specified in megabytes (MB) or gigabytes (GB), for example, 500GB or 1000MB.",
-				MarkdownDescription: "The storage capacity limit for the remote storage location. Valid for NFS storage type. The value should be specified in megabytes (MB) or gigabytes (GB), for example, 500GB or 1000MB.",
-				Validators: []validator.String{
-					stringvalidator.ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation")), stringvalidator.RegexMatches(regexp.MustCompile(`^[1-9][0-9]*(MB|GB)$`), "must be a positive number followed by MB or GB, for example 500GB or 1000MB"),
 				},
 			},
 			"name": schema.StringAttribute{
@@ -97,87 +73,162 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 					stringvalidator.LengthBetween(1, 63), stringvalidator.RegexMatches(regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$`), "must start and end with an alphanumeric character and may contain lowercase letters, digits, hyphens, and dots"),
 				},
 			},
-			"passphrase": schema.StringAttribute{
+			"nfs": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"alert_threshold": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "The storage usage percentage that triggers an alert when exceeded. Valid values are between 1 and 100. Defaults to `80` when not specified in the configuration.",
+						MarkdownDescription: "The storage usage percentage that triggers an alert when exceeded. Valid values are between 1 and 100. Defaults to `80` when not specified in the configuration.",
+						Validators: []validator.Int64{
+							int64validator.Between(1, 100),
+						},
+						Default: int64default.StaticInt64(80),
+					},
+					"limit": schema.StringAttribute{
+						Required:            true,
+						Description:         "The required storage capacity limit for the NFS remote storage location. Specify a positive number followed by `MB` or `GB`, for example, `500GB` or `1000MB`.",
+						MarkdownDescription: "The required storage capacity limit for the NFS remote storage location. Specify a positive number followed by `MB` or `GB`, for example, `500GB` or `1000MB`.",
+						Validators: []validator.String{
+							stringvalidator.RegexMatches(regexp.MustCompile(`^[1-9][0-9]*(MB|GB)$`), "must be a positive number followed by MB or GB, for example 500GB or 1000MB"),
+						},
+					},
+					"port": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "The port number for connecting to the NFS server. Valid values are between 1 and 65535. Defaults to `2049` when not specified in the configuration.",
+						MarkdownDescription: "The port number for connecting to the NFS server. Valid values are between 1 and 65535. Defaults to `2049` when not specified in the configuration.",
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.RequiresReplace(),
+						},
+						Validators: []validator.Int64{
+							int64validator.Between(1, 65535),
+						},
+						Default: int64default.StaticInt64(2049),
+					},
+					"read_write": schema.BoolAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Indicates whether the NFS storage location is read-write. Defaults to `false` when not specified in the configuration.",
+						MarkdownDescription: "Indicates whether the NFS storage location is read-write. Defaults to `false` when not specified in the configuration.",
+						Default:             booldefault.StaticBool(false),
+					},
+				},
+				CustomType: NfsType{
+					ObjectType: types.ObjectType{
+						AttrTypes: NfsValue{}.AttributeTypes(ctx),
+					},
+				},
 				Optional:            true,
-				Sensitive:           true,
-				Description:         "The optional passphrase associated with the private key for the remote storage location when the type is SCP or SFTP.",
-				MarkdownDescription: "The optional passphrase associated with the private key for the remote storage location when the type is SCP or SFTP.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
-				},
-				Validators: []validator.String{
-					stringvalidator.ConflictsWith(path.MatchRoot("password"), path.MatchRoot("limit"), path.MatchRoot("alert_threshold")),
-				},
-			},
-			"password": schema.StringAttribute{
-				Optional:            true,
-				Sensitive:           true,
-				Description:         "The password for the remote storage location when the type is SCP or SFTP.",
-				MarkdownDescription: "The password for the remote storage location when the type is SCP or SFTP.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
-				},
-				Validators: []validator.String{
-					stringvalidator.ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase")),
-				},
+				Computed:            true,
+				Description:         "Configures an NFS remote storage location. Configure exactly one of `nfs` or `scp_sftp`.",
+				MarkdownDescription: "Configures an NFS remote storage location. Configure exactly one of `nfs` or `scp_sftp`.",
 			},
 			"path": schema.StringAttribute{
 				Required:            true,
-				Description:         "The export path for NFS storage or the base path for SCP/SFTP storage on the remote server.",
-				MarkdownDescription: "The export path for NFS storage or the base path for SCP/SFTP storage on the remote server.",
+				Description:         "The export path for NFS storage or the base path for SCP/SFTP storage on the remote server. For NFS storage, this value cannot be modified after creation.",
+				MarkdownDescription: "The export path for NFS storage or the base path for SCP/SFTP storage on the remote server. For NFS storage, this value cannot be modified after creation.",
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
-			"port": schema.Int64Attribute{
+			"scp_sftp": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"accept_host_key": schema.BoolAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Indicates whether to accept the host key presented by the SCP or SFTP server. This attribute cannot be enabled together with `ignore_host_key_validation`. Defaults to `false` when not specified in the configuration.",
+						MarkdownDescription: "Indicates whether to accept the host key presented by the SCP or SFTP server. This attribute cannot be enabled together with `ignore_host_key_validation`. Defaults to `false` when not specified in the configuration.",
+						Default:             booldefault.StaticBool(false),
+					},
+					"ignore_host_key_validation": schema.BoolAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Indicates whether to skip host-key validation for the SCP or SFTP server. This attribute cannot be enabled together with `accept_host_key`. Defaults to `false` when not specified in the configuration.",
+						MarkdownDescription: "Indicates whether to skip host-key validation for the SCP or SFTP server. This attribute cannot be enabled together with `accept_host_key`. Defaults to `false` when not specified in the configuration.",
+						Default:             booldefault.StaticBool(false),
+					},
+					"passphrase": schema.StringAttribute{
+						Optional:            true,
+						Sensitive:           true,
+						Description:         "The optional passphrase associated with `ssh_key`. This attribute requires `ssh_key` and cannot be configured with `password`.",
+						MarkdownDescription: "The optional passphrase associated with `ssh_key`. This attribute requires `ssh_key` and cannot be configured with `password`.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
+						},
+						Validators: []validator.String{
+							stringvalidator.LengthAtLeast(1), stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("password")),
+						},
+					},
+					"password": schema.StringAttribute{
+						Optional:            true,
+						Sensitive:           true,
+						Description:         "The password used to authenticate with the SCP or SFTP server. Configure exactly one of `password` or `ssh_key`.",
+						MarkdownDescription: "The password used to authenticate with the SCP or SFTP server. Configure exactly one of `password` or `ssh_key`.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
+						},
+						Validators: []validator.String{
+							stringvalidator.LengthAtLeast(1), stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("ssh_key"), path.MatchRelative().AtParent().AtName("passphrase")),
+						},
+					},
+					"port": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "The port number for connecting to the SCP or SFTP server. Valid values are between 1 and 65535. Defaults to `22` when not specified in the configuration.",
+						MarkdownDescription: "The port number for connecting to the SCP or SFTP server. Valid values are between 1 and 65535. Defaults to `22` when not specified in the configuration.",
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.RequiresReplace(),
+						},
+						Validators: []validator.Int64{
+							int64validator.Between(1, 65535),
+						},
+						Default: int64default.StaticInt64(22),
+					},
+					"protocol": schema.StringAttribute{
+						Required:            true,
+						Description:         "The protocol used by the remote storage location. Allowed values are `scp` and `sftp`.",
+						MarkdownDescription: "The protocol used by the remote storage location. Allowed values are `scp` and `sftp`.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
+						},
+						Validators: []validator.String{
+							stringvalidator.OneOf("scp", "sftp"),
+						},
+					},
+					"ssh_key": schema.StringAttribute{
+						Optional:            true,
+						Sensitive:           true,
+						Description:         "The private key used to authenticate with the SCP or SFTP server. Configure exactly one of `ssh_key` or `password`.",
+						MarkdownDescription: "The private key used to authenticate with the SCP or SFTP server. Configure exactly one of `ssh_key` or `password`.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
+						},
+						Validators: []validator.String{
+							stringvalidator.LengthAtLeast(1), stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("password")),
+						},
+					},
+					"username": schema.StringAttribute{
+						Required:            true,
+						Description:         "The username used to authenticate with the SCP or SFTP server. Valid values contain between 1 and 128 characters.",
+						MarkdownDescription: "The username used to authenticate with the SCP or SFTP server. Valid values contain between 1 and 128 characters.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
+						},
+						Validators: []validator.String{
+							stringvalidator.LengthBetween(1, 128),
+						},
+					},
+				},
+				CustomType: ScpSftpType{
+					ObjectType: types.ObjectType{
+						AttrTypes: ScpSftpValue{}.AttributeTypes(ctx),
+					},
+				},
 				Optional:            true,
 				Computed:            true,
-				Description:         "The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP. The valid range is between 1 and 65535.",
-				MarkdownDescription: "The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP. The valid range is between 1 and 65535.",
-				Validators: []validator.Int64{
-					int64validator.Between(1, 65535),
-				},
-			},
-			"read_write": schema.BoolAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only when type is NFS. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.",
-				MarkdownDescription: "Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only when type is NFS. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.",
-			},
-			"ssh_key": schema.StringAttribute{
-				Optional:            true,
-				Sensitive:           true,
-				Description:         "The private key for the remote storage location when the type is SCP or SFTP.",
-				MarkdownDescription: "The private key for the remote storage location when the type is SCP or SFTP.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
-				},
-				Validators: []validator.String{
-					stringvalidator.ConflictsWith(path.MatchRoot("password"), path.MatchRoot("limit"), path.MatchRoot("alert_threshold")),
-				},
-			},
-			"storage_location_type": schema.StringAttribute{
-				Required:            true,
-				Description:         "The type of the remote storage location. Allowed values are \"nfs\", \"scp\", and \"sftp\".",
-				MarkdownDescription: "The type of the remote storage location. Allowed values are \"nfs\", \"scp\", and \"sftp\".",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-				Validators: []validator.String{
-					stringvalidator.OneOf("nfs", "scp", "sftp"),
-				},
-			},
-			"username": schema.StringAttribute{
-				Optional:            true,
-				Description:         "The username for the remote storage location when the type is SCP or SFTP.",
-				MarkdownDescription: "The username for the remote storage location when the type is SCP or SFTP.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-					stringplanmodifier.UseStateForUnknown(),
-				},
-				Validators: []validator.String{
-					stringvalidator.ConflictsWith(path.MatchRoot("limit"), path.MatchRoot("alert_threshold")),
-				},
+				Description:         "Configures an SCP or SFTP remote storage location. Configure exactly one of `scp_sftp` or `nfs`.",
+				MarkdownDescription: "Configures an SCP or SFTP remote storage location. Configure exactly one of `scp_sftp` or `nfs`.",
 			},
 		},
 		Description:         "Manages remote storage location for Nexus Dashboard",
@@ -186,23 +237,1211 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 }
 
 type RemoteStorageLocationModel struct {
-	AcceptHostKey           types.Bool   `tfsdk:"accept_host_key"`
-	AlertThreshold          types.Int64  `tfsdk:"alert_threshold"`
-	AuthenticationType      types.String `tfsdk:"authentication_type"`
-	Description             types.String `tfsdk:"description"`
-	HealthState             types.String `tfsdk:"health_state"`
-	HealthStateMessage      types.String `tfsdk:"health_state_message"`
-	Hostname                types.String `tfsdk:"hostname"`
-	Id                      types.String `tfsdk:"id"`
-	IgnoreHostKeyValidation types.Bool   `tfsdk:"ignore_host_key_validation"`
-	Limit                   types.String `tfsdk:"limit"`
-	Name                    types.String `tfsdk:"name"`
-	Passphrase              types.String `tfsdk:"passphrase"`
-	Password                types.String `tfsdk:"password"`
-	Path                    types.String `tfsdk:"path"`
-	Port                    types.Int64  `tfsdk:"port"`
-	ReadWrite               types.Bool   `tfsdk:"read_write"`
-	SshKey                  types.String `tfsdk:"ssh_key"`
-	StorageLocationType     types.String `tfsdk:"storage_location_type"`
-	Username                types.String `tfsdk:"username"`
+	Description        types.String `tfsdk:"description"`
+	HealthState        types.String `tfsdk:"health_state"`
+	HealthStateMessage types.String `tfsdk:"health_state_message"`
+	Hostname           types.String `tfsdk:"hostname"`
+	Id                 types.String `tfsdk:"id"`
+	Name               types.String `tfsdk:"name"`
+	Nfs                NfsValue     `tfsdk:"nfs"`
+	Path               types.String `tfsdk:"path"`
+	ScpSftp            ScpSftpValue `tfsdk:"scp_sftp"`
+}
+
+var _ basetypes.ObjectTypable = NfsType{}
+
+type NfsType struct {
+	basetypes.ObjectType
+}
+
+func (t NfsType) Equal(o attr.Type) bool {
+	other, ok := o.(NfsType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t NfsType) String() string {
+	return "NfsType"
+}
+
+func (t NfsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	alertThresholdAttribute, ok := attributes["alert_threshold"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`alert_threshold is missing from object`)
+
+		return nil, diags
+	}
+
+	alertThresholdVal, ok := alertThresholdAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`alert_threshold expected to be basetypes.Int64Value, was: %T`, alertThresholdAttribute))
+	}
+
+	limitAttribute, ok := attributes["limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`limit is missing from object`)
+
+		return nil, diags
+	}
+
+	limitVal, ok := limitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`limit expected to be basetypes.StringValue, was: %T`, limitAttribute))
+	}
+
+	portAttribute, ok := attributes["port"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`port is missing from object`)
+
+		return nil, diags
+	}
+
+	portVal, ok := portAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`port expected to be basetypes.Int64Value, was: %T`, portAttribute))
+	}
+
+	readWriteAttribute, ok := attributes["read_write"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`read_write is missing from object`)
+
+		return nil, diags
+	}
+
+	readWriteVal, ok := readWriteAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`read_write expected to be basetypes.BoolValue, was: %T`, readWriteAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return NfsValue{
+		AlertThreshold: alertThresholdVal,
+		Limit:          limitVal,
+		Port:           portVal,
+		ReadWrite:      readWriteVal,
+		state:          attr.ValueStateKnown,
+	}, diags
+}
+
+func NewNfsValueNull() NfsValue {
+	return NfsValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewNfsValueUnknown() NfsValue {
+	return NfsValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewNfsValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (NfsValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing NfsValue Attribute Value",
+				"While creating a NfsValue value, a missing attribute value was detected. "+
+					"A NfsValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("NfsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid NfsValue Attribute Type",
+				"While creating a NfsValue value, an invalid attribute value was detected. "+
+					"A NfsValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("NfsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("NfsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra NfsValue Attribute Value",
+				"While creating a NfsValue value, an extra attribute value was detected. "+
+					"A NfsValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra NfsValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewNfsValueUnknown(), diags
+	}
+
+	alertThresholdAttribute, ok := attributes["alert_threshold"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`alert_threshold is missing from object`)
+
+		return NewNfsValueUnknown(), diags
+	}
+
+	alertThresholdVal, ok := alertThresholdAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`alert_threshold expected to be basetypes.Int64Value, was: %T`, alertThresholdAttribute))
+	}
+
+	limitAttribute, ok := attributes["limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`limit is missing from object`)
+
+		return NewNfsValueUnknown(), diags
+	}
+
+	limitVal, ok := limitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`limit expected to be basetypes.StringValue, was: %T`, limitAttribute))
+	}
+
+	portAttribute, ok := attributes["port"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`port is missing from object`)
+
+		return NewNfsValueUnknown(), diags
+	}
+
+	portVal, ok := portAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`port expected to be basetypes.Int64Value, was: %T`, portAttribute))
+	}
+
+	readWriteAttribute, ok := attributes["read_write"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`read_write is missing from object`)
+
+		return NewNfsValueUnknown(), diags
+	}
+
+	readWriteVal, ok := readWriteAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`read_write expected to be basetypes.BoolValue, was: %T`, readWriteAttribute))
+	}
+
+	if diags.HasError() {
+		return NewNfsValueUnknown(), diags
+	}
+
+	return NfsValue{
+		AlertThreshold: alertThresholdVal,
+		Limit:          limitVal,
+		Port:           portVal,
+		ReadWrite:      readWriteVal,
+		state:          attr.ValueStateKnown,
+	}, diags
+}
+
+func NewNfsValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) NfsValue {
+	object, diags := NewNfsValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewNfsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t NfsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewNfsValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewNfsValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewNfsValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewNfsValueMust(NfsValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t NfsType) ValueType(ctx context.Context) attr.Value {
+	return NfsValue{}
+}
+
+var _ basetypes.ObjectValuable = NfsValue{}
+
+type NfsValue struct {
+	AlertThreshold basetypes.Int64Value  `tfsdk:"alert_threshold"`
+	Limit          basetypes.StringValue `tfsdk:"limit"`
+	Port           basetypes.Int64Value  `tfsdk:"port"`
+	ReadWrite      basetypes.BoolValue   `tfsdk:"read_write"`
+	state          attr.ValueState
+}
+
+func (v NfsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["alert_threshold"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["limit"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["port"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["read_write"] = basetypes.BoolType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.AlertThreshold.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["alert_threshold"] = val
+
+		val, err = v.Limit.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["limit"] = val
+
+		val, err = v.Port.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["port"] = val
+
+		val, err = v.ReadWrite.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["read_write"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v NfsValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v NfsValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v NfsValue) String() string {
+	return "NfsValue"
+}
+
+func (v NfsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributeTypes := map[string]attr.Type{
+		"alert_threshold": basetypes.Int64Type{},
+		"limit":           basetypes.StringType{},
+		"port":            basetypes.Int64Type{},
+		"read_write":      basetypes.BoolType{},
+	}
+
+	if v.IsNull() {
+		return types.ObjectNull(attributeTypes), diags
+	}
+
+	if v.IsUnknown() {
+		return types.ObjectUnknown(attributeTypes), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		attributeTypes,
+		map[string]attr.Value{
+			"alert_threshold": v.AlertThreshold,
+			"limit":           v.Limit,
+			"port":            v.Port,
+			"read_write":      v.ReadWrite,
+		})
+
+	return objVal, diags
+}
+
+func (v NfsValue) Equal(o attr.Value) bool {
+	other, ok := o.(NfsValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.AlertThreshold.Equal(other.AlertThreshold) {
+		return false
+	}
+
+	if !v.Limit.Equal(other.Limit) {
+		return false
+	}
+
+	if !v.Port.Equal(other.Port) {
+		return false
+	}
+
+	if !v.ReadWrite.Equal(other.ReadWrite) {
+		return false
+	}
+
+	return true
+}
+
+func (v NfsValue) Type(ctx context.Context) attr.Type {
+	return NfsType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v NfsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"alert_threshold": basetypes.Int64Type{},
+		"limit":           basetypes.StringType{},
+		"port":            basetypes.Int64Type{},
+		"read_write":      basetypes.BoolType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = ScpSftpType{}
+
+type ScpSftpType struct {
+	basetypes.ObjectType
+}
+
+func (t ScpSftpType) Equal(o attr.Type) bool {
+	other, ok := o.(ScpSftpType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t ScpSftpType) String() string {
+	return "ScpSftpType"
+}
+
+func (t ScpSftpType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	acceptHostKeyAttribute, ok := attributes["accept_host_key"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`accept_host_key is missing from object`)
+
+		return nil, diags
+	}
+
+	acceptHostKeyVal, ok := acceptHostKeyAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`accept_host_key expected to be basetypes.BoolValue, was: %T`, acceptHostKeyAttribute))
+	}
+
+	ignoreHostKeyValidationAttribute, ok := attributes["ignore_host_key_validation"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`ignore_host_key_validation is missing from object`)
+
+		return nil, diags
+	}
+
+	ignoreHostKeyValidationVal, ok := ignoreHostKeyValidationAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`ignore_host_key_validation expected to be basetypes.BoolValue, was: %T`, ignoreHostKeyValidationAttribute))
+	}
+
+	passphraseAttribute, ok := attributes["passphrase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`passphrase is missing from object`)
+
+		return nil, diags
+	}
+
+	passphraseVal, ok := passphraseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`passphrase expected to be basetypes.StringValue, was: %T`, passphraseAttribute))
+	}
+
+	passwordAttribute, ok := attributes["password"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`password is missing from object`)
+
+		return nil, diags
+	}
+
+	passwordVal, ok := passwordAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`password expected to be basetypes.StringValue, was: %T`, passwordAttribute))
+	}
+
+	portAttribute, ok := attributes["port"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`port is missing from object`)
+
+		return nil, diags
+	}
+
+	portVal, ok := portAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`port expected to be basetypes.Int64Value, was: %T`, portAttribute))
+	}
+
+	protocolAttribute, ok := attributes["protocol"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`protocol is missing from object`)
+
+		return nil, diags
+	}
+
+	protocolVal, ok := protocolAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`protocol expected to be basetypes.StringValue, was: %T`, protocolAttribute))
+	}
+
+	sshKeyAttribute, ok := attributes["ssh_key"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`ssh_key is missing from object`)
+
+		return nil, diags
+	}
+
+	sshKeyVal, ok := sshKeyAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`ssh_key expected to be basetypes.StringValue, was: %T`, sshKeyAttribute))
+	}
+
+	usernameAttribute, ok := attributes["username"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`username is missing from object`)
+
+		return nil, diags
+	}
+
+	usernameVal, ok := usernameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`username expected to be basetypes.StringValue, was: %T`, usernameAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return ScpSftpValue{
+		AcceptHostKey:           acceptHostKeyVal,
+		IgnoreHostKeyValidation: ignoreHostKeyValidationVal,
+		Passphrase:              passphraseVal,
+		Password:                passwordVal,
+		Port:                    portVal,
+		Protocol:                protocolVal,
+		SshKey:                  sshKeyVal,
+		Username:                usernameVal,
+		state:                   attr.ValueStateKnown,
+	}, diags
+}
+
+func NewScpSftpValueNull() ScpSftpValue {
+	return ScpSftpValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewScpSftpValueUnknown() ScpSftpValue {
+	return ScpSftpValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewScpSftpValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ScpSftpValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing ScpSftpValue Attribute Value",
+				"While creating a ScpSftpValue value, a missing attribute value was detected. "+
+					"A ScpSftpValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("ScpSftpValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid ScpSftpValue Attribute Type",
+				"While creating a ScpSftpValue value, an invalid attribute value was detected. "+
+					"A ScpSftpValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("ScpSftpValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("ScpSftpValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra ScpSftpValue Attribute Value",
+				"While creating a ScpSftpValue value, an extra attribute value was detected. "+
+					"A ScpSftpValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra ScpSftpValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewScpSftpValueUnknown(), diags
+	}
+
+	acceptHostKeyAttribute, ok := attributes["accept_host_key"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`accept_host_key is missing from object`)
+
+		return NewScpSftpValueUnknown(), diags
+	}
+
+	acceptHostKeyVal, ok := acceptHostKeyAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`accept_host_key expected to be basetypes.BoolValue, was: %T`, acceptHostKeyAttribute))
+	}
+
+	ignoreHostKeyValidationAttribute, ok := attributes["ignore_host_key_validation"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`ignore_host_key_validation is missing from object`)
+
+		return NewScpSftpValueUnknown(), diags
+	}
+
+	ignoreHostKeyValidationVal, ok := ignoreHostKeyValidationAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`ignore_host_key_validation expected to be basetypes.BoolValue, was: %T`, ignoreHostKeyValidationAttribute))
+	}
+
+	passphraseAttribute, ok := attributes["passphrase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`passphrase is missing from object`)
+
+		return NewScpSftpValueUnknown(), diags
+	}
+
+	passphraseVal, ok := passphraseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`passphrase expected to be basetypes.StringValue, was: %T`, passphraseAttribute))
+	}
+
+	passwordAttribute, ok := attributes["password"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`password is missing from object`)
+
+		return NewScpSftpValueUnknown(), diags
+	}
+
+	passwordVal, ok := passwordAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`password expected to be basetypes.StringValue, was: %T`, passwordAttribute))
+	}
+
+	portAttribute, ok := attributes["port"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`port is missing from object`)
+
+		return NewScpSftpValueUnknown(), diags
+	}
+
+	portVal, ok := portAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`port expected to be basetypes.Int64Value, was: %T`, portAttribute))
+	}
+
+	protocolAttribute, ok := attributes["protocol"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`protocol is missing from object`)
+
+		return NewScpSftpValueUnknown(), diags
+	}
+
+	protocolVal, ok := protocolAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`protocol expected to be basetypes.StringValue, was: %T`, protocolAttribute))
+	}
+
+	sshKeyAttribute, ok := attributes["ssh_key"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`ssh_key is missing from object`)
+
+		return NewScpSftpValueUnknown(), diags
+	}
+
+	sshKeyVal, ok := sshKeyAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`ssh_key expected to be basetypes.StringValue, was: %T`, sshKeyAttribute))
+	}
+
+	usernameAttribute, ok := attributes["username"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`username is missing from object`)
+
+		return NewScpSftpValueUnknown(), diags
+	}
+
+	usernameVal, ok := usernameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`username expected to be basetypes.StringValue, was: %T`, usernameAttribute))
+	}
+
+	if diags.HasError() {
+		return NewScpSftpValueUnknown(), diags
+	}
+
+	return ScpSftpValue{
+		AcceptHostKey:           acceptHostKeyVal,
+		IgnoreHostKeyValidation: ignoreHostKeyValidationVal,
+		Passphrase:              passphraseVal,
+		Password:                passwordVal,
+		Port:                    portVal,
+		Protocol:                protocolVal,
+		SshKey:                  sshKeyVal,
+		Username:                usernameVal,
+		state:                   attr.ValueStateKnown,
+	}, diags
+}
+
+func NewScpSftpValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ScpSftpValue {
+	object, diags := NewScpSftpValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewScpSftpValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t ScpSftpType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewScpSftpValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewScpSftpValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewScpSftpValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewScpSftpValueMust(ScpSftpValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t ScpSftpType) ValueType(ctx context.Context) attr.Value {
+	return ScpSftpValue{}
+}
+
+var _ basetypes.ObjectValuable = ScpSftpValue{}
+
+type ScpSftpValue struct {
+	AcceptHostKey           basetypes.BoolValue   `tfsdk:"accept_host_key"`
+	IgnoreHostKeyValidation basetypes.BoolValue   `tfsdk:"ignore_host_key_validation"`
+	Passphrase              basetypes.StringValue `tfsdk:"passphrase"`
+	Password                basetypes.StringValue `tfsdk:"password"`
+	Port                    basetypes.Int64Value  `tfsdk:"port"`
+	Protocol                basetypes.StringValue `tfsdk:"protocol"`
+	SshKey                  basetypes.StringValue `tfsdk:"ssh_key"`
+	Username                basetypes.StringValue `tfsdk:"username"`
+	state                   attr.ValueState
+}
+
+func (v ScpSftpValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 8)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["accept_host_key"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["ignore_host_key_validation"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["passphrase"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["password"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["port"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["protocol"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["ssh_key"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["username"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 8)
+
+		val, err = v.AcceptHostKey.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["accept_host_key"] = val
+
+		val, err = v.IgnoreHostKeyValidation.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["ignore_host_key_validation"] = val
+
+		val, err = v.Passphrase.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["passphrase"] = val
+
+		val, err = v.Password.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["password"] = val
+
+		val, err = v.Port.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["port"] = val
+
+		val, err = v.Protocol.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["protocol"] = val
+
+		val, err = v.SshKey.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["ssh_key"] = val
+
+		val, err = v.Username.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["username"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v ScpSftpValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v ScpSftpValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v ScpSftpValue) String() string {
+	return "ScpSftpValue"
+}
+
+func (v ScpSftpValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributeTypes := map[string]attr.Type{
+		"accept_host_key":            basetypes.BoolType{},
+		"ignore_host_key_validation": basetypes.BoolType{},
+		"passphrase":                 basetypes.StringType{},
+		"password":                   basetypes.StringType{},
+		"port":                       basetypes.Int64Type{},
+		"protocol":                   basetypes.StringType{},
+		"ssh_key":                    basetypes.StringType{},
+		"username":                   basetypes.StringType{},
+	}
+
+	if v.IsNull() {
+		return types.ObjectNull(attributeTypes), diags
+	}
+
+	if v.IsUnknown() {
+		return types.ObjectUnknown(attributeTypes), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		attributeTypes,
+		map[string]attr.Value{
+			"accept_host_key":            v.AcceptHostKey,
+			"ignore_host_key_validation": v.IgnoreHostKeyValidation,
+			"passphrase":                 v.Passphrase,
+			"password":                   v.Password,
+			"port":                       v.Port,
+			"protocol":                   v.Protocol,
+			"ssh_key":                    v.SshKey,
+			"username":                   v.Username,
+		})
+
+	return objVal, diags
+}
+
+func (v ScpSftpValue) Equal(o attr.Value) bool {
+	other, ok := o.(ScpSftpValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.AcceptHostKey.Equal(other.AcceptHostKey) {
+		return false
+	}
+
+	if !v.IgnoreHostKeyValidation.Equal(other.IgnoreHostKeyValidation) {
+		return false
+	}
+
+	if !v.Passphrase.Equal(other.Passphrase) {
+		return false
+	}
+
+	if !v.Password.Equal(other.Password) {
+		return false
+	}
+
+	if !v.Port.Equal(other.Port) {
+		return false
+	}
+
+	if !v.Protocol.Equal(other.Protocol) {
+		return false
+	}
+
+	if !v.SshKey.Equal(other.SshKey) {
+		return false
+	}
+
+	if !v.Username.Equal(other.Username) {
+		return false
+	}
+
+	return true
+}
+
+func (v ScpSftpValue) Type(ctx context.Context) attr.Type {
+	return ScpSftpType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v ScpSftpValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"accept_host_key":            basetypes.BoolType{},
+		"ignore_host_key_validation": basetypes.BoolType{},
+		"passphrase":                 basetypes.StringType{},
+		"password":                   basetypes.StringType{},
+		"port":                       basetypes.Int64Type{},
+		"protocol":                   basetypes.StringType{},
+		"ssh_key":                    basetypes.StringType{},
+		"username":                   basetypes.StringType{},
+	}
 }

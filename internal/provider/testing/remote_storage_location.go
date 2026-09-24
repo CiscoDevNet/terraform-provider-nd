@@ -11,19 +11,25 @@ package testing
 // NDFCRemoteStorageLocationTestData mirrors the schema attributes of the
 // nd_remote_storage_location resource. It is used by the gotmpl renderer
 // and the state-check helper in the provider test package.
-//
-// All optional/sensitive fields use pointers so the template can decide
-// whether to emit the corresponding HCL attribute.
 type NDFCRemoteStorageLocationTestData struct {
-	Name                    string
-	Description             string
-	StorageLocationType     string
-	ReadWrite               *bool
-	Hostname                string
+	Name        string
+	Description string
+	Hostname    string
+	Path        string
+	Nfs         *NDFCRemoteStorageLocationNFSTestData
+	ScpSftp     *NDFCRemoteStorageLocationSCPSFTPTestData
+}
+
+type NDFCRemoteStorageLocationNFSTestData struct {
+	Port           *int64
+	Limit          string
+	ReadWrite      *bool
+	AlertThreshold *int64
+}
+
+type NDFCRemoteStorageLocationSCPSFTPTestData struct {
+	Protocol                string
 	Port                    *int64
-	Path                    string
-	AlertThreshold          *int64
-	Limit                   string
 	Username                string
 	Password                string
 	SshKey                  string
@@ -48,8 +54,8 @@ func GenerateRemoteStorageLocationObject(
 // ModifyRemoteStorageLocationObject mutates an existing model with a new
 // values map. Used between create/update steps to swap configuration.
 //
-// Pointer-typed fields are reset to nil first so callers can drop an
-// attribute by simply omitting it from the next values map.
+// The model is reset first so callers can remove a branch or nested attribute
+// by omitting it from the next values map.
 func ModifyRemoteStorageLocationObject(
 	obj **NDFCRemoteStorageLocationTestData,
 	values map[string]interface{},
@@ -75,37 +81,68 @@ func applyRemoteStorageLocationValues(
 			rsl.Name = val.(string)
 		case "description":
 			rsl.Description = val.(string)
-		case "storage_location_type":
-			rsl.StorageLocationType = val.(string)
-		case "read_write":
-			v := val.(bool)
-			rsl.ReadWrite = &v
 		case "hostname":
 			rsl.Hostname = val.(string)
-		case "port":
-			v := int64(val.(int))
-			rsl.Port = &v
 		case "path":
 			rsl.Path = val.(string)
+		case "nfs":
+			nfs := new(NDFCRemoteStorageLocationNFSTestData)
+			applyRemoteStorageLocationNFSValues(nfs, val.(map[string]interface{}))
+			rsl.Nfs = nfs
+		case "scp_sftp":
+			scpSftp := new(NDFCRemoteStorageLocationSCPSFTPTestData)
+			applyRemoteStorageLocationSCPSFTPValues(scpSftp, val.(map[string]interface{}))
+			rsl.ScpSftp = scpSftp
+		}
+	}
+}
+
+func applyRemoteStorageLocationNFSValues(
+	nfs *NDFCRemoteStorageLocationNFSTestData,
+	values map[string]interface{},
+) {
+	for key, val := range values {
+		switch key {
+		case "port":
+			v := int64(val.(int))
+			nfs.Port = &v
+		case "limit":
+			nfs.Limit = val.(string)
+		case "read_write":
+			v := val.(bool)
+			nfs.ReadWrite = &v
 		case "alert_threshold":
 			v := int64(val.(int))
-			rsl.AlertThreshold = &v
-		case "limit":
-			rsl.Limit = val.(string)
+			nfs.AlertThreshold = &v
+		}
+	}
+}
+
+func applyRemoteStorageLocationSCPSFTPValues(
+	scpSftp *NDFCRemoteStorageLocationSCPSFTPTestData,
+	values map[string]interface{},
+) {
+	for key, val := range values {
+		switch key {
+		case "protocol":
+			scpSftp.Protocol = val.(string)
+		case "port":
+			v := int64(val.(int))
+			scpSftp.Port = &v
 		case "username":
-			rsl.Username = val.(string)
+			scpSftp.Username = val.(string)
 		case "password":
-			rsl.Password = val.(string)
+			scpSftp.Password = val.(string)
 		case "ssh_key":
-			rsl.SshKey = val.(string)
+			scpSftp.SshKey = val.(string)
 		case "passphrase":
-			rsl.Passphrase = val.(string)
+			scpSftp.Passphrase = val.(string)
 		case "ignore_host_key_validation":
 			v := val.(bool)
-			rsl.IgnoreHostKeyValidation = &v
+			scpSftp.IgnoreHostKeyValidation = &v
 		case "accept_host_key":
 			v := val.(bool)
-			rsl.AcceptHostKey = &v
+			scpSftp.AcceptHostKey = &v
 		}
 	}
 }

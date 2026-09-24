@@ -14,15 +14,18 @@ Manages remote storage location for Nexus Dashboard
 
 ```terraform
 resource "nd_remote_storage_location" "test_resource_remote_storage_location_1" {
-  name                       = "scp-server"
-  description                = "Remote storage location description."
-  storage_location_type      = "scp"
-  hostname                   = "192.168.100.100"
-  port                       = 22
-  path                       = "/export/path/"
-  username                   = "root"
-  password                   = "password"
-  ignore_host_key_validation = true
+  name        = "scp-server"
+  description = "Remote storage location description."
+  hostname    = "192.168.100.100"
+  path        = "/export/path/"
+  scp_sftp = {
+    protocol                   = "scp"
+    port                       = 22
+    username                   = "admin"
+    password                   = "password"
+    ignore_host_key_validation = false
+    accept_host_key            = true
+  }
 }
 ```
 
@@ -33,26 +36,47 @@ resource "nd_remote_storage_location" "test_resource_remote_storage_location_1" 
 
 - `hostname` (String) The hostname or IP address of the remote storage server.
 - `name` (String) The name of the remote storage location.
-- `path` (String) The export path for NFS storage or the base path for SCP/SFTP storage on the remote server.
-- `storage_location_type` (String) The type of the remote storage location. Allowed values are "nfs", "scp", and "sftp".
+- `path` (String) The export path for NFS storage or the base path for SCP/SFTP storage on the remote server. For NFS storage, this value cannot be modified after creation.
 
 ### Optional
 
-- `accept_host_key` (Boolean) Indicates whether to accept host key for the remote storage location when the type is SCP or SFTP.
-- `alert_threshold` (Number) The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If omitted during creation, it defaults to 80. Valid values are between 1 and 100. Remove this attribute from the configuration to reset it to the default value.
-- `description` (String) The description of the remote storage location. Remove this attribute from the configuration to reset it to the default value.
-- `ignore_host_key_validation` (Boolean) Indicates whether to ignore host key validation for the remote storage location when the type is SCP or SFTP.
-- `limit` (String) The storage capacity limit for the remote storage location. Valid for NFS storage type. The value should be specified in megabytes (MB) or gigabytes (GB), for example, 500GB or 1000MB.
-- `passphrase` (String, Sensitive) The optional passphrase associated with the private key for the remote storage location when the type is SCP or SFTP.
-- `password` (String, Sensitive) The password for the remote storage location when the type is SCP or SFTP.
-- `port` (Number) The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP. The valid range is between 1 and 65535.
-- `read_write` (Boolean) Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only when type is NFS. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.
-- `ssh_key` (String, Sensitive) The private key for the remote storage location when the type is SCP or SFTP.
-- `username` (String) The username for the remote storage location when the type is SCP or SFTP.
+- `description` (String) The description of the remote storage location.
+- `nfs` (Attributes) Configures an NFS remote storage location. Configure exactly one of `nfs` or `scp_sftp`. (see [below for nested schema](#nestedatt--nfs))
+- `scp_sftp` (Attributes) Configures an SCP or SFTP remote storage location. Configure exactly one of `scp_sftp` or `nfs`. (see [below for nested schema](#nestedatt--scp_sftp))
 
 ### Read-Only
 
-- `authentication_type` (String) The authentication type for the remote storage location when the type is SCP or SFTP.
 - `health_state` (String) The health state of the remote storage location.
 - `health_state_message` (String) The health state message of the remote storage location.
 - `id` (String) The unique identifier for the resource, it is the name of the remote storage location (for example, scp-server).
+
+<a id="nestedatt--nfs"></a>
+### Nested Schema for `nfs`
+
+Required:
+
+- `limit` (String) The required storage capacity limit for the NFS remote storage location. Specify a positive number followed by `MB` or `GB`, for example, `500GB` or `1000MB`.
+
+Optional:
+
+- `alert_threshold` (Number) The storage usage percentage that triggers an alert when exceeded. Valid values are between 1 and 100. Defaults to `80` when not specified in the configuration.
+- `port` (Number) The port number for connecting to the NFS server. Valid values are between 1 and 65535. Defaults to `2049` when not specified in the configuration.
+- `read_write` (Boolean) Indicates whether the NFS storage location is read-write. Defaults to `false` when not specified in the configuration.
+
+
+<a id="nestedatt--scp_sftp"></a>
+### Nested Schema for `scp_sftp`
+
+Required:
+
+- `protocol` (String) The protocol used by the remote storage location. Allowed values are `scp` and `sftp`.
+- `username` (String) The username used to authenticate with the SCP or SFTP server. Valid values contain between 1 and 128 characters.
+
+Optional:
+
+- `accept_host_key` (Boolean) Indicates whether to accept the host key presented by the SCP or SFTP server. This attribute cannot be enabled together with `ignore_host_key_validation`. Defaults to `false` when not specified in the configuration.
+- `ignore_host_key_validation` (Boolean) Indicates whether to skip host-key validation for the SCP or SFTP server. This attribute cannot be enabled together with `accept_host_key`. Defaults to `false` when not specified in the configuration.
+- `passphrase` (String, Sensitive) The optional passphrase associated with `ssh_key`. This attribute requires `ssh_key` and cannot be configured with `password`.
+- `password` (String, Sensitive) The password used to authenticate with the SCP or SFTP server. Configure exactly one of `password` or `ssh_key`.
+- `port` (Number) The port number for connecting to the SCP or SFTP server. Valid values are between 1 and 65535. Defaults to `22` when not specified in the configuration.
+- `ssh_key` (String, Sensitive) The private key used to authenticate with the SCP or SFTP server. Configure exactly one of `ssh_key` or `password`.

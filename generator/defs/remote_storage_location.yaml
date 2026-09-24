@@ -26,146 +26,156 @@ resource:
 
   - model_name: description
     tf_name: description
-    description: The description of the remote storage location. Remove this attribute from the configuration to reset it to the default value.
+    description: The description of the remote storage location.
     type: String
     optional: true
     example: Remote storage location description.
-
-  - model_name: type
-    tf_name: storage_location_type
-    description: The type of the remote storage location. Allowed values are "nfs", "scp", and "sftp".
-    type: String
-    mandatory: true
-    tf_requires_replace: true
-    validator: 'OneOf("nfs", "scp", "sftp")'
-    example: scp
-
-  # Intentionally omit use_state for attribute `read_write` because the backend default depends on storage_location_type.
-  - model_name: readWrite
-    tf_name: read_write
-    description: Indicates whether the storage location is read-write or read-only. If false, the storage location is read-only when type is NFS. If omitted during creation, it defaults to false. Remove this attribute from the configuration to reset it to the default value.
-    type: Bool
-    optional: true
-    computed: true
-    ndfc_type: bool
 
   - model_name: hostname
     tf_name: hostname
     description: The hostname or IP address of the remote storage server.
     type: String
     mandatory: true
+    validator: 'LengthAtLeast(1)'
+    tf_requires_replace: true
     example: 192.168.100.100
-
-  # Intentionally omit use_state for attribute `port` because the backend default depends on storage_location_type.
-  - model_name: port
-    tf_name: port
-    description: The port number for connecting to the remote storage server. Default port is 2049 for NFS and 22 for SCP/SFTP. The valid range is between 1 and 65535.
-    type: Int64
-    optional: true
-    computed: true
-    validator: 'Between(1, 65535)'
-    example: 22
 
   - model_name: path
     tf_name: path
-    description: The export path for NFS storage or the base path for SCP/SFTP storage on the remote server.
+    description: The export path for NFS storage or the base path for SCP/SFTP storage on the remote server. For NFS storage, this value cannot be modified after creation.
     type: String
     mandatory: true
+    validator: 'LengthAtLeast(1)'
     example: /export/path/
 
-  - model_name: alertThreshold
-    tf_name: alert_threshold
-    description: The storage usage percentage that triggers an alert when exceeded. This applies only to NFS storage locations. If omitted during creation, it defaults to 80. Valid values are between 1 and 100. Remove this attribute from the configuration to reset it to the default value.
-    type: Int64
+  - model_name: nfs
+    tf_name: nfs
+    description: Configures an NFS remote storage location. Configure exactly one of `nfs` or `scp_sftp`.
+    type: Struct
     optional: true
     computed: true
-    validator: 'Between(1, 100), int64validator.ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation"))'
-
-  - model_name: limit
-    tf_name: limit
-    description: The storage capacity limit for the remote storage location. Valid for NFS storage type. The value should be specified in megabytes (MB) or gigabytes (GB), for example, 500GB or 1000MB.
-    type: String
-    validator: 'ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"), path.MatchRoot("username"), path.MatchRoot("password"), path.MatchRoot("ignore_host_key_validation")), stringvalidator.RegexMatches(regexp.MustCompile(`^[1-9][0-9]*(MB|GB)$`), "must be a positive number followed by MB or GB, for example 500GB or 1000MB")'
-    optional: true
-
-  - model_name: username
-    tf_name: username
-    description: The username for the remote storage location when the type is SCP or SFTP.
-    type: String
-    optional: true
-    tf_requires_replace: true
-    validator: 'ConflictsWith(path.MatchRoot("limit"), path.MatchRoot("alert_threshold"))'
-    example: root
-    use_state: true
-    ndfc_nested:
-    - authentication
-
-  # Intentionally omit use_state for attribute `type` because the provider default depends on auth credentials.
-  - model_name: type
-    tf_name: authentication_type
-    description: The authentication type for the remote storage location when the type is SCP or SFTP.
-    type: String
-    computed: true
-    example: password
-    ndfc_nested:
-    - authentication
-
-  - model_name: password
-    tf_name: password
-    description: The password for the remote storage location when the type is SCP or SFTP.
-    type: String
-    optional: true
-    sensitive: true
-    validator: 'ConflictsWith(path.MatchRoot("ssh_key"), path.MatchRoot("passphrase"))'
-    use_state: true
-    tf_requires_replace: true
-    example: password
-    ndfc_nested:
-    - authentication
-
-  - model_name: sshKey
-    tf_name: ssh_key
-    description: The private key for the remote storage location when the type is SCP or SFTP.
-    type: String
-    tf_requires_replace: true
-    optional: true
-    sensitive: true
-    validator: 'ConflictsWith(path.MatchRoot("password"),path.MatchRoot("limit"), path.MatchRoot("alert_threshold"))'
-    use_state: true
-    ndfc_nested:
-    - authentication
-
-  - model_name: passphrase
-    tf_name: passphrase
-    description: The optional passphrase associated with the private key for the remote storage location when the type is SCP or SFTP.
-    type: String
-    tf_requires_replace: true
-    optional: true
-    sensitive: true
-    validator: 'ConflictsWith(path.MatchRoot("password"), path.MatchRoot("limit"), path.MatchRoot("alert_threshold"))'
-    use_state: true
-    ndfc_nested:
-    - authentication
-
-  - model_name: ignoreHostKeyValidation
-    tf_name: ignore_host_key_validation
-    description: Indicates whether to ignore host key validation for the remote storage location when the type is SCP or SFTP.
-    type: Bool
-    ndfc_type: bool
-    optional: true
-    validator: 'ConflictsWith(path.MatchRoot("limit"), path.MatchRoot("alert_threshold"))'
-    example: true
-    ndfc_nested:
-    - authentication
-
-  - model_name: acceptHostKey
-    tf_name: accept_host_key
-    description: Indicates whether to accept host key for the remote storage location when the type is SCP or SFTP.
-    type: Bool
-    ndfc_type: bool
-    optional: true
-    validator: 'ConflictsWith(path.MatchRoot("limit"), path.MatchRoot("alert_threshold"), path.MatchRoot("ignore_host_key_validation"))'
     payload_hide: true
+    validator: 'ExactlyOneOf(path.MatchRoot("scp_sftp"))'
+    attributes:
+    - model_name: port
+      tf_name: port
+      description: The port number for connecting to the NFS server. Valid values are between 1 and 65535. Defaults to `2049` when not specified in the configuration.
+      type: Int64
+      default_value: 2049
+      tf_requires_replace: true
+      validator: 'Between(1, 65535)'
+
+    - model_name: limit
+      tf_name: limit
+      description: The required storage capacity limit for the NFS remote storage location. Specify a positive number followed by `MB` or `GB`, for example, `500GB` or `1000MB`.
+      type: String
+      mandatory: true
+      validator: 'RegexMatches(regexp.MustCompile(`^[1-9][0-9]*(MB|GB)$`), "must be a positive number followed by MB or GB, for example 500GB or 1000MB")'
+
+    - model_name: readWrite
+      tf_name: read_write
+      description: Indicates whether the NFS storage location is read-write. Defaults to `false` when not specified in the configuration.
+      type: Bool
+      default_value: false
+      ndfc_type: bool
+
+    - model_name: alertThreshold
+      tf_name: alert_threshold
+      description: The storage usage percentage that triggers an alert when exceeded. Valid values are between 1 and 100. Defaults to `80` when not specified in the configuration.
+      type: Int64
+      default_value: 80
+      validator: 'Between(1, 100)'
+
+  - model_name: scpSftp
+    tf_name: scp_sftp
+    description: Configures an SCP or SFTP remote storage location. Configure exactly one of `scp_sftp` or `nfs`.
+    type: Struct
+    optional: true
+    computed: true
+    payload_hide: true
+    validator: 'ExactlyOneOf(path.MatchRoot("nfs"))'
+    attributes:
+    - model_name: type
+      tf_name: protocol
+      description: The protocol used by the remote storage location. Allowed values are `scp` and `sftp`.
+      type: String
+      mandatory: true
+      tf_requires_replace: true
+      validator: 'OneOf("scp", "sftp")'
+      example: scp
+
+    - model_name: port
+      tf_name: port
+      description: The port number for connecting to the SCP or SFTP server. Valid values are between 1 and 65535. Defaults to `22` when not specified in the configuration.
+      type: Int64
+      default_value: 22
+      tf_requires_replace: true
+      validator: 'Between(1, 65535)'
+      example: 22
+
+    - model_name: username
+      tf_name: username
+      description: The username used to authenticate with the SCP or SFTP server. Valid values contain between 1 and 128 characters.
+      type: String
+      mandatory: true
+      tf_requires_replace: true
+      validator: 'LengthBetween(1, 128)'
+      example: admin
+      ndfc_nested:
+      - authentication
+
+    - model_name: password
+      tf_name: password
+      description: The password used to authenticate with the SCP or SFTP server. Configure exactly one of `password` or `ssh_key`.
+      type: String
+      optional: true
+      sensitive: true
+      tf_requires_replace: true
+      validator: 'LengthAtLeast(1), stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("ssh_key"), path.MatchRelative().AtParent().AtName("passphrase"))'
+      example: password
+      ndfc_nested:
+      - authentication
+
+    - model_name: sshKey
+      tf_name: ssh_key
+      description: The private key used to authenticate with the SCP or SFTP server. Configure exactly one of `ssh_key` or `password`.
+      type: String
+      optional: true
+      sensitive: true
+      tf_requires_replace: true
+      validator: 'LengthAtLeast(1), stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("password"))'
+      ndfc_nested:
+      - authentication
+
+    - model_name: passphrase
+      tf_name: passphrase
+      description: The optional passphrase associated with `ssh_key`. This attribute requires `ssh_key` and cannot be configured with `password`.
+      type: String
+      optional: true
+      sensitive: true
+      tf_requires_replace: true
+      validator: 'LengthAtLeast(1), stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("password"))'
+      ndfc_nested:
+      - authentication
+
+    - model_name: ignoreHostKeyValidation
+      tf_name: ignore_host_key_validation
+      description: Indicates whether to skip host-key validation for the SCP or SFTP server. This attribute cannot be enabled together with `accept_host_key`. Defaults to `false` when not specified in the configuration.
+      type: Bool
+      ndfc_type: bool
+      default_value: false
+      example: false
+      ndfc_nested:
+      - authentication
+
+    - model_name: acceptHostKey
+      tf_name: accept_host_key
+      description: Indicates whether to accept the host key presented by the SCP or SFTP server. This attribute cannot be enabled together with `ignore_host_key_validation`. Defaults to `false` when not specified in the configuration.
+      type: Bool
+      ndfc_type: bool
+      default_value: false
+      payload_hide: true
+      example: true
 
   - model_name: healthState
     tf_name: health_state
@@ -182,4 +192,6 @@ resource:
     payload_hide: true
 
   # https://developer.cisco.com/docs/nexus-dashboard/latest/remotestoragescpsftpauthremotestore/
+  # The hostKey attribute is managed through `accept_host_key` or
+  # `ignore_host_key_validation` and is not configured directly.
   # The storeKey attribute is intentionally skipped because it is not exposed in the ND 4.2 UI.
