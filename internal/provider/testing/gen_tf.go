@@ -280,6 +280,13 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 				panic(fmt.Sprintf("Failed to execute ND_CHANGE_CONTROL_RSC template: %v", err))
 			}
 
+		case *ChangeControlDataSourceTestData:
+			args["ChangeControlDataSource"] = v
+			err = t.ExecuteTemplate(&output, "ND_CHANGE_CONTROL_DS", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_CHANGE_CONTROL_DS template: %v", err))
+			}
+
 		case *NDFCRemoteStorageLocationTestData:
 			args["RemoteStorage"] = v
 			args["RscName"] = rscName

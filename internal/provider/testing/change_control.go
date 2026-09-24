@@ -10,6 +10,13 @@ package testing
 
 import "terraform-provider-nd/internal/infra/resource_change_control"
 
+// ChangeControlDataSourceTestData contains the values rendered by the change-control
+// datasource acceptance-test template.
+type ChangeControlDataSourceTestData struct {
+	RscName   string
+	DependsOn string
+}
+
 // GenerateChangeControlObject builds a change control model from explicitly
 // supplied values. An omitted value remains unset so Terraform can exercise
 // the schema default for that attribute.
