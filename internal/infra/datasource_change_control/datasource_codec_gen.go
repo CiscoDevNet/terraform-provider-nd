@@ -1,6 +1,6 @@
 // Code generated;  DO NOT EDIT.
 
-package resource_change_control
+package datasource_change_control
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -75,55 +75,6 @@ func (v ChangeControlModel) GetModelData() *NDFCChangeControlModel {
 	var data = new(NDFCChangeControlModel)
 
 	//MARSHAL_BODY
-
-	if !v.AdminStatus.IsNull() && !v.AdminStatus.IsUnknown() {
-		data.AdminStatus = new(bool)
-		*data.AdminStatus = v.AdminStatus.ValueBool()
-	} else {
-		data.AdminStatus = nil
-	}
-
-	if !v.Orchestration.IsNull() && !v.Orchestration.IsUnknown() {
-		data.Orchestration = new(bool)
-		*data.Orchestration = v.Orchestration.ValueBool()
-	} else {
-		data.Orchestration = nil
-	}
-
-	if !v.NumberOfApprovers.IsNull() && !v.NumberOfApprovers.IsUnknown() {
-		data.NumberOfApprovers = new(int64)
-		*data.NumberOfApprovers = v.NumberOfApprovers.ValueInt64()
-
-	} else {
-		data.NumberOfApprovers = nil
-	}
-
-	if !v.AllowSelfApproval.IsNull() && !v.AllowSelfApproval.IsUnknown() {
-		data.AllowSelfApproval = new(bool)
-		*data.AllowSelfApproval = v.AllowSelfApproval.ValueBool()
-	} else {
-		data.AllowSelfApproval = nil
-	}
-
-	if !v.NdManagedFabrics.IsNull() && !v.NdManagedFabrics.IsUnknown() {
-		data.NdManagedFabrics = new(bool)
-		*data.NdManagedFabrics = v.NdManagedFabrics.ValueBool()
-	} else {
-		data.NdManagedFabrics = nil
-	}
-
-	if !v.BypassTelemetryChangeControl.IsNull() && !v.BypassTelemetryChangeControl.IsUnknown() {
-		data.BypassTelemetryChangeControl = new(bool)
-		*data.BypassTelemetryChangeControl = v.BypassTelemetryChangeControl.ValueBool()
-	} else {
-		data.BypassTelemetryChangeControl = nil
-	}
-
-	if !v.TicketNamePrefix.IsNull() && !v.TicketNamePrefix.IsUnknown() {
-		data.TicketNamePrefix = v.TicketNamePrefix.ValueString()
-	} else {
-		data.TicketNamePrefix = ""
-	}
 
 	return data
 }
