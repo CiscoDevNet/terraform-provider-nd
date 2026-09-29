@@ -3,12 +3,12 @@
 page_title: "nd_multi_cluster_connectivity Resource - terraform-provider-nd"
 subcategory: ""
 description: |-
-  Manages multi-cluster connectivity for Nexus Dashboard clusters.
+  Manages an ND cluster for Multi-Cluster Connectivity in Nexus Dashboard
 ---
 
 # nd_multi_cluster_connectivity (Resource)
 
-Manages multi-cluster connectivity for Nexus Dashboard clusters.
+Manages an ND cluster for Multi-Cluster Connectivity in Nexus Dashboard
 
 ## Example Usage
 
@@ -39,7 +39,7 @@ resource "nd_multi_cluster_connectivity" "test_resource_multi_cluster_connectivi
 ### Read-Only
 
 - `cluster_name` (String) The name of the ND cluster.
-- `id` (String) The unique identifier of the terraform resource.
+- `id` (String) The unique identifier for the resource, it is the cluster_name of the ND cluster (for example, nd4x).
 
 ## Import
 
