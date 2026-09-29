@@ -1,0 +1,59 @@
+{
+  "alertSuspend": "disabled",
+  "category": "fabric",
+  "externalStreamingSettings": {
+    "email": [],
+    "messageBus": [],
+    "syslog": {
+      "collectionSettings": {
+        "anomalies": []
+      },
+      "facility": "",
+      "servers": []
+    },
+    "webhooks": []
+  },
+  "licenseTier": "premier",
+  "location": {
+    "latitude": 37.33939,
+    "longitude": -121.89496
+  },
+  "management": {
+    "type": "externalConnectivity",
+    "netflowSettings": {
+      "netflow": false
+    },
+    "nxapiHttp": false,
+    "ptp": false,
+    "mplsHandoff": false,
+    "bootstrapSubnetCollection": [],
+    "powerRedundancyMode": "redundant",
+    "extraConfigFabric": "no shutdown",
+    "realTimeInterfaceStatisticsCollection": false,
+    "nxapi": false,
+    "monitoredMode": false,
+    "createBgpConfig": true,
+    "snmpTrap": true,
+    "extraConfigAaa": "radius-server host 10.1.1.1",
+    "subInterfaceDot1qRange": "2-511",
+    "realTimeBackup": true,
+    "nxapiHttpPort": 80,
+    "scheduledBackup": false,
+    "name": "my_ext_fabric",
+    "performanceMonitoring": false,
+    "nxapiHttpsPort": 443,
+    "coppPolicy": "manual",
+    "day0Bootstrap": false,
+    "allowSmartSwitchOnboarding": false,
+    "localDhcpServer": false,
+    "connectivityDomainName": "my_domain",
+    "bgpAsn": "65001",
+    "cdp": false,
+    "inbandManagement": false,
+    "allowSameLoopbackIpOnSwitches": false,
+    "advancedSshOption": false
+  },
+  "name": "my_ext_fabric",
+  "securityDomain": "all",
+  "telemetryCollection": false
+}
