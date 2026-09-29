@@ -25,3 +25,13 @@ resource "nd_change_control" "{{.RscName}}" {
 {{- end}}
 }
 {{end}}
+
+{{define "ND_CHANGE_CONTROL_DS"}}
+{{with .ChangeControlDataSource}}
+data "nd_change_control" "{{.RscName}}" {
+    {{if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+    {{end}}
+}
+{{end}}
+{{end}}
