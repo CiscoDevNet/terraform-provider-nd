@@ -15,6 +15,7 @@ datasource:
     description: The name of the fabric to read
     type: String
     mandatory: true
+    validator: 'RegexMatches(regexp.MustCompile(`.*\S.*`), "must not be empty or whitespace")'
   - model_name: licenseTier
     tf_name: license_tier
     description: License Tier value of a fabric
@@ -1039,6 +1040,7 @@ datasource:
     ndfc_nested:
     - management
     description: Encrypted BGP Authentication Key based on type
+    sensitive: true
     computed: true
   - model_name: pimHelloAuthentication
     tf_name: pim_hello_authentication
@@ -1054,6 +1056,7 @@ datasource:
     ndfc_nested:
     - management
     description: 3DES encrypted
+    sensitive: true
     computed: true
   - model_name: bfd
     tf_name: bfd
@@ -1092,6 +1095,7 @@ datasource:
     ndfc_nested:
     - management
     description: Encrypted SHA1 secret value
+    sensitive: true
     computed: true
   - model_name: macsec
     tf_name: macsec
@@ -1114,6 +1118,7 @@ datasource:
     ndfc_nested:
     - management
     description: MACsec Primary Key String. Cisco Type 7 Encrypted Octet String
+    sensitive: true
     computed: true
   - model_name: macsecAlgorithm
     tf_name: macsec_algorithm
@@ -1128,6 +1133,7 @@ datasource:
     ndfc_nested:
     - management
     description: MACsec fallback key string. Cisco Type 7 Encrypted Octet String
+    sensitive: true
     computed: true
   - model_name: macsecFallbackAlgorithm
     tf_name: macsec_fallback_algorithm
@@ -1580,6 +1586,7 @@ datasource:
     - management
     description: OSPF authentication key (3DES encrypted). Required if OSPF authentication
       is enabled
+    sensitive: true
     computed: true
   - model_name: isisLevel
     tf_name: isis_level
@@ -1635,6 +1642,7 @@ datasource:
     ndfc_nested:
     - management
     description: Cisco type 7 encrypted
+    sensitive: true
     computed: true
   - model_name: isisOverload
     tf_name: isis_overload
@@ -1786,6 +1794,7 @@ datasource:
     ndfc_nested:
     - management
     description: Cisco Type 7 Encrypted Octet String
+    sensitive: true
     computed: true
   - model_name: vrfLiteMacsecAlgorithm
     tf_name: vrf_lite_macsec_algorithm
@@ -1801,6 +1810,7 @@ datasource:
     - management
     description: Cisco Type 7 Encrypted Octet String. This parameter is used when
       DCI link has QKD disabled
+    sensitive: true
     computed: true
   - model_name: vrfLiteMacsecFallbackAlgorithm
     tf_name: vrf_lite_macsec_fallback_algorithm

@@ -10,14 +10,10 @@ package datasource_fabric
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
-	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage"
-	manageapi "terraform-provider-nd/internal/manage/api"
 	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	"terraform-provider-nd/internal/registry"
 
@@ -31,6 +27,7 @@ const ModuleKey = "manage"
 var (
 	_ datasource.DataSource              = &fabricDataSource{}
 	_ datasource.DataSourceWithConfigure = &fabricDataSource{}
+	_ resource_fabric_common.FabricModel = (*FabricModel)(nil)
 )
 
 // NewFabricDataSource is a helper function to simplify the provider implementation.
@@ -51,6 +48,23 @@ func (r *fabricDataSource) Metadata(_ context.Context, req datasource.MetadataRe
 // Schema defines the schema for the datasource.
 func (r *fabricDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = FabricDataSourceSchema(ctx)
+}
+
+// GetFabricName returns the fabric name used to look up the data source.
+func (m *FabricModel) GetFabricName() string {
+	if m.FabricName.IsNull() || m.FabricName.IsUnknown() {
+		return ""
+	}
+	return m.FabricName.ValueString()
+}
+
+// GetFabricType returns the known fabric type for handler dispatch. The data
+// source type is computed, so an empty value selects the common default handler.
+func (m *FabricModel) GetFabricType() string {
+	if m.FabricType.IsNull() || m.FabricType.IsUnknown() {
+		return ""
+	}
+	return m.FabricType.ValueString()
 }
 
 // Configure adds the provider configured client to the datasource.
@@ -108,41 +122,18 @@ func (d *fabricDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	fabricName := data.FabricName.ValueString()
+	fabricName := data.GetFabricName()
 	log.Printf("[DEBUG] Reading fabric: name=%s", fabricName)
 
-	fabricAPI := manageapi.NewFabricAPI(d.manageClient.ApiClient, ndapi.DefaultFabric)
-	fabricAPI.FabricName = fabricName
-
-	respData, err := fabricAPI.Get()
-	if err != nil {
-		if strings.Contains(err.Error(), "StatusCode 404") {
-			resp.Diagnostics.AddError(
-				"Error Reading fabric",
-				fmt.Sprintf("Could not read fabric with name %q: resource not found", fabricName),
-			)
-			return
-		}
-
-		resp.Diagnostics.AddError(
-			"Error Reading fabric",
-			fmt.Sprintf("Could not read fabric with name %q, unexpected error: %s %s", fabricName, err.Error(), string(respData)),
-		)
-		return
-	}
-
-	var fabricResp resource_fabric_common.NDFCFabricCommonModel
-	if err := json.Unmarshal(respData, &fabricResp); err != nil {
-		resp.Diagnostics.AddError(
-			"Error Reading fabric",
-			fmt.Sprintf("Could not unmarshal fabric response with name %q, unexpected error: %s", fabricName, err.Error()),
-		)
-		return
-	}
-	fabricResp.Id = fabricName
-
-	resp.Diagnostics.Append(data.SetModelData(&fabricResp)...)
+	found := resource_fabric_common.RscGetFabric(ctx, d.manageClient.ApiClient, &resp.Diagnostics, &data)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !found {
+		resp.Diagnostics.AddError(
+			"Error Reading fabric",
+			fmt.Sprintf("Could not read fabric with name %q: resource not found", fabricName),
+		)
 		return
 	}
 
