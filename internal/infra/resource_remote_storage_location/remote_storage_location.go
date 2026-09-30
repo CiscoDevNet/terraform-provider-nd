@@ -106,9 +106,9 @@ func (r *remoteStorageLocationResource) ValidateConfig(ctx context.Context, req 
 	}
 }
 
-// ModifyPlan rejects changes to the immutable path of an existing NFS location
-// and requires replacement when the selected remote storage protocol family
-// changes between NFS and SCP/SFTP.
+// ModifyPlan requires replacement when the immutable path of an existing NFS
+// location changes or when the selected remote storage protocol family changes
+// between NFS and SCP/SFTP.
 func (r *remoteStorageLocationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
 		return
@@ -128,11 +128,7 @@ func (r *remoteStorageLocationResource) ModifyPlan(ctx context.Context, req reso
 		!state.Path.IsNull() && !state.Path.IsUnknown() &&
 		!plan.Path.IsNull() && !plan.Path.IsUnknown() &&
 		!state.Path.Equal(plan.Path) {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("path"),
-			"NFS path cannot be changed",
-			"The path of an existing NFS remote storage location cannot be updated. Delete the resource and create it again with the new path.",
-		)
+		resp.RequiresReplace = append(resp.RequiresReplace, path.Root("path"))
 		return
 	}
 

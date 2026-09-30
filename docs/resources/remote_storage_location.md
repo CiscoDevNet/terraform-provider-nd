@@ -36,7 +36,7 @@ resource "nd_remote_storage_location" "test_resource_remote_storage_location_1" 
 
 - `hostname` (String) The hostname or IP address of the remote storage server.
 - `name` (String) The name of the remote storage location.
-- `path` (String) The export path for NFS storage or the base path for SCP/SFTP storage on the remote server. For NFS storage, this value cannot be modified after creation.
+- `path` (String) The export path for NFS storage or the base path for SCP/SFTP storage on the remote server.
 
 ### Optional
 

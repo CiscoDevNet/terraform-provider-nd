@@ -47,8 +47,8 @@ var sshKeyImportIgnoreFields = []string{
 }
 
 // TestAccRemoteStorageLocationResourceNAS exercises NFS-specific defaults,
-// optional attributes, in-place updates, import, branch replacement, and
-// destroy.
+// optional attributes, in-place updates, import, path and branch replacement,
+// and destroy.
 func TestAccRemoteStorageLocationResourceNAS(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	host := cfg.ND.RemoteStorage.Hostname
@@ -82,6 +82,7 @@ func TestAccRemoteStorageLocationResourceNAS(t *testing.T) {
 	s5 := &helper.StepInfo{}
 	s6 := &helper.StepInfo{}
 	s7 := &helper.StepInfo{}
+	s8 := &helper.StepInfo{}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -223,7 +224,36 @@ func TestAccRemoteStorageLocationResourceNAS(t *testing.T) {
 			{
 				Config: func() string {
 					s6.Index = 6
-					s6.Name = fmt.Sprintf("%s - %s", t.Name(), "Replace the NFS location with an SCP location")
+					s6.Name = fmt.Sprintf("%s - %s", t.Name(), "Require replacement when the NFS path changes")
+
+					helper.ModifyRemoteStorageLocationObject(&rsc, map[string]interface{}{
+						"name":     locationName,
+						"hostname": host,
+						"path":     "/mnt/tank/nfsstore1",
+						"nfs": map[string]interface{}{
+							"limit": "10MB",
+						},
+					})
+
+					helper.GetTFConfigWithSingleResource(s6.Name, *x,
+						[]interface{}{rsc}, &tfConfig)
+
+					s6.Cfg = *tfConfig
+					return s6.Cfg
+				}(),
+				PreConfig:          func() { helper.LogStep(t, s6.Index, s6.Name, s6.Cfg) },
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPreRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(rscAddr, plancheck.ResourceActionReplace),
+					},
+				},
+			},
+			{
+				Config: func() string {
+					s7.Index = 7
+					s7.Name = fmt.Sprintf("%s - %s", t.Name(), "Replace the NFS location with an SCP location")
 
 					helper.ModifyRemoteStorageLocationObject(&rsc, map[string]interface{}{
 						"name":     locationName,
@@ -237,14 +267,14 @@ func TestAccRemoteStorageLocationResourceNAS(t *testing.T) {
 						},
 					})
 
-					helper.GetTFConfigWithSingleResource(s6.Name, *x,
+					helper.GetTFConfigWithSingleResource(s7.Name, *x,
 						[]interface{}{rsc}, &tfConfig)
 
-					s6.Cfg = *tfConfig
-					return s6.Cfg
+					s7.Cfg = *tfConfig
+					return s7.Cfg
 				}(),
 				PreConfig: func() {
-					helper.LogStep(t, s6.Index, s6.Name, s6.Cfg)
+					helper.LogStep(t, s7.Index, s7.Name, s7.Cfg)
 					t.Logf("Sleeping 90 seconds before replacing the managed NFS location")
 					time.Sleep(90 * time.Second)
 				},
@@ -263,16 +293,16 @@ func TestAccRemoteStorageLocationResourceNAS(t *testing.T) {
 			},
 			{
 				Config: func() string {
-					s7.Index = 7
-					s7.Name = fmt.Sprintf("%s - %s", t.Name(), "Destroy the replacement SCP location")
+					s8.Index = 8
+					s8.Name = fmt.Sprintf("%s - %s", t.Name(), "Destroy the replacement SCP location")
 
-					helper.GetTFConfigWithSingleResource(s7.Name, *x,
+					helper.GetTFConfigWithSingleResource(s8.Name, *x,
 						[]interface{}{rsc}, &tfConfig)
 
-					s7.Cfg = *tfConfig
-					return s7.Cfg
+					s8.Cfg = *tfConfig
+					return s8.Cfg
 				}(),
-				PreConfig: func() { helper.LogStep(t, s7.Index, s7.Name, s7.Cfg) },
+				PreConfig: func() { helper.LogStep(t, s8.Index, s8.Name, s8.Cfg) },
 				Destroy:   true,
 				PostApplyFunc: func() {
 					assertRemoteStorageLocationAbsentOutsideTerraform(t, locationName)

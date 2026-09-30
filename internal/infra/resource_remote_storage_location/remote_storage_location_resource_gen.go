@@ -126,8 +126,8 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"path": schema.StringAttribute{
 				Required:            true,
-				Description:         "The export path for NFS storage or the base path for SCP/SFTP storage on the remote server. For NFS storage, this value cannot be modified after creation.",
-				MarkdownDescription: "The export path for NFS storage or the base path for SCP/SFTP storage on the remote server. For NFS storage, this value cannot be modified after creation.",
+				Description:         "The export path for NFS storage or the base path for SCP/SFTP storage on the remote server.",
+				MarkdownDescription: "The export path for NFS storage or the base path for SCP/SFTP storage on the remote server.",
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
 				},

@@ -42,7 +42,7 @@ resource:
 
   - model_name: path
     tf_name: path
-    description: The export path for NFS storage or the base path for SCP/SFTP storage on the remote server. For NFS storage, this value cannot be modified after creation.
+    description: The export path for NFS storage or the base path for SCP/SFTP storage on the remote server.
     type: String
     mandatory: true
     validator: 'LengthAtLeast(1)'
