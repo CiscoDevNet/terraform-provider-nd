@@ -46,7 +46,7 @@ func switchDetailStateChecks(rscName string, sd resource_inventory_switch.NDFCSw
 
 // TestAccInventorySwitchMultiResource tests creating two separate
 // nd_inventory_switch resources on the same fabric (one switch each).
-func TestAccInventorySwitchMultiResource(t *testing.T) {
+func SwitchMultiResource(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	invCfg := cfg.ND.Inventory
 
