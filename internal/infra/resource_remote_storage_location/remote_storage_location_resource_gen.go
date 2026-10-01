@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -123,6 +124,9 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "Configures an NFS remote storage location. Configure exactly one of `nfs` or `scp_sftp`.",
 				MarkdownDescription: "Configures an NFS remote storage location. Configure exactly one of `nfs` or `scp_sftp`.",
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(path.MatchRoot("scp_sftp")),
+				},
 			},
 			"path": schema.StringAttribute{
 				Required:            true,
@@ -139,7 +143,10 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 						Computed:            true,
 						Description:         "Indicates whether to accept the host key presented by the SCP or SFTP server. This attribute cannot be enabled together with `ignore_host_key_validation`. Defaults to `false` when not specified in the configuration.",
 						MarkdownDescription: "Indicates whether to accept the host key presented by the SCP or SFTP server. This attribute cannot be enabled together with `ignore_host_key_validation`. Defaults to `false` when not specified in the configuration.",
-						Default:             booldefault.StaticBool(false),
+						Validators: []validator.Bool{
+							remoteStorageHostKeyValidator(),
+						},
+						Default: booldefault.StaticBool(false),
 					},
 					"ignore_host_key_validation": schema.BoolAttribute{
 						Optional:            true,
@@ -157,7 +164,7 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 							stringplanmodifier.RequiresReplace(),
 						},
 						Validators: []validator.String{
-							stringvalidator.LengthAtLeast(1), stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("password")),
+							stringvalidator.LengthAtLeast(1), stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("ssh_key")),
 						},
 					},
 					"password": schema.StringAttribute{
@@ -169,7 +176,7 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 							stringplanmodifier.RequiresReplace(),
 						},
 						Validators: []validator.String{
-							stringvalidator.LengthAtLeast(1), stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("ssh_key"), path.MatchRelative().AtParent().AtName("passphrase")),
+							stringvalidator.LengthAtLeast(1), stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("ssh_key")),
 						},
 					},
 					"port": schema.Int64Attribute{
@@ -205,7 +212,7 @@ func RemoteStorageLocationResourceSchema(ctx context.Context) schema.Schema {
 							stringplanmodifier.RequiresReplace(),
 						},
 						Validators: []validator.String{
-							stringvalidator.LengthAtLeast(1), stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("password")),
+							stringvalidator.LengthAtLeast(1),
 						},
 					},
 					"username": schema.StringAttribute{

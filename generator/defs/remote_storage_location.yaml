@@ -93,7 +93,6 @@ resource:
     optional: true
     computed: true
     payload_hide: true
-    validator: 'ExactlyOneOf(path.MatchRoot("nfs"))'
     attributes:
     - model_name: type
       tf_name: protocol
@@ -131,7 +130,7 @@ resource:
       optional: true
       sensitive: true
       tf_requires_replace: true
-      validator: 'LengthAtLeast(1), stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("ssh_key"), path.MatchRelative().AtParent().AtName("passphrase"))'
+      validator: 'LengthAtLeast(1), stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("ssh_key"))'
       example: password
       ndfc_nested:
       - authentication
@@ -143,7 +142,7 @@ resource:
       optional: true
       sensitive: true
       tf_requires_replace: true
-      validator: 'LengthAtLeast(1), stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("password"))'
+      validator: 'LengthAtLeast(1)'
       ndfc_nested:
       - authentication
 
@@ -154,7 +153,7 @@ resource:
       optional: true
       sensitive: true
       tf_requires_replace: true
-      validator: 'LengthAtLeast(1), stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("password"))'
+      validator: 'LengthAtLeast(1), stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("ssh_key"))'
       ndfc_nested:
       - authentication
 
@@ -175,6 +174,7 @@ resource:
       ndfc_type: bool
       default_value: false
       payload_hide: true
+      custom_validator: 'remoteStorageHostKeyValidator()'
       example: true
 
   - model_name: healthState

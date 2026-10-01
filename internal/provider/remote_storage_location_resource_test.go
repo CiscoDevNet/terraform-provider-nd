@@ -1219,10 +1219,10 @@ func TestAccRemoteStorageLocationResourceAuthConflicts(t *testing.T) {
 	s14 := &helper.StepInfo{}
 	s15 := &helper.StepInfo{}
 	authConflictErr := regexp.MustCompile("Invalid Attribute Combination")
-	missingAuthenticationErr := regexp.MustCompile("Missing SCP/SFTP authentication")
-	passphraseRequiresSSHKeyErr := regexp.MustCompile("Invalid SCP/SFTP passphrase configuration")
+	missingAuthenticationErr := regexp.MustCompile(`(?s)No attribute specified when one \(and only one\) of\s+.*password.*ssh_key`)
+	passphraseRequiresSSHKeyErr := regexp.MustCompile(`(?s)ssh_key.*must be specified when.*passphrase`)
 	hostKeyConflictErr := regexp.MustCompile("Invalid host-key configuration")
-	branchSelectionErr := regexp.MustCompile("Configure exactly one of `nfs` or `scp_sftp`")
+	branchSelectionErr := regexp.MustCompile(`(?s)(No attribute|2 attributes) specified when one \(and only one\) of\s+\[scp_sftp\] is required`)
 	nfsLimitRequiredErr := regexp.MustCompile("(?i)(missing configuration for required attribute|required.*limit|limit.*required)")
 	scpSftpRequiredAttributeErr := regexp.MustCompile("(?is)(missing configuration for required attribute|required.*(protocol|username)|(protocol|username).*required)")
 	invalidAttributeErr := regexp.MustCompile("Invalid Attribute Value")

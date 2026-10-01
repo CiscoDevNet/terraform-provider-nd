@@ -17,11 +17,10 @@ import (
 const ModuleKey = "infra"
 
 var (
-	_ resource.Resource                   = &remoteStorageLocationResource{}
-	_ resource.ResourceWithConfigure      = &remoteStorageLocationResource{}
-	_ resource.ResourceWithImportState    = &remoteStorageLocationResource{}
-	_ resource.ResourceWithModifyPlan     = &remoteStorageLocationResource{}
-	_ resource.ResourceWithValidateConfig = &remoteStorageLocationResource{}
+	_ resource.Resource                = &remoteStorageLocationResource{}
+	_ resource.ResourceWithConfigure   = &remoteStorageLocationResource{}
+	_ resource.ResourceWithImportState = &remoteStorageLocationResource{}
+	_ resource.ResourceWithModifyPlan  = &remoteStorageLocationResource{}
 )
 
 // NewRemoteStorageLocationResource is a helper function to simplify the provider implementation.
@@ -42,68 +41,6 @@ func (r *remoteStorageLocationResource) Metadata(_ context.Context, req resource
 // Schema defines the schema for the resource.
 func (r *remoteStorageLocationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = RemoteStorageLocationResourceSchema(ctx)
-}
-
-// ValidateConfig enforces conditional validation that generated schema
-// validators cannot express.
-func (r *remoteStorageLocationResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var config RemoteStorageLocationModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	nfsKnown := !config.Nfs.IsNull() && !config.Nfs.IsUnknown()
-	scpSftpKnown := !config.ScpSftp.IsNull() && !config.ScpSftp.IsUnknown()
-
-	if !config.Nfs.IsUnknown() && !config.ScpSftp.IsUnknown() && nfsKnown == scpSftpKnown {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("nfs"),
-			"Invalid remote storage configuration",
-			"Configure exactly one of `nfs` or `scp_sftp`.",
-		)
-	}
-
-	if !scpSftpKnown {
-		return
-	}
-
-	passwordConfigured := !config.ScpSftp.Password.IsNull() &&
-		!config.ScpSftp.Password.IsUnknown() &&
-		config.ScpSftp.Password.ValueString() != ""
-	sshKeyConfigured := !config.ScpSftp.SshKey.IsNull() &&
-		!config.ScpSftp.SshKey.IsUnknown() &&
-		config.ScpSftp.SshKey.ValueString() != ""
-
-	if !config.ScpSftp.Password.IsUnknown() && !config.ScpSftp.SshKey.IsUnknown() &&
-		!passwordConfigured && !sshKeyConfigured {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("scp_sftp").AtName("password"),
-			"Missing SCP/SFTP authentication",
-			"Configure exactly one of `scp_sftp.password` or `scp_sftp.ssh_key`.",
-		)
-	}
-
-	if !config.ScpSftp.Passphrase.IsNull() && !config.ScpSftp.Passphrase.IsUnknown() &&
-		config.ScpSftp.Passphrase.ValueString() != "" &&
-		!config.ScpSftp.SshKey.IsUnknown() && !sshKeyConfigured {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("scp_sftp").AtName("passphrase"),
-			"Invalid SCP/SFTP passphrase configuration",
-			"Attribute `scp_sftp.passphrase` requires `scp_sftp.ssh_key`.",
-		)
-	}
-
-	if !config.ScpSftp.AcceptHostKey.IsNull() && !config.ScpSftp.AcceptHostKey.IsUnknown() &&
-		config.ScpSftp.AcceptHostKey.ValueBool() &&
-		!config.ScpSftp.IgnoreHostKeyValidation.IsNull() && !config.ScpSftp.IgnoreHostKeyValidation.IsUnknown() &&
-		config.ScpSftp.IgnoreHostKeyValidation.ValueBool() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("scp_sftp").AtName("accept_host_key"),
-			"Invalid host-key configuration",
-			"Attributes `scp_sftp.accept_host_key` and `scp_sftp.ignore_host_key_validation` cannot both be true.",
-		)
-	}
 }
 
 // ModifyPlan requires replacement when the immutable path of an existing NFS
