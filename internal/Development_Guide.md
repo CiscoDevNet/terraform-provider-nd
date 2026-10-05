@@ -952,3 +952,154 @@ Most fabric types only need `PreMarshal` (e.g. to inject `FabricType`). The hand
 - [ ] Verified build passes (`go build ./...`)
 - [ ] Tested that non-overridden operations still use default flow
 - [ ] Tested that overridden operations execute custom logic
+
+---
+
+# SwitchDB — Shared Switch IP/Serial Resolution
+
+The provider includes a **SwitchDB** — a lazily-loaded, thread-safe, per-fabric cache of switch information (serial number, IP address, hostname, role, model). All `manage` resources that need to resolve switch IP addresses to serial numbers (or vice versa) **must use SwitchDB** instead of making ad-hoc API calls and building throwaway maps.
+
+## Architecture
+
+```
+NexusDashboardManage
+  └── SwitchDB                          ← internal/manage/switch_db.go
+        ├── byIP map[fabric]map[IP]*SwitchEntry   ← primary index (O(1) by IP)
+        ├── client *nd.Client                      ← for lazy loading
+        └── sync.RWMutex                           ← thread safety
+```
+
+SwitchDB is initialized in `NexusDashboardManage` (`manage.go`) and is available to all manage resources via `r.manageClient.SwitchDB`.
+
+## SwitchEntry
+
+```go
+type SwitchEntry struct {
+    SerialNumber      string
+    IPAddress         string
+    FabricManagementIp string
+    Hostname          string
+    SwitchRole        string
+    Model             string
+}
+```
+
+## API
+
+All lookups accept `(ctx context.Context, fabricName string, ...)` and return `(result, bool)`.
+
+### IP → Serial (O(1))
+
+```go
+serial, ok := r.manageClient.SwitchDB.GetSerialByIP(ctx, fabricName, ipAddress)
+```
+
+### Serial → IP (O(n) scan)
+
+```go
+ip, ok := r.manageClient.SwitchDB.GetIPBySerial(ctx, fabricName, serialNumber)
+```
+
+### Full Entry Lookups
+
+```go
+entry, ok := r.manageClient.SwitchDB.GetSwitchByIP(ctx, fabricName, ipAddress)
+entry, ok := r.manageClient.SwitchDB.GetSwitchBySerial(ctx, fabricName, serialNumber)
+```
+
+### Cache Management
+
+```go
+r.manageClient.SwitchDB.ClearFabric(fabricName)        // invalidate one fabric
+r.manageClient.SwitchDB.IsFabricLoaded(fabricName)      // check if cached
+```
+
+## Key Behaviors
+
+### Lazy Initialization
+
+The first lookup for a given fabric triggers `GET /manage/fabrics/{fabric}/switches` via `InventoryAPI` with `OpGetAllSwitches`. The response is parsed and cached. Subsequent lookups for the same fabric reuse the cache — no additional API calls.
+
+### Thread Safety
+
+- **Read lock** (`RLock`) for lookups when the fabric is already loaded.
+- **Write lock** (`Lock`) during fabric loading — prevents duplicate concurrent API calls for the same fabric.
+- The `lookup` helper uses a read-try/load-retry pattern: attempt the lookup under RLock; if the fabric isn't loaded, acquire a write lock, load the fabric, then retry.
+
+### IP Indexing
+
+Switches are indexed by IP address. `FabricManagementIp` is preferred; if empty, `IPAddress` is used as fallback. This matches how NDFC reports switch addresses.
+
+### Cache Invalidation
+
+Call `ClearFabric(fabricName)` after any operation that adds, removes, or modifies switches in a fabric. This drops the cached data for that fabric; the next lookup will trigger a fresh API fetch.
+
+## Usage in Resources
+
+### Example: `config_deploy` — IP-to-Serial Resolution
+
+The `config_deploy` resource accepts both IP addresses and serial numbers in `switch_ids`. Before calling the deploy API, it resolves any IPs to serials:
+
+```go
+func (r *configDeployResource) resolveSwitchIds(ctx context.Context, dg *diag.Diagnostics, fabricName string, ids []string) []string {
+    resolved := make([]string, 0, len(ids))
+    for _, id := range ids {
+        if strings.EqualFold(id, "ALL") {
+            resolved = append(resolved, id)
+            continue
+        }
+        if net.ParseIP(id) != nil {
+            serial, ok := r.manageClient.SwitchDB.GetSerialByIP(ctx, fabricName, id)
+            if !ok {
+                dg.AddAttributeError(path.Root("switch_ids"), "Switch Not Found",
+                    fmt.Sprintf("Could not resolve IP %q in fabric %q.", id, fabricName))
+                return nil
+            }
+            resolved = append(resolved, serial)
+        } else {
+            resolved = append(resolved, id) // serial — pass through
+        }
+    }
+    return resolved
+}
+```
+
+State preserves the original user input (IPs stay as IPs), so there is no plan drift.
+
+### Pattern: Detect IP vs Serial
+
+Use `net.ParseIP(id) != nil` from the standard library to distinguish IP addresses from serial numbers. This handles both IPv4 and IPv6.
+
+## Exception: `inventory_switch` Resource
+
+The `inventory_switch` resource is the **source of truth** for switch inventory. It **must NOT use SwitchDB** for its own lookups because:
+
+1. It needs to see the freshest data immediately after its own mutations (add/remove/modify), not a cached snapshot.
+2. It is responsible for **invalidating** SwitchDB after Create, Update, and Delete by calling `r.manageClient.SwitchDB.ClearFabric(fabricName)`.
+
+The `inventory_switch` resource continues to use its own direct `getAllSwitchesByFabric` API calls.
+
+## Adding SwitchDB Usage to a New Resource
+
+1. **Access SwitchDB** via `r.manageClient.SwitchDB` (available on any manage resource).
+2. **Use `GetSerialByIP` / `GetSwitchByIP`** for IP lookups, `GetSwitchBySerial` / `GetIPBySerial` for serial lookups.
+3. **Do NOT build your own switch maps** by fetching `/manage/fabrics/{fabric}/switches` — use SwitchDB instead.
+4. **If your resource modifies inventory**, add `r.manageClient.SwitchDB.ClearFabric(fabricName)` after successful Create, Update, and Delete.
+
+## Source Files
+
+| File | Contents |
+|---|---|
+| `internal/manage/switch_db.go` | `SwitchDB` struct, `SwitchEntry`, all lookup/clear methods, `ensureLoaded` with API fetch |
+| `internal/manage/switch_db_test.go` | Unit tests: IP lookup, serial lookup, clear, concurrent reads, JSON parsing, IP indexing preference |
+| `internal/manage/manage.go` | `NexusDashboardManage.SwitchDB` field, initialized in `NewManage()` |
+| `internal/manage/resource_inventory_switch/inventory_switch_crud.go` | `ClearFabric` calls after Create/Update/Delete |
+| `internal/manage/resource_config_deploy/config_deploy_crud.go` | `resolveSwitchIds` — reference implementation of IP-to-serial resolution |
+
+## Checklist
+
+- [ ] Using `r.manageClient.SwitchDB` for all IP↔serial lookups (not ad-hoc API calls)
+- [ ] Using `net.ParseIP(id)` to detect IP addresses vs serial numbers
+- [ ] Calling `ClearFabric(fabricName)` after any operation that changes the fabric inventory
+- [ ] Not using SwitchDB from `inventory_switch` (it's the exception)
+- [ ] Unit tests pass: `./run_unit_tests.sh ./internal/manage/...`

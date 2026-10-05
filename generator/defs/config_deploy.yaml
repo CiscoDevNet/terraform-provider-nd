@@ -50,7 +50,8 @@ resource:
   - model_name: switchIds
     tf_name: switch_ids
     description: >
-      List of switch serial numbers to deploy configuration to.
+      List of switch serial numbers/IP addresses to deploy configuration to.
+      Both IP addresses and serial numbers are accepted.
       Use `["ALL"]` or omit to perform a fabric-wide deploy.
     type: List:String
     optional: true

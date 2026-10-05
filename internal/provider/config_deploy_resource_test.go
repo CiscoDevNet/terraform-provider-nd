@@ -557,87 +557,271 @@ func TestAccConfigDeployBehaviourControls(t *testing.T) {
 	})
 }
 
-// TODO: Enable once IP-to-serial resolution is implemented in the CRUD layer.
+// TestAccConfigDeploySwitchByIP tests config-save + switch-scoped deploy
+// using a switch IP address in switch_ids. The provider resolves the IP to
+// a serial number via SwitchDB before calling the deploy API.
+func TestAccConfigDeploySwitchByIP(t *testing.T) {
+	cfg := helper.GetConfig("global")
+	invCfg := cfg.ND.Inventory
+
+	switches := invCfg.GetSwitchesByMode("discovery")
+	if len(switches) < 1 {
+		t.Skip("Need at least 1 discovery switch in testbed config")
+	}
+
+	x := &map[string]string{
+		"RscType":   "nd_config_deploy",
+		"RscName":   "fabric_test,switch_1,deploy_test",
+		"User":      cfg.ND.User,
+		"Password":  cfg.ND.Password,
+		"Host":      cfg.ND.URL,
+		"Insecure":  cfg.ND.Insecure,
+		"DependsOn": "nd_fabric_vxlan.fabric_test;nd_inventory_switch.switch_1",
+	}
+
+	tfConfig := new(string)
+	stepCount := new(int)
+	*stepCount = 0
+
+	fabricRsc := new(resource_fabric_common.NDFCFabricCommonModel)
+	switchRsc := new(resource_inventory_switch.NDFCInventorySwitchModel)
+	deployRsc := new(resource_config_deploy.NDFCConfigDeployModel)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create fabric + switch + deploy scoped by IP address
+			{
+				PreConfig: func() {
+					name := fmt.Sprintf("%s_%d", t.Name(), *stepCount+1)
+					helper.LogStep(t, *stepCount+1, name, "")
+				},
+				Config: func() string {
+					*stepCount++
+					tName := fmt.Sprintf("%s_%d", t.Name(), *stepCount)
+
+					helper.GenerateFabricVxlanObject(&fabricRsc,
+						cfg.ND.Fabric, "55000", "vxlanIbgp", nil,
+					)
+
+					helper.GenerateInventorySwitchFromConfig(&switchRsc,
+						invCfg.Fabric, invCfg.User, invCfg.Password,
+						switches[0],
+					)
+
+					// Use IP address instead of serial number
+					helper.GenerateConfigDeployObject(&deployRsc,
+						invCfg.Fabric, true, true,
+						[]string{switches[0].IP},
+						nil,
+					)
+
+					helper.GetTFConfigWithSingleResource(tName, *x,
+						[]interface{}{helper.VxlanResource(fabricRsc), switchRsc, deployRsc}, &tfConfig)
+
+					return *tfConfig
+				}(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "fabric_name", invCfg.Fabric),
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "deploy", "true"),
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "config_save", "true"),
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "switch_ids.#", "1"),
+					resource.TestCheckResourceAttrSet("nd_config_deploy.deploy_test", "status"),
+				),
+			},
+			// Step 2: Update to fabric-wide deploy (remove IP-based switch_ids)
+			{
+				PreConfig: func() {
+					name := fmt.Sprintf("%s_%d", t.Name(), *stepCount+1)
+					helper.LogStep(t, *stepCount+1, name, "")
+				},
+				Config: func() string {
+					*stepCount++
+					tName := fmt.Sprintf("%s_%d", t.Name(), *stepCount)
+
+					helper.ModifyConfigDeployObject(&deployRsc, map[string]interface{}{
+						"switch_ids": []string{},
+					})
+
+					helper.GetTFConfigWithSingleResource(tName, *x,
+						[]interface{}{helper.VxlanResource(fabricRsc), switchRsc, deployRsc}, &tfConfig)
+
+					return *tfConfig
+				}(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "fabric_name", invCfg.Fabric),
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "deploy", "true"),
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "config_save", "true"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccConfigDeployMixedSerialAndIP tests config-save + deploy using a mix
+// of serial numbers and IP addresses in switch_ids. The provider resolves IPs
+// to serials via SwitchDB while passing serials through unchanged.
+func TestAccConfigDeployMixedSerialAndIP(t *testing.T) {
+	cfg := helper.GetConfig("global")
+	invCfg := cfg.ND.Inventory
+
+	switches := invCfg.GetSwitchesByMode("discovery")
+	if len(switches) < 2 {
+		t.Skip("Need at least 2 discovery switches in testbed config")
+	}
+
+	x := &map[string]string{
+		"RscType":  "nd_config_deploy",
+		"RscName":  "fabric_test,switch_1,switch_2,deploy_test",
+		"User":     cfg.ND.User,
+		"Password": cfg.ND.Password,
+		"Host":     cfg.ND.URL,
+		"Insecure": cfg.ND.Insecure,
+		"DependsOn": "nd_fabric_vxlan.fabric_test;" +
+			"nd_inventory_switch.switch_1;nd_inventory_switch.switch_2",
+	}
+
+	tfConfig := new(string)
+	stepCount := new(int)
+	*stepCount = 0
+
+	fabricRsc := new(resource_fabric_common.NDFCFabricCommonModel)
+	switch1Rsc := new(resource_inventory_switch.NDFCInventorySwitchModel)
+	switch2Rsc := new(resource_inventory_switch.NDFCInventorySwitchModel)
+	deployRsc := new(resource_config_deploy.NDFCConfigDeployModel)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create fabric + 2 switches + deploy with mixed serial + IP
+			{
+				PreConfig: func() {
+					name := fmt.Sprintf("%s_%d", t.Name(), *stepCount+1)
+					helper.LogStep(t, *stepCount+1, name, "")
+				},
+				Config: func() string {
+					*stepCount++
+					tName := fmt.Sprintf("%s_%d", t.Name(), *stepCount)
+
+					helper.GenerateFabricVxlanObject(&fabricRsc,
+						cfg.ND.Fabric, "55000", "vxlanIbgp", nil,
+					)
+
+					helper.GenerateInventorySwitchFromConfig(&switch1Rsc,
+						invCfg.Fabric, invCfg.User, invCfg.Password,
+						switches[0],
+					)
+
+					helper.GenerateInventorySwitchFromConfig(&switch2Rsc,
+						invCfg.Fabric, invCfg.User, invCfg.Password,
+						switches[1],
+					)
+
+					// Mix: first switch by serial, second switch by IP
+					helper.GenerateConfigDeployObject(&deployRsc,
+						invCfg.Fabric, true, true,
+						[]string{switches[0].Serial, switches[1].IP},
+						nil,
+					)
+
+					helper.GetTFConfigWithSingleResource(tName, *x,
+						[]interface{}{helper.VxlanResource(fabricRsc), switch1Rsc, switch2Rsc, deployRsc}, &tfConfig)
+
+					return *tfConfig
+				}(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "fabric_name", invCfg.Fabric),
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "deploy", "true"),
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "config_save", "true"),
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "switch_ids.#", "2"),
+					resource.TestCheckResourceAttrSet("nd_config_deploy.deploy_test", "status"),
+				),
+			},
+		},
+	})
+}
+
 // TestAccConfigDeployMultiSwitchByIP tests config-save + deploy using switch IP
 // addresses in switch_ids, with 2 inventory switches. Verifies that both
 // switches are deployed successfully.
-// func TestAccConfigDeployMultiSwitchByIP(t *testing.T) {
-// 	cfg := helper.GetConfig("global")
-// 	invCfg := cfg.ND.Inventory
-//
-// 	switches := invCfg.GetSwitchesByMode("discovery")
-// 	if len(switches) < 2 {
-// 		t.Skip("Need at least 2 discovery switches in testbed config")
-// 	}
-//
-// 	x := &map[string]string{
-// 		"RscType":  "nd_config_deploy",
-// 		"RscName":  "fabric_test,switch_1,switch_2,deploy_test",
-// 		"User":     cfg.ND.User,
-// 		"Password": cfg.ND.Password,
-// 		"Host":     cfg.ND.URL,
-// 		"Insecure": cfg.ND.Insecure,
-// 		"DependsOn": "nd_fabric_vxlan.fabric_test;" +
-// 			"nd_fabric_vxlan.fabric_test;" +
-// 			"nd_inventory_switch.switch_1, nd_inventory_switch.switch_2",
-// 	}
-//
-// 	tfConfig := new(string)
-// 	stepCount := new(int)
-// 	*stepCount = 0
-//
-// 	fabricRsc := new(resource_fabric_common.NDFCFabricCommonModel)
-// 	switch1Rsc := new(resource_inventory_switch.NDFCInventorySwitchModel)
-// 	switch2Rsc := new(resource_inventory_switch.NDFCInventorySwitchModel)
-// 	deployRsc := new(resource_config_deploy.NDFCConfigDeployModel)
-//
-// 	resource.Test(t, resource.TestCase{
-// 		PreCheck:                 func() { testAccPreCheck(t, "global") },
-// 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-// 		Steps: []resource.TestStep{
-// 			// Step 1: Create fabric + 2 switches + deploy scoped to both by IP
-// 			{
-// 				PreConfig: func() {
-// 					name := fmt.Sprintf("%s_%d", t.Name(), *stepCount+1)
-// 					helper.LogStep(t, *stepCount+1, name, "")
-// 				},
-// 				Config: func() string {
-// 					*stepCount++
-// 					tName := fmt.Sprintf("%s_%d", t.Name(), *stepCount)
-//
-// 					helper.GenerateFabricVxlanObject(&fabricRsc,
-// 						cfg.ND.Fabric, "55000", "vxlanIbgp", nil,
-// 					)
-//
-// 					helper.GenerateInventorySwitchFromConfig(&switch1Rsc,
-// 						invCfg.Fabric, invCfg.User, invCfg.Password,
-// 						switches[0],
-// 					)
-//
-// 					helper.GenerateInventorySwitchFromConfig(&switch2Rsc,
-// 						invCfg.Fabric, invCfg.User, invCfg.Password,
-// 						switches[1],
-// 					)
-//
-// 					helper.GenerateConfigDeployObject(&deployRsc,
-// 						invCfg.Fabric, true, true,
-// 						[]string{switches[0].IP, switches[1].IP},
-// 						nil,
-// 					)
-//
-// 					helper.GetTFConfigWithSingleResource(tName, *x,
-// 						[]interface{}{helper.VxlanResource(fabricRsc), switch1Rsc, switch2Rsc, deployRsc}, &tfConfig)
-//
-// 					return *tfConfig
-// 				}(),
-// 				Check: resource.ComposeTestCheckFunc(
-// 					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "fabric_name", invCfg.Fabric),
-// 					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "deploy", "true"),
-// 					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "config_save", "true"),
-// 					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "switch_ids.#", "2"),
-// 					resource.TestCheckResourceAttrSet("nd_config_deploy.deploy_test", "status"),
-// 				),
-// 			},
-// 		},
-// 	})
-// }
+func TestAccConfigDeployMultiSwitchByIP(t *testing.T) {
+	cfg := helper.GetConfig("global")
+	invCfg := cfg.ND.Inventory
+
+	switches := invCfg.GetSwitchesByMode("discovery")
+	if len(switches) < 2 {
+		t.Skip("Need at least 2 discovery switches in testbed config")
+	}
+
+	x := &map[string]string{
+		"RscType":  "nd_config_deploy",
+		"RscName":  "fabric_test,switch_1,switch_2,deploy_test",
+		"User":     cfg.ND.User,
+		"Password": cfg.ND.Password,
+		"Host":     cfg.ND.URL,
+		"Insecure": cfg.ND.Insecure,
+		"DependsOn": "nd_fabric_vxlan.fabric_test;" +
+			"nd_inventory_switch.switch_1;nd_inventory_switch.switch_2",
+	}
+
+	tfConfig := new(string)
+	stepCount := new(int)
+	*stepCount = 0
+
+	fabricRsc := new(resource_fabric_common.NDFCFabricCommonModel)
+	switch1Rsc := new(resource_inventory_switch.NDFCInventorySwitchModel)
+	switch2Rsc := new(resource_inventory_switch.NDFCInventorySwitchModel)
+	deployRsc := new(resource_config_deploy.NDFCConfigDeployModel)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create fabric + 2 switches + deploy scoped to both by IP
+			{
+				PreConfig: func() {
+					name := fmt.Sprintf("%s_%d", t.Name(), *stepCount+1)
+					helper.LogStep(t, *stepCount+1, name, "")
+				},
+				Config: func() string {
+					*stepCount++
+					tName := fmt.Sprintf("%s_%d", t.Name(), *stepCount)
+
+					helper.GenerateFabricVxlanObject(&fabricRsc,
+						cfg.ND.Fabric, "55000", "vxlanIbgp", nil,
+					)
+
+					helper.GenerateInventorySwitchFromConfig(&switch1Rsc,
+						invCfg.Fabric, invCfg.User, invCfg.Password,
+						switches[0],
+					)
+
+					helper.GenerateInventorySwitchFromConfig(&switch2Rsc,
+						invCfg.Fabric, invCfg.User, invCfg.Password,
+						switches[1],
+					)
+
+					helper.GenerateConfigDeployObject(&deployRsc,
+						invCfg.Fabric, true, true,
+						[]string{switches[0].IP, switches[1].IP},
+						nil,
+					)
+
+					helper.GetTFConfigWithSingleResource(tName, *x,
+						[]interface{}{helper.VxlanResource(fabricRsc), switch1Rsc, switch2Rsc, deployRsc}, &tfConfig)
+
+					return *tfConfig
+				}(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "fabric_name", invCfg.Fabric),
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "deploy", "true"),
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "config_save", "true"),
+					resource.TestCheckResourceAttr("nd_config_deploy.deploy_test", "switch_ids.#", "2"),
+					resource.TestCheckResourceAttrSet("nd_config_deploy.deploy_test", "status"),
+				),
+			},
+		},
+	})
+}

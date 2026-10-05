@@ -116,8 +116,8 @@ func ConfigDeployResourceSchema(ctx context.Context) schema.Schema {
 			"switch_ids": schema.SetAttribute{
 				ElementType:         types.StringType,
 				Optional:            true,
-				Description:         "List of switch serial numbers to deploy configuration to. Use `[\"ALL\"]` or omit to perform a fabric-wide deploy.\n",
-				MarkdownDescription: "List of switch serial numbers to deploy configuration to. Use `[\"ALL\"]` or omit to perform a fabric-wide deploy.\n",
+				Description:         "List of switch serial numbers/IP addresses to deploy configuration to. Both IP addresses and serial numbers are accepted. Use `[\"ALL\"]` or omit to perform a fabric-wide deploy.\n",
+				MarkdownDescription: "List of switch serial numbers/IP addresses to deploy configuration to. Both IP addresses and serial numbers are accepted. Use `[\"ALL\"]` or omit to perform a fabric-wide deploy.\n",
 			},
 			"ticket_id": schema.StringAttribute{
 				Optional:            true,

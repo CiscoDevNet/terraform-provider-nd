@@ -236,6 +236,9 @@ func (r *inventorySwitchResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	// Invalidate SwitchDB cache so subsequent lookups see the new switch
+	r.manageClient.SwitchDB.ClearFabric(plan.FabricName.ValueString())
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -285,6 +288,9 @@ func (r *inventorySwitchResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
+	// Invalidate SwitchDB cache so subsequent lookups see the updated switch
+	r.manageClient.SwitchDB.ClearFabric(plan.FabricName.ValueString())
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -300,6 +306,9 @@ func (r *inventorySwitchResource) Delete(ctx context.Context, req resource.Delet
 	})
 
 	r.rscDeleteInventory(ctx, &resp.Diagnostics, &state)
+
+	// Invalidate SwitchDB cache so subsequent lookups no longer see the removed switch
+	r.manageClient.SwitchDB.ClearFabric(state.FabricName.ValueString())
 }
 
 func (r *inventorySwitchResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
