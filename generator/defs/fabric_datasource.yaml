@@ -6,13 +6,13 @@ datasource:
   attributes:
   - model_name: id
     tf_name: id
-    description: The unique identifier of the fabric
+    description: Terraform data source identifier, set to the requested fabric name
     type: String
     computed: true
     payload_hide: true
   - model_name: name
     tf_name: fabric_name
-    description: The name of the fabric to read
+    description: Fabric name supplied to look up attributes returned by Nexus Dashboard.
     type: String
     mandatory: true
     validator: 'RegexMatches(regexp.MustCompile(`.*\S.*`), "must not be empty or whitespace")'
@@ -54,7 +54,7 @@ datasource:
     type: Bool
     ndfc_type: bool
     computed: true
-    description: Enable telemetry collection
+    description: Enable status for telemetry collection
   - model_name: telemetryCollectionType
     tf_name: telemetry_collection_type
     type: String
@@ -109,7 +109,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Generate BGP configuration for core and edge routers
+    description: BGP configuration generation status for core and edge routers
     computed: true
   - model_name: superSpineBgpAs
     tf_name: super_spine_bgp_as
@@ -147,7 +147,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable automatic BGP ASN allocation from the bgpAsnRange pool
+    description: Enable status for automatic BGP ASN allocation from the bgpAsnRange pool
     computed: true
   - model_name: bgpAsnRange
     tf_name: bgp_asn_range
@@ -176,7 +176,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable BGP underlay failure protection
+    description: Enable status for BGP underlay failure protection
     computed: true
   - model_name: autoConfigureEbgpEvpnPeering
     tf_name: auto_configure_ebgp_evpn_peering
@@ -193,8 +193,8 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Allow leaf switches to have the same BGP ASN even when AS mode is
-      Multi-AS
+    description: Whether leaf switches are allowed to have the same BGP ASN even
+      when AS mode is Multi-AS
     computed: true
   - model_name: assignIpv4ToLoopback0
     tf_name: assign_ipv4_to_loopback0
@@ -225,7 +225,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable performance monitoring feature
+    description: Enable status for performance monitoring feature
     computed: true
   - model_name: replicationMode
     tf_name: replication_mode
@@ -310,14 +310,14 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable VpcPeer Link for Native Vlan
+    description: Enable status for VpcPeer Link for Native Vlan
     computed: true
   - model_name: vpcPeerKeepAliveOption
     tf_name: vpc_peer_keep_alive_option
     type: String
     ndfc_nested:
     - management
-    description: Use vPC Peer Keep Alive with Loopback or Management
+    description: vPC Peer Keep Alive option, either Loopback or Management
     computed: true
   - model_name: vpcAutoRecoveryTimer
     tf_name: vpc_auto_recovery_timer
@@ -346,7 +346,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable IPv6 ND synchronization between vPC peers
+    description: Enable status for IPv6 ND synchronization between vPC peers
     computed: true
   - model_name: advertisePhysicalIp
     tf_name: advertise_physical_ip
@@ -376,7 +376,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Allow the same loopback IP address to be configured on multiple switches
+    description: Whether the same loopback IP address is allowed on multiple switches
       (e.g. RP loopback IP)
     computed: true
   - model_name: nveLoopbackId
@@ -451,7 +451,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable Tenant DHCP
+    description: Enable status for Tenant DHCP
     computed: true
   - model_name: nxapi
     tf_name: nxapi
@@ -459,7 +459,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable NX-API over HTTPS
+    description: Enable status for NX-API over HTTPS
     computed: true
   - model_name: nxapiHttpsPort
     tf_name: nxapi_https_port
@@ -474,7 +474,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable NX-API over HTTP
+    description: Enable status for NX-API over HTTP
     computed: true
   - model_name: nxapiHttpPort
     tf_name: nxapi_http_port
@@ -489,7 +489,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Configure nexus dashboard as a receiver for SNMP traps
+    description: Nexus Dashboard SNMP trap receiver status
     computed: true
   - model_name: anycastBorderGatewayAdvertisePhysicalIp
     tf_name: anycast_border_gateway_advertise_physical_ip
@@ -505,8 +505,8 @@ datasource:
     type: String
     ndfc_nested:
     - management
-    description: Allow switch configuration to be cleared without a reload when preserveConfig
-      is set to false
+    description: Whether switch configuration can be cleared without a reload when
+      preserveConfig is set to false
     computed: true
   - model_name: tcamAllocation
     tf_name: tcam_allocation
@@ -523,7 +523,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable Real Time Interface Statistics Collection. Valid for NX-OS
+    description: Enable status for Real Time Interface Statistics Collection. Valid for NX-OS
       only
     computed: true
   - model_name: interfaceStatisticsLoadInterval
@@ -703,7 +703,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable Plug n Play for Catalyst 9000 switches
+    description: Enable status for Plug n Play for Catalyst 9000 switches
     computed: true
   - model_name: inbandDay0Bootstrap
     tf_name: inband_day0_bootstrap
@@ -836,7 +836,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable to Backup at the specified time daily
+    description: Scheduled backup enable status for the specified daily time
     computed: true
   - model_name: scheduledBackupTime
     tf_name: scheduled_backup_time
@@ -875,7 +875,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable MVPN VRI ID Generation For Tenant Routed Multicast With IPv4
+    description: Enable status for MVPN VRI ID Generation For Tenant Routed Multicast With IPv4
       Underlay
     computed: true
   - model_name: mvpnVrfRouteImportIdRange
@@ -964,7 +964,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable advertise-pip on vPC borders and border gateways only. Applicable
+    description: Enable status for advertise-pip on vPC borders and border gateways only. Applicable
       only when vPC advertise-pip is not enabled
     computed: true
   - model_name: fabricVpcDomainId
@@ -973,7 +973,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable the same vPC Domain Id for all vPC Pairs. Not Recommended
+    description: Enable status for the same vPC Domain Id for all vPC Pairs. Not Recommended
     computed: true
   - model_name: sharedVpcDomainId
     tf_name: shared_vpc_domain_id
@@ -988,7 +988,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable Layer-3 Peer-Router on all Aggregation switches
+    description: Enable status for Layer-3 Peer-Router on all Aggregation switches
     computed: true
   - model_name: fabricVpcQos
     tf_name: fabric_vpc_qos
@@ -1011,7 +1011,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable vPC Peer Switch
+    description: Enable status for vPC Peer Switch
     computed: true
   - model_name: anycastLoopbackId
     tf_name: anycast_loopback_id
@@ -1026,7 +1026,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enables or disables the BGP Authentication
+    description: BGP authentication enable status
     computed: true
   - model_name: bgpAuthenticationKeyType
     tf_name: bgp_authentication_key_type
@@ -1034,29 +1034,13 @@ datasource:
     computed: true
     ndfc_nested:
     - management
-  - model_name: bgpAuthenticationKey
-    tf_name: bgp_authentication_key
-    type: String
-    ndfc_nested:
-    - management
-    description: Encrypted BGP Authentication Key based on type
-    sensitive: true
-    computed: true
   - model_name: pimHelloAuthentication
     tf_name: pim_hello_authentication
     type: Bool
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable PIM hello authentication
-    computed: true
-  - model_name: pimHelloAuthenticationKey
-    tf_name: pim_hello_authentication_key
-    type: String
-    ndfc_nested:
-    - management
-    description: 3DES encrypted
-    sensitive: true
+    description: Enable status for PIM hello authentication
     computed: true
   - model_name: bfd
     tf_name: bfd
@@ -1064,7 +1048,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable BFD
+    description: Enable status for BFD
     computed: true
   - model_name: bfdIbgp
     tf_name: bfd_ibgp
@@ -1072,7 +1056,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable BFD For iBGP
+    description: Enable status for BFD For iBGP
     computed: true
   - model_name: bfdAuthentication
     tf_name: bfd_authentication
@@ -1080,7 +1064,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable BFD Authentication. Valid for P2P Interfaces only
+    description: Enable status for BFD Authentication. Valid for P2P Interfaces only
     computed: true
   - model_name: bfdAuthenticationKeyId
     tf_name: bfd_authentication_key_id
@@ -1089,14 +1073,6 @@ datasource:
     - management
     description: BFD Authentication Key ID
     computed: true
-  - model_name: bfdAuthenticationKey
-    tf_name: bfd_authentication_key
-    type: String
-    ndfc_nested:
-    - management
-    description: Encrypted SHA1 secret value
-    sensitive: true
-    computed: true
   - model_name: macsec
     tf_name: macsec
     type: Bool
@@ -1104,7 +1080,7 @@ datasource:
     computed: true
     ndfc_nested:
     - management
-    description: Enable MACsec on this
+    description: MACsec enable status on the fabric
   - model_name: macsecCipherSuite
     tf_name: macsec_cipher_suite
     type: String
@@ -1112,28 +1088,12 @@ datasource:
     - management
     description: Macsec cipher suite
     computed: true
-  - model_name: macsecKeyString
-    tf_name: macsec_key_string
-    type: String
-    ndfc_nested:
-    - management
-    description: MACsec Primary Key String. Cisco Type 7 Encrypted Octet String
-    sensitive: true
-    computed: true
   - model_name: macsecAlgorithm
     tf_name: macsec_algorithm
     type: String
     ndfc_nested:
     - management
     description: MACsec Primary Cryptographic Algorithm. AES_128_CMAC or AES_256_CMAC
-    computed: true
-  - model_name: macsecFallbackKeyString
-    tf_name: macsec_fallback_key_string
-    type: String
-    ndfc_nested:
-    - management
-    description: MACsec fallback key string. Cisco Type 7 Encrypted Octet String
-    sensitive: true
     computed: true
   - model_name: macsecFallbackAlgorithm
     tf_name: macsec_fallback_algorithm
@@ -1170,7 +1130,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable PVLAN on switches except spines and super spines
+    description: Enable status for PVLAN on switches except spines and super spines
     computed: true
   - model_name: defaultPrivateVlanSecondaryNetworkTemplate
     tf_name: default_private_vlan_secondary_network_template
@@ -1215,7 +1175,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable the Next Generation (NG) OAM feature for all switches in the
+    description: Enable status for the Next Generation (NG) OAM feature for all switches in the
       fabric to aid in trouble-shooting VXLAN EVPN fabrics
     computed: true
   - model_name: ngoamSouthBoundLoopDetect
@@ -1224,14 +1184,14 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable the Next Generation (NG) OAM southbound loop detection
+    description: Enable status for the Next Generation (NG) OAM southbound loop detection
     computed: true
   - model_name: ngoamSouthBoundLoopDetectProbeInterval
     tf_name: ngoam_south_bound_loop_detect_probe_interval
     type: Int64
     ndfc_nested:
     - management
-    description: Set Next Generation (NG) OAM southbound loop detection probe interval
+    description: Next Generation (NG) OAM southbound loop detection probe interval
       in seconds
     computed: true
   - model_name: ngoamSouthBoundLoopDetectRecoveryInterval
@@ -1239,8 +1199,8 @@ datasource:
     type: Int64
     ndfc_nested:
     - management
-    description: Set the Next Generation (NG) OAM southbound loop detection recovery
-      interval in seconds
+    description: Next Generation (NG) OAM southbound loop detection recovery interval
+      in seconds
     computed: true
   - model_name: strictConfigComplianceMode
     tf_name: strict_config_compliance_mode
@@ -1248,7 +1208,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable bi-directional compliance checks to flag additional configs
+    description: Enable status for bi-directional compliance checks to flag additional configs
       in the running config that are not in the intent/expected config
     computed: true
   - model_name: advancedSshOption
@@ -1257,7 +1217,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable only, when IP authorization is enabled in the AAA Server
+    description: Advanced SSH option status; applicable only when IP authorization is enabled in the AAA server
     computed: true
   - model_name: ptp
     tf_name: ptp
@@ -1265,7 +1225,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable precision time protocol (PTP)
+    description: Enable status for precision time protocol (PTP)
     computed: true
   - model_name: ptpLoopbackId
     tf_name: ptp_loopback_id
@@ -1287,7 +1247,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable Default Queuing Policies
+    description: Enable status for Default Queuing Policies
     computed: true
   - model_name: defaultQueuingPolicyCloudscale
     tf_name: default_queuing_policy_cloudscale
@@ -1317,7 +1277,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Configures QoS and Queuing Policies specific to N9K Cloud Scale switch
+    description: QoS and queuing policy configuration status for N9K Cloud Scale switches
       fabric for AI/ML network loads
     computed: true
   - model_name: aimlQosPolicy
@@ -1342,7 +1302,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable Dynamic Load Balancing (DLB) on all VTEPs
+    description: Enable status for Dynamic Load Balancing (DLB) on all VTEPs
     computed: true
   - model_name: dlbMode
     tf_name: dlb_mode
@@ -1386,7 +1346,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable AI Load Sharing
+    description: Enable status for AI Load Sharing
     computed: true
   - model_name: rocev2
     tf_name: roce_v2
@@ -1495,7 +1455,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enables IPv6 link-local Option under VRF SVI. Not applicable to L3VNI
+    description: IPv6 link-local option status under VRF SVI. Not applicable to L3VNI
       without VLAN config. NX-OS Specific
   - model_name: fabricInterfaceType
     tf_name: fabric_interface_type
@@ -1538,15 +1498,16 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Use specific vPC/Port-channel ID range for leaf-tor pairings
+    description: Whether a specific vPC/Port-channel ID range is used for leaf-tor
+      pairings
     computed: true
   - model_name: leafTorVpcPortChannelIdRange
     tf_name: leaf_tor_vpc_port_channel_id_range
     type: String
     ndfc_nested:
     - management
-    description: 'Specify vPC/Port-channel ID range (minimum: 1, maximum: 4096), this
-      range is used for auto-allocating vPC/Port-Channel IDs for leaf-tor pairings'
+    description: 'vPC/Port-channel ID range (minimum: 1, maximum: 4096) used for
+      auto-allocating vPC/Port-Channel IDs for leaf-tor pairings'
     computed: true
   - model_name: linkStateRoutingTag
     tf_name: link_state_routing_tag
@@ -1578,15 +1539,6 @@ datasource:
     - management
     description: OSPF authentication key ID (0-255). Required if OSPF authentication
       is enabled
-    computed: true
-  - model_name: ospfAuthenticationKey
-    tf_name: ospf_authentication_key
-    type: String
-    ndfc_nested:
-    - management
-    description: OSPF authentication key (3DES encrypted). Required if OSPF authentication
-      is enabled
-    sensitive: true
     computed: true
   - model_name: isisLevel
     tf_name: isis_level
@@ -1621,7 +1573,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable IS-IS authentication
+    description: Enable status for IS-IS authentication
   - model_name: isisAuthenticationKeychainName
     tf_name: isis_authentication_keychain_name
     type: String
@@ -1636,22 +1588,13 @@ datasource:
     - management
     description: IS-IS authentication key identifier
     computed: true
-  - model_name: isisAuthenticationKey
-    tf_name: isis_authentication_key
-    type: String
-    ndfc_nested:
-    - management
-    description: Cisco type 7 encrypted
-    sensitive: true
-    computed: true
   - model_name: isisOverload
     tf_name: isis_overload
     type: Bool
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Set IS-IS Overload Bit. When enabled, set the overload bit for an
-      elapsed time after a reload
+    description: IS-IS overload bit status and elapsed time after a reload
     computed: true
   - model_name: isisOverloadElapseTime
     tf_name: isis_overload_elapse_time
@@ -1668,7 +1611,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable BFD For OSPF
+    description: Enable status for BFD For OSPF
   - model_name: bfdIsis
     tf_name: bfd_isis
     type: Bool
@@ -1676,7 +1619,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable BFD For ISIS
+    description: Enable status for BFD For ISIS
   - model_name: bfdPim
     tf_name: bfd_pim
     type: Bool
@@ -1684,7 +1627,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable BFD For PIM
+    description: Enable status for BFD For PIM
   - model_name: autoBgpNeighborDescription
     tf_name: auto_bgp_neighbor_description
     type: Bool
@@ -1692,7 +1635,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Generate BGP EVPN Neighbor Description
+    description: BGP EVPN neighbor description generation status
   - model_name: ibgpPeerTemplate
     tf_name: ibgp_peer_template
     type: String
@@ -1746,7 +1689,8 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Generate security groups configuration for non-enforced VRFs
+    description: Security group configuration generation status for non-enforced
+      VRFs
     computed: true
   - model_name: securityGroupTagMacSegmentation
     tf_name: security_group_tag_mac_segmentation
@@ -1754,7 +1698,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable SGT MAC Segmentation on all switches in the fabric
+    description: Enable status for SGT MAC Segmentation on all switches in the fabric
     computed: true
   - model_name: securityGroupStatus
     tf_name: security_group_status
@@ -1770,7 +1714,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable MACsec on DCI links. DCI MACsec fabric parameters are used
+    description: Enable status for MACsec on DCI links. DCI MACsec fabric parameters are used
       for configuring MACsec on a DCI link if 'Use Link MACsec Setting' is disabled
       on the link
   - model_name: quantumKeyDistribution
@@ -1779,7 +1723,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable DCI MACsec with QKD config
+    description: Enable status for DCI MACsec with QKD config
     computed: true
   - model_name: vrfLiteMacsecCipherSuite
     tf_name: vrf_lite_macsec_cipher_suite
@@ -1788,29 +1732,12 @@ datasource:
     - management
     description: DCI MACsec Cipher Suite
     computed: true
-  - model_name: vrfLiteMacsecKeyString
-    tf_name: vrf_lite_macsec_key_string
-    type: String
-    ndfc_nested:
-    - management
-    description: Cisco Type 7 Encrypted Octet String
-    sensitive: true
-    computed: true
   - model_name: vrfLiteMacsecAlgorithm
     tf_name: vrf_lite_macsec_algorithm
     type: String
     ndfc_nested:
     - management
     description: DCI MACsec Primary Cryptographic Algorithm
-    computed: true
-  - model_name: vrfLiteMacsecFallbackKeyString
-    tf_name: vrf_lite_macsec_fallback_key_string
-    type: String
-    ndfc_nested:
-    - management
-    description: Cisco Type 7 Encrypted Octet String. This parameter is used when
-      DCI link has QKD disabled
-    sensitive: true
     computed: true
   - model_name: vrfLiteMacsecFallbackAlgorithm
     tf_name: vrf_lite_macsec_fallback_algorithm
@@ -1854,7 +1781,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Skip verification of incoming certificate
+    description: Incoming certificate verification skip status
     computed: true
   - model_name: hostInterfaceAdminState
     tf_name: host_interface_admin_state
@@ -1878,8 +1805,8 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Skip Overlay Network Interface Attachments for Brownfield and Host
-      Port Resync cases
+    description: Overlay network interface attachment skip status for brownfield and
+      host port resync cases
   - model_name: policyBasedRouting
     tf_name: policy_based_routing
     type: Bool
@@ -1887,8 +1814,8 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable feature pbr, sla sender, epbr, or enable feature pbr, based
-      on the L4-L7 Services use case
+    description: Policy-based routing enable status for the L4-L7 Services use case
+      (PBR, SLA sender, or ePBR)
   - model_name: ptpVlanId
     tf_name: ptp_vlan_id
     type: Int64
@@ -1903,7 +1830,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable MPLS Handoff
+    description: Enable status for MPLS Handoff
   - model_name: mplsLoopbackIdentifier
     tf_name: mpls_loopback_identifier
     type: Int64
@@ -1958,7 +1885,8 @@ datasource:
     type: String
     ndfc_nested:
     - management
-    description: Set trunk allowed vlan to 'none' or 'all' for leaf-tor pairing port-channels
+    description: Trunk allowed VLAN setting ('none' or 'all') for leaf-tor pairing
+      port-channels
     computed: true
   - model_name: preInterfaceConfigLeaf
     tf_name: pre_interface_config_leaf
@@ -2175,7 +2103,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable Smart Switch onboarding
+    description: Enable status for Smart Switch onboarding
     computed: true
   - model_name: enableDpuPinning
     tf_name: enable_dpu_pinning
@@ -2184,7 +2112,7 @@ datasource:
     ndfc_type: bool
     ndfc_nested:
     - management
-    description: Enable pinning of VRFs and networks to specific DPUs on smart switches
+    description: Enable status for pinning of VRFs and networks to specific DPUs on smart switches
   - model_name: connectivityDomainName
     tf_name: connectivity_domain_name
     type: String
@@ -2265,7 +2193,7 @@ datasource:
     ndfc_nested:
     - management
     - netflowSettings
-    description: Enable netflow on corresponding interface. Supported only if netflow
+    description: Enable status for netflow on corresponding interface. Supported only if netflow
       is enabled on fabric
     computed: true
   - model_name: netflowExporterCollection
@@ -2393,7 +2321,7 @@ datasource:
     - telemetrySettings
     - flowCollection
     - flowCollectionModes
-    description: Enable NetFlow
+    description: Enable status for NetFlow
     computed: true
   - model_name: sFlow
     tf_name: s_flow
@@ -2403,7 +2331,7 @@ datasource:
     - telemetrySettings
     - flowCollection
     - flowCollectionModes
-    description: Enable sFlow
+    description: Enable status for sFlow
     computed: true
   - model_name: flowTelemetry
     tf_name: flow_telemetry
@@ -2413,7 +2341,7 @@ datasource:
     - telemetrySettings
     - flowCollection
     - flowCollectionModes
-    description: Enable Flow Telemetry
+    description: Enable status for Flow Telemetry
     computed: true
   - model_name: vrfFlowRules
     tf_name: vrf_flow_rules
@@ -2758,7 +2686,7 @@ datasource:
     type: Bool
     computed: true
     ndfc_type: bool
-    description: Enable microburst detection
+    description: Enable status for microburst detection
     ndfc_nested:
     - telemetrySettings
     - microburst
@@ -2773,7 +2701,7 @@ datasource:
   - model_name: isEnabled
     tf_name: analysis_settings_is_enabled
     type: Bool
-    description: Enable or disable Assurance analysis on a fabric
+    description: Enable/disable status for Assurance analysis on a fabric
     ndfc_type: bool
     ndfc_nested:
     - telemetrySettings
@@ -2959,4 +2887,4 @@ datasource:
     computed: true
   parent_package: resource_fabric_common
   parent_model: fabric_common
-  description: Datasource for shared NDFC fabric attributes
+  description: Reads fabric attributes returned by the Nexus Dashboard API

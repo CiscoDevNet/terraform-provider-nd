@@ -5,8 +5,6 @@ package datasource_fabric
 import (
 	"encoding/json"
 	"os"
-	"path/filepath"
-	"runtime"
 	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	"testing"
 )
@@ -26,17 +24,13 @@ func TestDatasourceFabric(t *testing.T) {
 			args: args{
 				rscType:  "datasource",
 				rscName:  "fabric",
-				dataFile: "examples/nd_payloads/data_fabric.json",
+				dataFile: "/examples/ndfc_payloads/data_fabric.json",
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name+"model_read", func(t *testing.T) {
-			_, sourceFile, _, ok := runtime.Caller(0)
-			if !ok {
-				t.Fatal("Unable to determine datasource test source path")
-			}
-			fileName := filepath.Join(filepath.Dir(sourceFile), "..", "..", "..", tt.args.dataFile)
+			fileName := os.Getenv("GOPATH") + "/src/terraform-provider-ndfc" + tt.args.dataFile
 			RsType := tt.args.rscType
 			rscName := tt.args.rscName
 			dataFromFile, err := os.ReadFile(fileName)

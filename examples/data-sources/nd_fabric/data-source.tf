@@ -1,4 +1,4 @@
 
 data "nd_fabric" "test_resource_fabric_1" {
-  fabric_name = "my_fabric"
+  fabric_name = ""
 }

@@ -966,25 +966,11 @@ func (v *FabricModel) SetModelData(jsonData *resource_fabric_common.NDFCFabricCo
 		v.BgpAuthenticationKeyType = types.StringNull()
 	}
 
-	if jsonData.Management.BgpAuthenticationKey != "" {
-		v.BgpAuthenticationKey = types.StringValue(jsonData.Management.BgpAuthenticationKey)
-
-	} else {
-		v.BgpAuthenticationKey = types.StringNull()
-	}
-
 	if jsonData.Management.PimHelloAuthentication != nil {
 		v.PimHelloAuthentication = types.BoolValue(*jsonData.Management.PimHelloAuthentication)
 
 	} else {
 		v.PimHelloAuthentication = types.BoolNull()
-	}
-
-	if jsonData.Management.PimHelloAuthenticationKey != "" {
-		v.PimHelloAuthenticationKey = types.StringValue(jsonData.Management.PimHelloAuthenticationKey)
-
-	} else {
-		v.PimHelloAuthenticationKey = types.StringNull()
 	}
 
 	if jsonData.Management.Bfd != nil {
@@ -1015,13 +1001,6 @@ func (v *FabricModel) SetModelData(jsonData *resource_fabric_common.NDFCFabricCo
 		v.BfdAuthenticationKeyId = types.Int64Null()
 	}
 
-	if jsonData.Management.BfdAuthenticationKey != "" {
-		v.BfdAuthenticationKey = types.StringValue(jsonData.Management.BfdAuthenticationKey)
-
-	} else {
-		v.BfdAuthenticationKey = types.StringNull()
-	}
-
 	if jsonData.Management.Macsec != nil {
 		v.Macsec = types.BoolValue(*jsonData.Management.Macsec)
 
@@ -1036,25 +1015,11 @@ func (v *FabricModel) SetModelData(jsonData *resource_fabric_common.NDFCFabricCo
 		v.MacsecCipherSuite = types.StringNull()
 	}
 
-	if jsonData.Management.MacsecKeyString != "" {
-		v.MacsecKeyString = types.StringValue(jsonData.Management.MacsecKeyString)
-
-	} else {
-		v.MacsecKeyString = types.StringNull()
-	}
-
 	if jsonData.Management.MacsecAlgorithm != "" {
 		v.MacsecAlgorithm = types.StringValue(jsonData.Management.MacsecAlgorithm)
 
 	} else {
 		v.MacsecAlgorithm = types.StringNull()
-	}
-
-	if jsonData.Management.MacsecFallbackKeyString != "" {
-		v.MacsecFallbackKeyString = types.StringValue(jsonData.Management.MacsecFallbackKeyString)
-
-	} else {
-		v.MacsecFallbackKeyString = types.StringNull()
 	}
 
 	if jsonData.Management.MacsecFallbackAlgorithm != "" {
@@ -1470,13 +1435,6 @@ func (v *FabricModel) SetModelData(jsonData *resource_fabric_common.NDFCFabricCo
 		v.OspfAuthenticationKeyId = types.Int64Null()
 	}
 
-	if jsonData.Management.OspfAuthenticationKey != "" {
-		v.OspfAuthenticationKey = types.StringValue(jsonData.Management.OspfAuthenticationKey)
-
-	} else {
-		v.OspfAuthenticationKey = types.StringNull()
-	}
-
 	if jsonData.Management.IsisLevel != "" {
 		v.IsisLevel = types.StringValue(jsonData.Management.IsisLevel)
 
@@ -1517,13 +1475,6 @@ func (v *FabricModel) SetModelData(jsonData *resource_fabric_common.NDFCFabricCo
 
 	} else {
 		v.IsisAuthenticationKeychainKeyId = types.Int64Null()
-	}
-
-	if jsonData.Management.IsisAuthenticationKey != "" {
-		v.IsisAuthenticationKey = types.StringValue(jsonData.Management.IsisAuthenticationKey)
-
-	} else {
-		v.IsisAuthenticationKey = types.StringNull()
 	}
 
 	if jsonData.Management.IsisOverload != nil {
@@ -1645,25 +1596,11 @@ func (v *FabricModel) SetModelData(jsonData *resource_fabric_common.NDFCFabricCo
 		v.VrfLiteMacsecCipherSuite = types.StringNull()
 	}
 
-	if jsonData.Management.VrfLiteMacsecKeyString != "" {
-		v.VrfLiteMacsecKeyString = types.StringValue(jsonData.Management.VrfLiteMacsecKeyString)
-
-	} else {
-		v.VrfLiteMacsecKeyString = types.StringNull()
-	}
-
 	if jsonData.Management.VrfLiteMacsecAlgorithm != "" {
 		v.VrfLiteMacsecAlgorithm = types.StringValue(jsonData.Management.VrfLiteMacsecAlgorithm)
 
 	} else {
 		v.VrfLiteMacsecAlgorithm = types.StringNull()
-	}
-
-	if jsonData.Management.VrfLiteMacsecFallbackKeyString != "" {
-		v.VrfLiteMacsecFallbackKeyString = types.StringValue(jsonData.Management.VrfLiteMacsecFallbackKeyString)
-
-	} else {
-		v.VrfLiteMacsecFallbackKeyString = types.StringNull()
 	}
 
 	if jsonData.Management.VrfLiteMacsecFallbackAlgorithm != "" {
