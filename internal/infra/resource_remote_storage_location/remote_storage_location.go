@@ -17,10 +17,10 @@ import (
 const ModuleKey = "infra"
 
 var (
-	_ resource.Resource                   = &remoteStorageLocationResource{}
-	_ resource.ResourceWithConfigure      = &remoteStorageLocationResource{}
-	_ resource.ResourceWithImportState    = &remoteStorageLocationResource{}
-	_ resource.ResourceWithValidateConfig = &remoteStorageLocationResource{}
+	_ resource.Resource                = &remoteStorageLocationResource{}
+	_ resource.ResourceWithConfigure   = &remoteStorageLocationResource{}
+	_ resource.ResourceWithImportState = &remoteStorageLocationResource{}
+	_ resource.ResourceWithModifyPlan  = &remoteStorageLocationResource{}
 )
 
 // NewRemoteStorageLocationResource is a helper function to simplify the provider implementation.
@@ -43,31 +43,61 @@ func (r *remoteStorageLocationResource) Schema(ctx context.Context, _ resource.S
 	resp.Schema = RemoteStorageLocationResourceSchema(ctx)
 }
 
-// ValidateConfig enforces conditional validation that generated schema
-// validators cannot express.
-func (r *remoteStorageLocationResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var storageType types.String
-	var readWrite types.Bool
+// ModifyPlan requires replacement when the immutable path of an existing NFS
+// location changes or when the selected remote storage protocol family changes
+// between NFS and SCP/SFTP.
+func (r *remoteStorageLocationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
+		return
+	}
 
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("storage_location_type"), &storageType)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("read_write"), &readWrite)...)
+	var state RemoteStorageLocationModel
+	var plan RemoteStorageLocationModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if storageType.IsNull() || storageType.IsUnknown() {
+	stateNFSKnown := !state.Nfs.IsNull() && !state.Nfs.IsUnknown()
+	planNFSKnown := !plan.Nfs.IsNull() && !plan.Nfs.IsUnknown()
+	if stateNFSKnown && planNFSKnown &&
+		!state.Path.IsNull() && !state.Path.IsUnknown() &&
+		!plan.Path.IsNull() && !plan.Path.IsUnknown() &&
+		!state.Path.Equal(plan.Path) {
+		resp.RequiresReplace = append(resp.RequiresReplace, path.Root("path"))
 		return
 	}
 
-	storageTypeValue := storageType.ValueString()
-	if storageTypeValue == "scp" || storageTypeValue == "sftp" {
-		if !readWrite.IsNull() && !readWrite.IsUnknown() {
-			resp.Diagnostics.AddAttributeError(
-				path.Root("read_write"),
-				"Invalid attribute for storage location type",
-				"Attribute `read_write` can only be set when `storage_location_type` is `nfs`. Remove `read_write` for `scp` or `sftp` remote storage locations.",
-			)
+	stateBranch, stateBranchKnown := remoteStorageLocationBranch(state)
+	planBranch, planBranchKnown := remoteStorageLocationBranch(plan)
+	if !stateBranchKnown || !planBranchKnown {
+		return
+	}
+
+	if stateBranch != planBranch {
+		switch planBranch {
+		case "nfs":
+			resp.RequiresReplace = append(resp.RequiresReplace, path.Root("nfs"))
+		case "scp_sftp":
+			resp.RequiresReplace = append(resp.RequiresReplace, path.Root("scp_sftp"))
 		}
+		return
+	}
+}
+
+func remoteStorageLocationBranch(model RemoteStorageLocationModel) (string, bool) {
+	if model.Nfs.IsUnknown() || model.ScpSftp.IsUnknown() {
+		return "", false
+	}
+
+	switch {
+	case !model.Nfs.IsNull() && model.ScpSftp.IsNull():
+		return "nfs", true
+	case model.Nfs.IsNull() && !model.ScpSftp.IsNull():
+		return "scp_sftp", true
+	default:
+		return "", false
 	}
 }
 
