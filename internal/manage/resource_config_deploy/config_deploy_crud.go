@@ -11,6 +11,7 @@ package resource_config_deploy
 import (
 	"context"
 	"fmt"
+	"net"
 	"regexp"
 	"strings"
 
@@ -211,10 +212,17 @@ func (r *configDeployResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 }
 
-// executeDeployment performs config-save and/or deploy via deployment package
+// executeDeployment performs config-save and/or deploy via deployment package.
+// switch_ids that are IP addresses are resolved to serial numbers via SwitchDB
+// before being sent to the deploy API.
 func (r *configDeployResource) executeDeployment(ctx context.Context, dg *diag.Diagnostics, data *NDFCConfigDeployModel) {
+	serials := r.resolveSwitchIds(ctx, dg, data.FabricName, data.SwitchIds)
+	if dg.HasError() {
+		return
+	}
+
 	opts := &deployment.DeployOptions{
-		SerialNumbers:                 data.SwitchIds,
+		SerialNumbers:                 serials,
 		TicketId:                      data.TicketId,
 		ForceShowRun:                  data.ForceShowRun,
 		IncludeAllFabricGroupSwitches: data.IncludeAllFabricGroupSwitches,
@@ -228,4 +236,43 @@ func (r *configDeployResource) executeDeployment(ctx context.Context, dg *diag.D
 	// Preserve whatever status was produced, including a successful config-save
 	// status when a subsequent deploy fails, for observability in state.
 	data.Status = result.Status
+}
+
+// resolveSwitchIds converts any IP addresses in the switch_ids list to serial
+// numbers using SwitchDB. Serial numbers and "ALL" are passed through unchanged.
+func (r *configDeployResource) resolveSwitchIds(ctx context.Context, dg *diag.Diagnostics, fabricName string, ids []string) []string {
+	if len(ids) == 0 {
+		return ids
+	}
+
+	resolved := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if strings.EqualFold(id, "ALL") {
+			resolved = append(resolved, id)
+			continue
+		}
+
+		if net.ParseIP(id) != nil {
+			// It's an IP address — resolve to serial via SwitchDB
+			serial, ok := r.manageClient.SwitchDB.GetSerialByIP(ctx, fabricName, id)
+			if !ok {
+				dg.AddAttributeError(
+					path.Root("switch_ids"),
+					"Switch Not Found",
+					fmt.Sprintf("Could not resolve IP address %q to a serial number in fabric %q. Verify the switch is in the fabric inventory.", id, fabricName),
+				)
+				return nil
+			}
+			tflog.Debug(ctx, "Resolved switch IP to serial", map[string]interface{}{
+				"ip":     id,
+				"serial": serial,
+				"fabric": fabricName,
+			})
+			resolved = append(resolved, serial)
+		} else {
+			// Assume it's a serial number
+			resolved = append(resolved, id)
+		}
+	}
+	return resolved
 }

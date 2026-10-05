@@ -40,7 +40,7 @@ resource "nd_config_deploy" "test_resource_config_deploy_1" {
 - `deploy` (Boolean) When true, deploy the fabric configuration to switches. Can be used independently or together with `config_save`. At least one of `deploy` or `config_save` must be true.
 - `force_show_run` (Boolean) When true, fetch the latest running configuration from each switch instead of using the cached version before deployment.
 - `include_all_fabric_group_switches` (Boolean) When true and the target is a fabric group, deploy changes to switches in all member fabrics. Only applicable for fabric-wide deploy.
-- `switch_ids` (Set of String) List of switch serial numbers to deploy configuration to. Use `["ALL"]` or omit to perform a fabric-wide deploy.
+- `switch_ids` (Set of String) List of switch serial numbers/IP addresses to deploy configuration to. Both IP addresses and serial numbers are accepted. Use `["ALL"]` or omit to perform a fabric-wide deploy.
 - `ticket_id` (String) Change Control ticket ID to associate with the config-save operation. Must begin with a letter; remaining characters may be letters, numbers, underscores, or hyphens. Length: 1–64 characters.
 
 ### Read-Only

@@ -16,6 +16,7 @@ const ModuleKey = "manage"
 
 type NexusDashboardManage struct {
 	ApiClient *nd.Client
+	SwitchDB  *SwitchDB
 }
 
 var manageInstance *NexusDashboardManage
@@ -24,6 +25,7 @@ func NewManage(client *nd.Client) *NexusDashboardManage {
 	if manageInstance == nil {
 		manageInstance = &NexusDashboardManage{
 			ApiClient: client,
+			SwitchDB:  NewSwitchDB(client),
 		}
 	}
 	return manageInstance
