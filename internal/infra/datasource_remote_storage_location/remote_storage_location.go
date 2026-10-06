@@ -165,8 +165,8 @@ func (d *remoteStorageLocationNdDataSource) Read(ctx context.Context, req dataso
 	log.Printf("[DEBUG] End read of datasource nd_remote_storage_location with name=%s", data.Name.ValueString())
 }
 
-// remoteStorageLocationDataSourcePayload represents the flat API storage specification.
-type remoteStorageLocationDataSourcePayload struct {
+// remoteStorageLocationDataSourceResponse represents the flat API storage specification.
+type remoteStorageLocationDataSourceResponse struct {
 	Name                string                   `json:"name"`
 	Description         string                   `json:"description"`
 	Hostname            string                   `json:"hostname"`
@@ -183,7 +183,7 @@ type remoteStorageLocationDataSourcePayload struct {
 // the generated datasource model. It accepts wrapped and direct storage responses.
 func decodeRemoteStorageLocationDataSourceResponse(response []byte) (*NDFCRemoteStorageLocationModel, string, error) {
 	var wrapped struct {
-		Spec   *remoteStorageLocationDataSourcePayload `json:"spec"`
+		Spec   *remoteStorageLocationDataSourceResponse `json:"spec"`
 		Status struct {
 			HealthState string `json:"healthState"`
 			Message     string `json:"message"`
@@ -193,43 +193,43 @@ func decodeRemoteStorageLocationDataSourceResponse(response []byte) (*NDFCRemote
 		return nil, "", err
 	}
 
-	payload := wrapped.Spec
-	if payload == nil {
-		payload = new(remoteStorageLocationDataSourcePayload)
-		if err := json.Unmarshal(response, payload); err != nil {
+	storageResponse := wrapped.Spec
+	if storageResponse == nil {
+		storageResponse = new(remoteStorageLocationDataSourceResponse)
+		if err := json.Unmarshal(response, storageResponse); err != nil {
 			return nil, "", err
 		}
 	}
 
 	model := &NDFCRemoteStorageLocationModel{
-		Name:               payload.Name,
-		Description:        payload.Description,
-		Hostname:           payload.Hostname,
-		Path:               payload.Path,
+		Name:               storageResponse.Name,
+		Description:        storageResponse.Description,
+		Hostname:           storageResponse.Hostname,
+		Path:               storageResponse.Path,
 		HealthState:        wrapped.Status.HealthState,
 		HealthStateMessage: wrapped.Status.Message,
 	}
 
-	switch payload.StorageLocationType {
+	switch storageResponse.StorageLocationType {
 	case "nfs":
 		model.Nfs = NDFCNfsValue{
-			Port:           payload.Port,
-			Limit:          payload.Limit,
-			ReadWrite:      payload.ReadWrite,
-			AlertThreshold: payload.AlertThreshold,
+			Port:           storageResponse.Port,
+			Limit:          storageResponse.Limit,
+			ReadWrite:      storageResponse.ReadWrite,
+			AlertThreshold: storageResponse.AlertThreshold,
 		}
 	case "scp", "sftp":
-		if payload.Authentication == nil {
-			return nil, "", fmt.Errorf("%s remote storage response is missing authentication", payload.StorageLocationType)
+		if storageResponse.Authentication == nil {
+			return nil, "", fmt.Errorf("%s remote storage response is missing authentication", storageResponse.StorageLocationType)
 		}
 		model.ScpSftp = NDFCScpSftpValue{
-			Protocol:       payload.StorageLocationType,
-			Port:           payload.Port,
-			Authentication: *payload.Authentication,
+			Protocol:       storageResponse.StorageLocationType,
+			Port:           storageResponse.Port,
+			Authentication: *storageResponse.Authentication,
 		}
 	default:
-		return nil, "", fmt.Errorf("unsupported or missing remote storage type %q", payload.StorageLocationType)
+		return nil, "", fmt.Errorf("unsupported or missing remote storage type %q", storageResponse.StorageLocationType)
 	}
 
-	return model, payload.StorageLocationType, nil
+	return model, storageResponse.StorageLocationType, nil
 }
