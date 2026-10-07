@@ -27,9 +27,10 @@ import (
 const definitionsPath = "./generator/defs"
 
 type docConfig struct {
-	Name        string `yaml:"name"`
-	DocCategory string `yaml:"doc_category"`
-	Subcategory string `yaml:"subcategory"`
+	Name               string `yaml:"name"`
+	GenerateTFResource *bool  `yaml:"generate_tf_resource"`
+	DocCategory        string `yaml:"doc_category"`
+	Subcategory        string `yaml:"subcategory"`
 }
 
 func main() {
@@ -68,10 +69,13 @@ func loadDocCategories() (map[string]string, error) {
 		return nil, err
 	}
 
-	directories := map[string]string{
-		"resource":   "resources",
-		"datasource": "data-sources",
-		"action":     "actions",
+	documentKinds := []struct {
+		kind      string
+		directory string
+	}{
+		{"resource", "resources"},
+		{"datasource", "data-sources"},
+		{"action", "actions"},
 	}
 	categories := make(map[string]string)
 	// Use the same active definitions as the provider generator.
@@ -81,21 +85,27 @@ func loadDocCategories() (map[string]string, error) {
 			return nil, err
 		}
 
-		for kind, directory := range directories {
-			metadata := config[kind]
+		for _, documentKind := range documentKinds {
+			metadata, exists := config[documentKind.kind]
+			// This flag also controls datasource generation; skip explicit exclusions.
+			if !exists || (metadata.GenerateTFResource != nil && !*metadata.GenerateTFResource) {
+				continue
+			}
+
+			name := strings.TrimSpace(metadata.Name)
 			category := strings.TrimSpace(metadata.Subcategory)
 			if category == "" {
 				category = strings.TrimSpace(metadata.DocCategory)
 			}
 			if category == "" {
+				log.Printf("Warning: %s: %s %q has no subcategory or doc_category value", filename, documentKind.kind, name)
 				continue
 			}
 
-			name := strings.TrimSpace(metadata.Name)
 			if name == "" {
-				return nil, fmt.Errorf("%s: %s documentation category requires a name", filename, kind)
+				return nil, fmt.Errorf("%s: %s documentation category requires a name", filename, documentKind.kind)
 			}
-			docPath := filepath.Join("docs", directory, name+".md")
+			docPath := filepath.Join("docs", documentKind.directory, name+".md")
 			if previous, exists := categories[docPath]; exists && previous != category {
 				return nil, fmt.Errorf("%s: conflicting categories for %s: %q and %q", filename, docPath, previous, category)
 			}
@@ -123,63 +133,84 @@ func updateDoc(filename, category string) error {
 	}
 
 	lines := bytes.SplitAfter(content, []byte("\n"))
-	if string(bytes.TrimSpace(lines[0])) != "---" {
+	if !bytes.Equal(bytes.TrimRight(lines[0], " \t\r\n"), []byte("---")) {
+		log.Printf("Warning: %s has no YAML front matter; cannot set subcategory %q", filename, category)
 		return nil
 	}
-	headerEnd := -1
-	for i := 1; i < len(lines); i++ {
-		if string(bytes.TrimSpace(lines[i])) == "---" {
-			headerEnd = i
+	headerStart := len(lines[0])
+	headerEnd := headerStart
+	for _, line := range lines[1:] {
+		// Front matter delimiters start in column one; an indented delimiter
+		// can be part of a YAML block string such as a resource description.
+		if bytes.Equal(bytes.TrimRight(line, " \t\r\n"), []byte("---")) {
 			break
 		}
+		headerEnd += len(line)
 	}
-	if headerEnd < 0 {
+	if headerEnd == len(content) {
 		return fmt.Errorf("%s: missing closing front matter delimiter", filename)
 	}
 
 	var header yaml.Node
-	if err := yaml.Unmarshal(bytes.Join(lines[1:headerEnd], nil), &header); err != nil {
+	if err := yaml.Unmarshal(content[headerStart:headerEnd], &header); err != nil {
 		return fmt.Errorf("parse front matter in %s: %w", filename, err)
 	}
-	if len(header.Content) == 0 || header.Content[0].Kind != yaml.MappingNode {
-		return fmt.Errorf("%s: front matter must be a YAML mapping", filename)
+	var fields []*yaml.Node
+	if len(header.Content) > 0 {
+		mapping := header.Content[0]
+		if mapping.Kind != yaml.MappingNode {
+			return fmt.Errorf("%s: front matter must be a YAML mapping", filename)
+		}
+		fields = mapping.Content
 	}
 
-	fields := header.Content[0].Content
+	var subcategory *yaml.Node
 	for i := 0; i < len(fields); i += 2 {
 		key, value := fields[i], fields[i+1]
 		if key.Value != "subcategory" {
 			continue
 		}
-
-		value.Value = category
-		value.Style = yaml.DoubleQuotedStyle
-
-		var encoded bytes.Buffer
-		encoder := yaml.NewEncoder(&encoded)
-		encoder.SetIndent(2)
-		if err := encoder.Encode(&header); err != nil {
-			return fmt.Errorf("encode front matter in %s: %w", filename, err)
+		if subcategory != nil {
+			return fmt.Errorf("%s: duplicate subcategory field in front matter", filename)
 		}
-		if err := encoder.Close(); err != nil {
-			return fmt.Errorf("close front matter encoder for %s: %w", filename, err)
-		}
-		updatedHeader := encoded.Bytes()
-		if bytes.HasSuffix(lines[0], []byte("\r\n")) {
-			updatedHeader = bytes.ReplaceAll(updatedHeader, []byte("\n"), []byte("\r\n"))
-		}
-
-		// Keep both delimiters and the Markdown body byte-for-byte.
-		var updated bytes.Buffer
-		updated.Write(lines[0])
-		updated.Write(updatedHeader)
-		updated.Write(bytes.Join(lines[headerEnd:], nil))
-		if err := writeDocAtomically(filename, updated.Bytes()); err != nil {
-			return fmt.Errorf("write %s: %w", filename, err)
-		}
-		log.Printf("Updated %s: %s", filename, category)
+		subcategory = value
+	}
+	if subcategory == nil {
+		log.Printf("Warning: %s has no subcategory field; cannot set %q", filename, category)
 		return nil
 	}
+	if subcategory.Kind == yaml.ScalarNode && subcategory.Tag == "!!str" && subcategory.Value == category {
+		return nil
+	}
+
+	// Replace both the value and its YAML type, including null or numeric values.
+	subcategory.SetString(category)
+	subcategory.Style = yaml.DoubleQuotedStyle
+
+	var encoded bytes.Buffer
+	encoder := yaml.NewEncoder(&encoded)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(&header); err != nil {
+		return fmt.Errorf("encode front matter in %s: %w", filename, err)
+	}
+	if err := encoder.Close(); err != nil {
+		return fmt.Errorf("close front matter encoder for %s: %w", filename, err)
+	}
+	updatedHeader := encoded.Bytes()
+	if bytes.HasSuffix(lines[0], []byte("\r\n")) {
+		updatedHeader = bytes.ReplaceAll(updatedHeader, []byte("\n"), []byte("\r\n"))
+	}
+
+	// Keep both delimiters and the Markdown body byte-for-byte.
+	var updated bytes.Buffer
+	updated.Grow(headerStart + len(updatedHeader) + len(content) - headerEnd)
+	updated.Write(content[:headerStart])
+	updated.Write(updatedHeader)
+	updated.Write(content[headerEnd:])
+	if err := writeDocAtomically(filename, updated.Bytes()); err != nil {
+		return fmt.Errorf("write %s: %w", filename, err)
+	}
+	log.Printf("Updated %s: %s", filename, category)
 	return nil
 }
 
