@@ -54,3 +54,14 @@ resource "nd_remote_storage_location" "{{.RscName}}" {
 {{- end }}
 }
 {{end}}
+
+{{define "ND_REMOTE_STORAGE_LOCATION_DS"}}
+{{with .RemoteStorageLocationDataSource}}
+data "nd_remote_storage_location" "{{.RscName}}" {
+    name = "{{.Name}}"
+    {{if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+    {{end}}
+}
+{{end}}
+{{end}}

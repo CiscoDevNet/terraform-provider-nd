@@ -8,6 +8,14 @@
 
 package testing
 
+// RemoteStorageLocationDataSourceTestData contains the values rendered by the
+// remote storage location datasource acceptance-test template.
+type RemoteStorageLocationDataSourceTestData struct {
+	RscName   string
+	Name      string
+	DependsOn string
+}
+
 // NDFCRemoteStorageLocationTestData mirrors the schema attributes of the
 // nd_remote_storage_location resource. It is used by the gotmpl renderer
 // and the state-check helper in the provider test package.

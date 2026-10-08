@@ -195,3 +195,120 @@ resource:
   # The hostKey attribute is managed through `accept_host_key` or
   # `ignore_host_key_validation` and is not configured directly.
   # The storeKey attribute is intentionally skipped because it is not exposed in the ND 4.2 UI.
+
+datasource:
+  name: remote_storage_location
+  doc_category: System Settings
+  category: infra
+  generate_tf_resource: true
+  skip_equality: true
+  description: Datasource of the remote storage location for Nexus Dashboard
+  attributes:
+  - model_name: name
+    tf_name: name
+    description: The name that uniquely identifies the remote storage location datasource.
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    validator: 'LengthBetween(1, 63), stringvalidator.RegexMatches(regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$`), "must start and end with an alphanumeric character and may contain lowercase letters, digits, hyphens, and dots")'
+    example: scp-server
+
+  - model_name: description
+    tf_name: description
+    description: The description of the remote storage location.
+    type: String
+    computed: true
+
+  - model_name: hostname
+    tf_name: hostname
+    description: The hostname or IP address of the remote storage server.
+    type: String
+    computed: true
+
+  - model_name: path
+    tf_name: path
+    description: The export path for NFS storage or the base path for SCP/SFTP storage on the remote server.
+    type: String
+    computed: true
+
+  - model_name: nfs
+    tf_name: nfs
+    description: The NFS remote storage configuration. Null for SCP/SFTP storage locations.
+    type: Struct
+    computed: true
+    payload_hide: true
+    attributes:
+    - model_name: port
+      tf_name: port
+      description: The port number of the NFS server.
+      type: Int64
+      computed: true
+
+    - model_name: limit
+      tf_name: limit
+      description: The storage capacity limit for the NFS remote storage location.
+      type: String
+      computed: true
+
+    - model_name: readWrite
+      tf_name: read_write
+      description: Indicates whether the NFS storage location is read-write.
+      type: Bool
+      computed: true
+      ndfc_type: bool
+
+    - model_name: alertThreshold
+      tf_name: alert_threshold
+      description: The storage usage percentage that triggers an alert when exceeded.
+      type: Int64
+      computed: true
+
+  - model_name: scpSftp
+    tf_name: scp_sftp
+    description: The SCP or SFTP remote storage configuration. Null for NFS storage locations.
+    type: Struct
+    computed: true
+    payload_hide: true
+    attributes:
+    - model_name: type
+      tf_name: protocol
+      description: The protocol used by the remote storage location, either `scp` or `sftp`.
+      type: String
+      computed: true
+
+    - model_name: port
+      tf_name: port
+      description: The port number of the SCP or SFTP server.
+      type: Int64
+      computed: true
+
+    - model_name: username
+      tf_name: username
+      description: The username used to authenticate with the SCP or SFTP server.
+      type: String
+      computed: true
+      ndfc_nested:
+      - authentication
+
+    - model_name: ignoreHostKeyValidation
+      tf_name: ignore_host_key_validation
+      description: Indicates whether host-key validation is skipped for the SCP or SFTP server.
+      type: Bool
+      computed: true
+      ndfc_type: bool
+      ndfc_nested:
+      - authentication
+
+  - model_name: healthState
+    tf_name: health_state
+    description: The health state of the remote storage location.
+    type: String
+    computed: true
+    payload_hide: true
+
+  - model_name: message
+    tf_name: health_state_message
+    description: The health state message of the remote storage location.
+    type: String
+    computed: true
+    payload_hide: true
