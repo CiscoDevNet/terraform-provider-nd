@@ -58,13 +58,9 @@ func (m *FabricModel) GetFabricName() string {
 	return m.FabricName.ValueString()
 }
 
-// GetFabricType returns the known fabric type for handler dispatch. The data
-// source type is computed, so an empty value selects the common default handler.
+// GetFabricType returns the hardcoded default handler identifier for the datasource.
 func (m *FabricModel) GetFabricType() string {
-	if m.FabricType.IsNull() || m.FabricType.IsUnknown() {
-		return ""
-	}
-	return m.FabricType.ValueString()
+	return ""
 }
 
 // Configure adds the provider configured client to the datasource.
