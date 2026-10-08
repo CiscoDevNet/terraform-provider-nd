@@ -3,7 +3,7 @@
 page_title: "nd_change_control Resource - terraform-provider-nd"
 subcategory: ""
 description: |-
-  Manages change control system settings for Nexus Dashboard.
+  Manages change control system settings for Nexus Dashboard
   Change Control is a built-in Nexus Dashboard setting rather than a new object.
   During Terraform creation, import the existing Change Control object first,
   to see differences before applying changes.
@@ -17,7 +17,7 @@ description: |-
 
 # nd_change_control (Resource)
 
-Manages change control system settings for Nexus Dashboard.
+Manages change control system settings for Nexus Dashboard
 
 Change Control is a built-in Nexus Dashboard setting rather than a new object.
 During Terraform creation, import the existing Change Control object first,
