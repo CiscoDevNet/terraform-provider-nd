@@ -3,7 +3,7 @@ resource:
   generate_tf_resource: true
   skip_equality: true
   category: manage
-  doc_category: Fabric Management
+  doc_category: Fabrics
   description: |
     Manages Fabric ACI for Nexus Dashboard.
 
