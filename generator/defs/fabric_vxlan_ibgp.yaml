@@ -5,6 +5,7 @@ resource:
   parent_package: resource_fabric_common
   parent_model: fabric_common
   category: manage
+  doc_category: Fabric Management
   attributes:
   - model_name: id
     tf_name: id
