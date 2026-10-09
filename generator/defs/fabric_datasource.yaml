@@ -3,6 +3,7 @@ datasource:
   generate_tf_resource: true
   skip_equality: true
   category: manage
+  doc_category: Fabrics
   description: Reads fabric attributes returned by the Nexus Dashboard API.
   attributes:
   - model_name: name
