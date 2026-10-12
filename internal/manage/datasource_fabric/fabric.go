@@ -60,7 +60,7 @@ func (m *FabricModel) GetFabricName() string {
 
 // GetFabricType returns the hardcoded default handler identifier for the datasource.
 func (m *FabricModel) GetFabricType() string {
-	return ""
+	return "FabricCommon"
 }
 
 // Configure adds the provider configured client to the datasource.
