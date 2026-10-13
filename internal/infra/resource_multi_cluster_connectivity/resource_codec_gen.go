@@ -83,6 +83,12 @@ func (v MultiClusterConnectivityModel) GetModelData() *NDFCMultiClusterConnectiv
 
 	//MARSHAL_BODY
 
+	if !v.ClusterName.IsNull() && !v.ClusterName.IsUnknown() {
+		data.Spec.ClusterName = v.ClusterName.ValueString()
+	} else {
+		data.Spec.ClusterName = ""
+	}
+
 	if !v.Hostname.IsNull() && !v.Hostname.IsUnknown() {
 		data.Spec.Hostname = v.Hostname.ValueString()
 	} else {
