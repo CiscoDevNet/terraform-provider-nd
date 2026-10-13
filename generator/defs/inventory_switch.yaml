@@ -3,6 +3,7 @@ resource:
   generate_tf_resource: true
   skip_equality: false
   category: manage
+  doc_category: Inventory
   attributes:
   # Required - Fabric identifier
   - model_name: id

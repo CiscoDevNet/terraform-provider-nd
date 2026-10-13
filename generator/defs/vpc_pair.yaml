@@ -2,7 +2,7 @@
 resource:
   name: vpc_pair
   rest_endpoint: /manage/fabrics/{fabricName}/switches/{switchId}/vpcPair
-  doc_category: Fabric
+  doc_category: Inventory
   generate_tf_resource: true
   skip_equality: false
   category: manage

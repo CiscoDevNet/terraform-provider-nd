@@ -4,6 +4,7 @@ resource:
   inherited_model: true
   skip_equality: true
   category: manage
+  doc_category: Fabric Management
   attributes:
   - model_name: id
     tf_name: id
