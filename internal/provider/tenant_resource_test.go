@@ -54,9 +54,26 @@ type tenantFabricAssociationTestItem struct {
 	TenantPrefix string   `json:"tenantPrefix,omitempty"`
 }
 
-// TestAccTenantResourceCRUD exercises tenant create/update/import cleanup and
+func skipMissingTenantTestFabric(t *testing.T, fabricNames ...string) resource.ErrorCheckFunc {
+	t.Helper()
+
+	return func(err error) error {
+		message := strings.Join(strings.Fields(strings.ReplaceAll(err.Error(), `\"`, `"`)), " ")
+		if !strings.Contains(message, "Error Updating Tenant Fabric Associations") {
+			return err
+		}
+		for _, fabricName := range fabricNames {
+			if strings.Contains(message, fmt.Sprintf(`fabric "%s" does not exist`, fabricName)) {
+				t.Skipf("tenant acceptance test requires fabric %q: %s", fabricName, message)
+			}
+		}
+		return err
+	}
+}
+
+// TestAccInfraTenantResourceCRUD exercises tenant create/update/import cleanup and
 // the manage-side fabric association workflow.
-func TestAccTenantResourceCRUD(t *testing.T) {
+func TestAccInfraTenantResourceCRUD(t *testing.T) {
 	cfg := helper.GetConfig("global")
 
 	tenant1Suffix := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
@@ -177,6 +194,7 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ErrorCheck:               skipMissingTenantTestFabric(t, tenantFabricOne, tenantFabricTwo),
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Step 1: Create tenant1 with required attributes only.
@@ -539,9 +557,9 @@ func TestAccTenantResourceCRUD(t *testing.T) {
 	})
 }
 
-// TestAccTenantResourceAssociationRollback verifies that partial multi-status
+// TestAccInfraTenantResourceAssociationRollback verifies that partial multi-status
 // association failures do not leave a partially created or updated tenant.
-func TestAccTenantResourceAssociationRollback(t *testing.T) {
+func TestAccInfraTenantResourceAssociationRollback(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	suffix := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 	testCases := []string{
@@ -675,6 +693,7 @@ func TestAccTenantResourceAssociationRollback(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ErrorCheck:               skipMissingTenantTestFabric(t, tenantFabricOne, tenantFabricTwo),
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// An association API failure after tenant creation must trigger rollback.

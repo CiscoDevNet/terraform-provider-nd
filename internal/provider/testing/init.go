@@ -35,9 +35,16 @@ type NDConfig struct {
 	IntegrationTest          IntegratedConfig               `yaml:"integration_test"`
 	Inventory                InventoryConfig                `yaml:"inventory"`
 	VpcPair                  *VpcPairConfig                 `yaml:"vpc_pair"`
-	LocalUser                LocalUserConfig                `yaml:"local_user"`
 	MultiClusterConnectivity MultiClusterConnectivityConfig `yaml:"multi_cluster_connectivity"`
 	RemoteStorage            RemoteStorageConfig            `yaml:"remote_storage"`
+	FabricAci                FabricAciConfig                `yaml:"fabric_aci"`
+}
+
+// FabricAciConfig represents the Fabric ACI acceptance-test connection configuration.
+type FabricAciConfig struct {
+	Hostname string `yaml:"hostname"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
 // MultiClusterConnectivityConfig represents the multi-cluster connectivity test configuration
@@ -46,19 +53,6 @@ type MultiClusterConnectivityConfig struct {
 	Hostname                string `yaml:"hostname"`
 	LoginDomain             string `yaml:"login_domain"`
 	MultiClusterLoginDomain string `yaml:"multi_cluster_login_domain"`
-}
-
-// LocalUserConfig represents the local-user-specific test configuration
-type LocalUserConfig struct {
-	LoginID                 string              `yaml:"login_id"`
-	UserPassword            string              `yaml:"user_password"`
-	Email                   string              `yaml:"email"`
-	FirstName               string              `yaml:"first_name"`
-	LastName                string              `yaml:"last_name"`
-	RemoteIDClaim           string              `yaml:"remote_id_claim"`
-	RemoteUserAuthorization bool                `yaml:"remote_user_authorization"`
-	TenantDomain            string              `yaml:"tenant_domain"`
-	SecurityDomains         map[string][]string `yaml:"security_domains"`
 }
 
 // InventoryConfig represents the inventory-specific test configuration

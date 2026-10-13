@@ -67,10 +67,10 @@ func deleteBackupOutsideTerraform(t *testing.T, name string) {
 	}
 }
 
-// TestAccBackupResource exercises the supported create/destroy lifecycle for
+// TestAccInfraBackupResource exercises the supported create/destroy lifecycle for
 // the main nd_backup combinations. Import is intentionally not covered because
 // nd_backup import is not supported.
-func TestAccBackupResource(t *testing.T) {
+func TestAccInfraBackupResource(t *testing.T) {
 	cfg := helper.GetConfig("global")
 
 	x := &map[string]string{
@@ -173,7 +173,7 @@ func TestAccBackupResource(t *testing.T) {
 	})
 }
 
-func TestAccBackupResourceInvalidTelemetryData(t *testing.T) {
+func TestAccInfraBackupResourceInvalidTelemetryData(t *testing.T) {
 	cfg := helper.GetConfig("global")
 
 	x := &map[string]string{
