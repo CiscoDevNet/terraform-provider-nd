@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccTenantDomainDataSource(t *testing.T) {
+func TestAccInfraTenantDomainDataSource(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	suffix := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 	domainName := fmt.Sprintf("tf_domain_ds_%s", suffix)

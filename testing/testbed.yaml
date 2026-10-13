@@ -18,11 +18,17 @@ nd:
   # Prefixes for dynamically created resources during tests
   fabric_prefix: "at_fabric_"
 
+  # Fabric ACI acceptance test configuration
+  fabric_aci:
+    hostname: "1.1.1.1"
+    username: "admin"
+    password: "*********"
+
   # Multi-cluster connectivity test configuration
   multi_cluster_connectivity:
-    hostname: "198.18.133.100"
+    hostname: "1.1.1.1"
     username: "admin"
-    password: "password"
+    password: "*********"
     login_domain: "local"
     multi_cluster_login_domain: "multi_cluster_login_domain"
 
@@ -105,20 +111,3 @@ nd:
         hostname: "leaf1"
         gateway_ip_mask: "10.0.0.254/24"
         poap_password: "password"
-
-  # Local user test configuration
-  local_user:
-    login_id: "tf_local_user_acc"
-    user_password: "Str0ng_P@ssw0rd_123!"
-    email: "tf_local_user_acc@mail.com"
-    first_name: "tf_first"
-    last_name: "tf_last"
-    remote_id_claim: "tf_remote_id_claim"
-    remote_user_authorization: false
-    reuse_limitation: 10
-    time_interval_limitation: 20
-    tenant_domain: "all-tenants-domain"
-    security_domains:
-      all:
-        - "approver"
-        - "designer"

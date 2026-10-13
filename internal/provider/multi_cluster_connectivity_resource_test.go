@@ -200,7 +200,7 @@ func missingMultiClusterConnectivityImportIDFromState(resourceName string) resou
 	}
 }
 
-func TestAccMultiClusterConnectivityResourceCreateIgnoresRequestedClusterName(t *testing.T) {
+func TestAccInfraMultiClusterConnectivityResourceCreateIgnoresRequestedClusterName(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	mccCfg := cfg.ND.MultiClusterConnectivity
 
@@ -375,7 +375,7 @@ func TestAccMultiClusterConnectivityResourceCreateIgnoresRequestedClusterName(t 
 	}
 }
 
-func TestAccMultiClusterConnectivityResourcePreExistingObject(t *testing.T) {
+func TestAccInfraMultiClusterConnectivityResourcePreExistingObject(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	mccCfg := cfg.ND.MultiClusterConnectivity
 
@@ -453,12 +453,12 @@ func TestAccMultiClusterConnectivityResourcePreExistingObject(t *testing.T) {
 	})
 }
 
-// TestAccMultiClusterConnectivityResourceCRUD exercises create/read/update
+// TestAccInfraMultiClusterConnectivityResourceCRUD exercises create/read/update
 // against a remote ND cluster onboarded via nd_multi_cluster_connectivity.
 //
 // The resource input values mirror the recent create/update samples. The
 // testbed config is still used for provider test setup and TLS behavior.
-func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
+func TestAccInfraMultiClusterConnectivityResourceCRUD(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	mccCfg := cfg.ND.MultiClusterConnectivity
 
@@ -525,7 +525,8 @@ func TestAccMultiClusterConnectivityResourceCRUD(t *testing.T) {
 					s1.Name = fmt.Sprintf("%s_%d_create_with_sample_payload", t.Name(), s1.Index)
 
 					overrides := map[string]interface{}{
-						"login_domain": mccCfg.LoginDomain,
+						"login_domain":               mccCfg.LoginDomain,
+						"multi_cluster_login_domain": mccCfg.MultiClusterLoginDomain,
 					}
 					helper.GenerateMultiClusterConnectivityObject(&rsc,
 						mccCfg.Hostname,

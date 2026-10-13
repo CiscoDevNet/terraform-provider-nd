@@ -27,22 +27,35 @@ import (
 	nd "github.com/netascode/go-nd"
 )
 
-const localUserDefaultTenantDomain = "all-tenants-domain"
+const (
+	localUserLoginIDPrefix       = "tf_local_user_acc"
+	localUserTestPassword        = "Str0ng_P@ssw0rd_123!"
+	localUserTestEmail           = "tf_local_user_acc@mail.com"
+	localUserTestFirstName       = "tf_first"
+	localUserTestLastName        = "tf_last"
+	localUserTestRemoteIDClaim   = "tf_remote_id_claim"
+	localUserDefaultTenantDomain = "all-tenants-domain"
+)
 
-// TestAccLocalUserResourceCRUD exercises local-user creation, mutable updates,
+func localUserTestSecurityDomains() map[string][]string {
+	return map[string][]string{
+		"all": {"approver", "designer"},
+	}
+}
+
+// TestAccInfraLocalUserResourceCRUD exercises local-user creation, mutable updates,
 // drift handling, read/delete 404 behavior, and schema validation.
-func TestAccLocalUserResourceCRUD(t *testing.T) {
+func TestAccInfraLocalUserResourceCRUD(t *testing.T) {
 	cfg := helper.GetConfig("global")
-	luCfg := cfg.ND.LocalUser
 	suffix := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 
-	requiredLoginID := fmt.Sprintf("%s_required_%s", luCfg.LoginID, suffix)
-	fullLoginID := fmt.Sprintf("%s_full_%s", luCfg.LoginID, suffix)
-	missingDestroyLoginID := fmt.Sprintf("%s_del404_%s", luCfg.LoginID, suffix)
-	invalidLoginID := fmt.Sprintf("%s_invalid_%s", luCfg.LoginID, suffix)
+	requiredLoginID := fmt.Sprintf("%s_required_%s", localUserLoginIDPrefix, suffix)
+	fullLoginID := fmt.Sprintf("%s_full_%s", localUserLoginIDPrefix, suffix)
+	missingDestroyLoginID := fmt.Sprintf("%s_del404_%s", localUserLoginIDPrefix, suffix)
+	invalidLoginID := fmt.Sprintf("%s_invalid_%s", localUserLoginIDPrefix, suffix)
 
-	securityDomains := copyLocalUserSecurityDomains(luCfg.SecurityDomains)
-	updatedSecurityDomains := copyLocalUserSecurityDomains(luCfg.SecurityDomains)
+	securityDomains := localUserTestSecurityDomains()
+	updatedSecurityDomains := localUserTestSecurityDomains()
 	for domainName, roles := range updatedSecurityDomains {
 		updatedRole := "observer"
 		if len(roles) == 1 && roles[0] == updatedRole {
@@ -52,26 +65,11 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 		break
 	}
 
-	tenantDomain := luCfg.TenantDomain
-	if tenantDomain == "" {
-		tenantDomain = localUserDefaultTenantDomain
-	}
-	remoteIDClaim := luCfg.RemoteIDClaim
-	if remoteIDClaim == "" {
-		remoteIDClaim = "tf_remote_id_claim"
-	}
-	email := luCfg.Email
-	if email == "" {
-		email = "tf_local_user@example.com"
-	}
-	firstName := luCfg.FirstName
-	if firstName == "" {
-		firstName = "Terraform"
-	}
-	lastName := luCfg.LastName
-	if lastName == "" {
-		lastName = "User"
-	}
+	tenantDomain := localUserDefaultTenantDomain
+	remoteIDClaim := localUserTestRemoteIDClaim
+	email := localUserTestEmail
+	firstName := localUserTestFirstName
+	lastName := localUserTestLastName
 
 	preexistingUser := new(resource_local_user.NDFCLocalUserModel)
 	requiredUser := new(resource_local_user.NDFCLocalUserModel)
@@ -106,15 +104,6 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t, "global")
-			if strings.TrimSpace(luCfg.LoginID) == "" {
-				t.Fatal("local_user.login_id must be configured in the acceptance-test testbed")
-			}
-			if strings.TrimSpace(luCfg.UserPassword) == "" {
-				t.Fatal("local_user.user_password must be configured in the acceptance-test testbed")
-			}
-			if len(securityDomains) == 0 {
-				t.Fatal("local_user.security_domains must contain at least one security domain in the acceptance-test testbed")
-			}
 			cleanupEnabled = true
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -127,7 +116,7 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 					generateRequiredLocalUserObject(
 						&preexistingUser,
 						requiredLoginID,
-						luCfg.UserPassword,
+						localUserTestPassword,
 						securityDomains,
 					)
 					configArgs := map[string]string{
@@ -163,7 +152,7 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 					generateRequiredLocalUserObject(
 						&requiredUser,
 						requiredLoginID,
-						luCfg.UserPassword,
+						localUserTestPassword,
 						securityDomains,
 					)
 					configArgs := map[string]string{
@@ -203,7 +192,7 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 					helper.GenerateLocalUserObject(
 						&fullUser,
 						fullLoginID,
-						luCfg.UserPassword,
+						localUserTestPassword,
 						securityDomains,
 						map[string]interface{}{
 							"email":                     email,
@@ -321,7 +310,7 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 					generateRequiredLocalUserObject(
 						&requiredUser,
 						requiredLoginID,
-						luCfg.UserPassword,
+						localUserTestPassword,
 						updatedSecurityDomains,
 					)
 					configArgs := map[string]string{
@@ -552,7 +541,7 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 					generateRequiredLocalUserObject(
 						&invalidUser,
 						invalidLoginID,
-						luCfg.UserPassword,
+						localUserTestPassword,
 						map[string][]string{"all": {"unsupported-role"}},
 					)
 					configArgs := map[string]string{
@@ -603,7 +592,7 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 					generateRequiredLocalUserObject(
 						&missingDestroyUser,
 						missingDestroyLoginID,
-						luCfg.UserPassword,
+						localUserTestPassword,
 						securityDomains,
 					)
 					configArgs := map[string]string{
@@ -671,37 +660,21 @@ func TestAccLocalUserResourceCRUD(t *testing.T) {
 	})
 }
 
-// TestAccLocalUserResourceImport verifies API-backed import state, the
+// TestAccInfraLocalUserResourceImport verifies API-backed import state, the
 // write-only password difference after import, import destroy, and missing
 // object handling.
-func TestAccLocalUserResourceImport(t *testing.T) {
+func TestAccInfraLocalUserResourceImport(t *testing.T) {
 	cfg := helper.GetConfig("global")
-	luCfg := cfg.ND.LocalUser
 	suffix := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 
-	loginID := fmt.Sprintf("%s_import_%s", luCfg.LoginID, suffix)
-	missingLoginID := fmt.Sprintf("%s_missing_import_%s", luCfg.LoginID, suffix)
-	securityDomains := copyLocalUserSecurityDomains(luCfg.SecurityDomains)
-	tenantDomain := luCfg.TenantDomain
-	if tenantDomain == "" {
-		tenantDomain = localUserDefaultTenantDomain
-	}
-	remoteIDClaim := luCfg.RemoteIDClaim
-	if remoteIDClaim == "" {
-		remoteIDClaim = "tf_remote_id_claim"
-	}
-	email := luCfg.Email
-	if email == "" {
-		email = "tf_local_user@example.com"
-	}
-	firstName := luCfg.FirstName
-	if firstName == "" {
-		firstName = "Terraform"
-	}
-	lastName := luCfg.LastName
-	if lastName == "" {
-		lastName = "User"
-	}
+	loginID := fmt.Sprintf("%s_import_%s", localUserLoginIDPrefix, suffix)
+	missingLoginID := fmt.Sprintf("%s_missing_import_%s", localUserLoginIDPrefix, suffix)
+	securityDomains := localUserTestSecurityDomains()
+	tenantDomain := localUserDefaultTenantDomain
+	remoteIDClaim := localUserTestRemoteIDClaim
+	email := localUserTestEmail
+	firstName := localUserTestFirstName
+	lastName := localUserTestLastName
 
 	importUser := new(resource_local_user.NDFCLocalUserModel)
 	missingUser := new(resource_local_user.NDFCLocalUserModel)
@@ -722,15 +695,6 @@ func TestAccLocalUserResourceImport(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t, "global")
-			if strings.TrimSpace(luCfg.LoginID) == "" {
-				t.Fatal("local_user.login_id must be configured in the acceptance-test testbed")
-			}
-			if strings.TrimSpace(luCfg.UserPassword) == "" {
-				t.Fatal("local_user.user_password must be configured in the acceptance-test testbed")
-			}
-			if len(securityDomains) == 0 {
-				t.Fatal("local_user.security_domains must contain at least one security domain in the acceptance-test testbed")
-			}
 			cleanupEnabled = true
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -743,7 +707,7 @@ func TestAccLocalUserResourceImport(t *testing.T) {
 					helper.GenerateLocalUserObject(
 						&importUser,
 						loginID,
-						luCfg.UserPassword,
+						localUserTestPassword,
 						securityDomains,
 						map[string]interface{}{
 							"email":                     email,
@@ -847,7 +811,7 @@ func TestAccLocalUserResourceImport(t *testing.T) {
 					generateRequiredLocalUserObject(
 						&missingUser,
 						missingLoginID,
-						luCfg.UserPassword,
+						localUserTestPassword,
 						securityDomains,
 					)
 					configArgs := map[string]string{
@@ -897,14 +861,6 @@ func generateRequiredLocalUserObject(
 	(*obj).FirstName = ""
 	(*obj).LastName = ""
 	(*obj).RemoteUserAuthorization = nil
-}
-
-func copyLocalUserSecurityDomains(in map[string][]string) map[string][]string {
-	out := make(map[string][]string, len(in))
-	for domainName, roles := range in {
-		out[domainName] = append([]string(nil), roles...)
-	}
-	return out
 }
 
 func localUserStateChecks(resourceName string, model resource_local_user.NDFCLocalUserModel) []resource.TestCheckFunc {

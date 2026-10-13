@@ -22,22 +22,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccLocalUserDataSource(t *testing.T) {
+func TestAccInfraLocalUserDataSource(t *testing.T) {
 	cfg := helper.GetConfig("global")
-	localUserConfig := cfg.ND.LocalUser
 	suffix := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
-	loginID := fmt.Sprintf("%s_ds_%s", localUserConfig.LoginID, suffix)
+	loginID := fmt.Sprintf("%s_ds_%s", localUserLoginIDPrefix, suffix)
 	missingID := loginID + "_missing"
-	defaultTenantDomain := "all-tenants-domain"
 	resourceName := "nd_local_user.user_test"
 	dataSourceName := "data.nd_local_user.user_test"
 
-	securityDomains := localUserConfig.SecurityDomains
-	if len(securityDomains) == 0 {
-		securityDomains = map[string][]string{
-			"all": {"approver", "designer"},
-		}
-	}
+	securityDomains := localUserTestSecurityDomains()
 
 	x := &map[string]string{
 		"RscType":  "nd_local_user",
@@ -71,7 +64,7 @@ func TestAccLocalUserDataSource(t *testing.T) {
 		resource.TestCheckResourceAttrPair(dataSourceName, "last_name", resourceName, "last_name"),
 		resource.TestCheckResourceAttrPair(dataSourceName, "remote_id_claim", resourceName, "remote_id_claim"),
 		resource.TestCheckResourceAttrPair(dataSourceName, "remote_user_authorization", resourceName, "remote_user_authorization"),
-		resource.TestCheckResourceAttr(dataSourceName, "tenant_domain", defaultTenantDomain),
+		resource.TestCheckResourceAttr(dataSourceName, "tenant_domain", localUserDefaultTenantDomain),
 		resource.TestCheckResourceAttrPair(dataSourceName, "tenant_domain", resourceName, "tenant_domain"),
 		resource.TestCheckResourceAttr(dataSourceName, "security_domains.%", strconv.Itoa(len(securityDomains))),
 		// The local-user GET API does not return the write-only password.
@@ -104,7 +97,7 @@ func TestAccLocalUserDataSource(t *testing.T) {
 					helper.GenerateLocalUserObject(
 						&localUser,
 						loginID,
-						localUserConfig.UserPassword,
+						localUserTestPassword,
 						securityDomains,
 						map[string]interface{}{
 							"email":                     fmt.Sprintf("tf_local_user_ds_%s@mail.com", suffix),

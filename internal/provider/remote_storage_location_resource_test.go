@@ -46,10 +46,10 @@ var sshKeyImportIgnoreFields = []string{
 	"scp_sftp.passphrase",
 }
 
-// TestAccRemoteStorageLocationResourceNAS exercises NFS-specific defaults,
+// TestAccInfraRemoteStorageLocationResourceNAS exercises NFS-specific defaults,
 // optional attributes, in-place updates, import, path and branch replacement,
 // and destroy.
-func TestAccRemoteStorageLocationResourceNAS(t *testing.T) {
+func TestAccInfraRemoteStorageLocationResourceNAS(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	host := cfg.ND.RemoteStorage.Hostname
 	username := cfg.ND.RemoteStorage.Username
@@ -312,10 +312,10 @@ func TestAccRemoteStorageLocationResourceNAS(t *testing.T) {
 	})
 }
 
-// TestAccRemoteStorageLocationResourceSCPWithPassword exercises password
+// TestAccInfraRemoteStorageLocationResourceSCPWithPassword exercises password
 // authentication, in-place updates, SCP-to-SFTP replacement, import, and
 // destroy.
-func TestAccRemoteStorageLocationResourceSCPWithPassword(t *testing.T) {
+func TestAccInfraRemoteStorageLocationResourceSCPWithPassword(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	host := cfg.ND.RemoteStorage.Hostname
 	username := cfg.ND.RemoteStorage.Username
@@ -525,10 +525,10 @@ func TestAccRemoteStorageLocationResourceSCPWithPassword(t *testing.T) {
 	})
 }
 
-// TestAccRemoteStorageLocationResourceSCPWithSSHKey exercises SSH-key
+// TestAccInfraRemoteStorageLocationResourceSCPWithSSHKey exercises SSH-key
 // authentication, in-place updates, SCP-to-SFTP replacement, import, and
 // destroy.
-func TestAccRemoteStorageLocationResourceSCPWithSSHKey(t *testing.T) {
+func TestAccInfraRemoteStorageLocationResourceSCPWithSSHKey(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	host := cfg.ND.RemoteStorage.Hostname
 	username := cfg.ND.RemoteStorage.Username
@@ -824,11 +824,11 @@ func remoteStorageLocationSCPSFTPDefaultChecks(resourceName string) []resource.T
 	}
 }
 
-// TestAccRemoteStorageLocationResourceCommonLifecycle exercises behavior that
+// TestAccInfraRemoteStorageLocationResourceCommonLifecycle exercises behavior that
 // is shared by NFS, SCP, and SFTP locations: duplicate creation, drift,
 // Read-404 recreation, and deletion by removing the resource from config. It
 // uses SCP password authentication to avoid NFS backend synchronization delays.
-func TestAccRemoteStorageLocationResourceCommonLifecycle(t *testing.T) {
+func TestAccInfraRemoteStorageLocationResourceCommonLifecycle(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	host := cfg.ND.RemoteStorage.Hostname
 	username := cfg.ND.RemoteStorage.Username
@@ -985,9 +985,9 @@ func TestAccRemoteStorageLocationResourceCommonLifecycle(t *testing.T) {
 	})
 }
 
-// TestAccRemoteStorageLocationResourceDeleteMissing verifies that Delete is
+// TestAccInfraRemoteStorageLocationResourceDeleteMissing verifies that Delete is
 // idempotent when the Terraform-managed location is already absent remotely.
-func TestAccRemoteStorageLocationResourceDeleteMissing(t *testing.T) {
+func TestAccInfraRemoteStorageLocationResourceDeleteMissing(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	host := cfg.ND.RemoteStorage.Hostname
 	username := cfg.ND.RemoteStorage.Username
@@ -1090,9 +1090,9 @@ func TestAccRemoteStorageLocationResourceDeleteMissing(t *testing.T) {
 	})
 }
 
-// TestAccRemoteStorageLocationResourceImportMissing verifies that import
+// TestAccInfraRemoteStorageLocationResourceImportMissing verifies that import
 // reports an explicit error for a location that does not exist.
-func TestAccRemoteStorageLocationResourceImportMissing(t *testing.T) {
+func TestAccInfraRemoteStorageLocationResourceImportMissing(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	host := cfg.ND.RemoteStorage.Hostname
 	username := cfg.ND.RemoteStorage.Username
@@ -1170,9 +1170,9 @@ func TestAccRemoteStorageLocationResourceImportMissing(t *testing.T) {
 	})
 }
 
-// TestAccRemoteStorageLocationResourceAuthConflicts verifies profile-specific
+// TestAccInfraRemoteStorageLocationResourceAuthConflicts verifies profile-specific
 // schema validation and mutually exclusive NFS/SCP/SFTP attributes.
-func TestAccRemoteStorageLocationResourceAuthConflicts(t *testing.T) {
+func TestAccInfraRemoteStorageLocationResourceAuthConflicts(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	host := cfg.ND.RemoteStorage.Hostname
 	passwordSSHKeyConflictName := fmt.Sprintf("auth-conflict-password-ssh-key-%s", acctest.RandStringFromCharSet(5, acctest.CharSetAlpha))

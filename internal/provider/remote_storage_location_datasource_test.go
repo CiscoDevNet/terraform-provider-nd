@@ -22,28 +22,28 @@ import (
 )
 
 func TestAccInfraRemoteStorageLocationDataSourceNFS(t *testing.T) {
-	testAccRemoteStorageLocationDataSource(t, "nfs", false)
+	testAccInfraRemoteStorageLocationDataSource(t, "nfs", false)
 }
 
 func TestAccInfraRemoteStorageLocationDataSourceSCPWithPassword(t *testing.T) {
-	testAccRemoteStorageLocationDataSource(t, "scp", false)
+	testAccInfraRemoteStorageLocationDataSource(t, "scp", false)
 }
 
 func TestAccInfraRemoteStorageLocationDataSourceSFTPWithPassword(t *testing.T) {
-	testAccRemoteStorageLocationDataSource(t, "sftp", false)
+	testAccInfraRemoteStorageLocationDataSource(t, "sftp", false)
 }
 
 func TestAccInfraRemoteStorageLocationDataSourceSCPWithSSHKey(t *testing.T) {
-	testAccRemoteStorageLocationDataSource(t, "scp", true)
+	testAccInfraRemoteStorageLocationDataSource(t, "scp", true)
 }
 
 func TestAccInfraRemoteStorageLocationDataSourceSFTPWithSSHKey(t *testing.T) {
-	testAccRemoteStorageLocationDataSource(t, "sftp", true)
+	testAccInfraRemoteStorageLocationDataSource(t, "sftp", true)
 }
 
-// testAccRemoteStorageLocationDataSource creates a location, then reads it through
+// testAccInfraRemoteStorageLocationDataSource creates a location, then reads it through
 // the datasource and compares the common and protocol-specific API-backed fields.
-func testAccRemoteStorageLocationDataSource(t *testing.T, protocol string, useSSHKey bool) {
+func testAccInfraRemoteStorageLocationDataSource(t *testing.T, protocol string, useSSHKey bool) {
 	t.Helper()
 
 	cfg := helper.GetConfig("global")
