@@ -286,6 +286,7 @@ data "nd_fabric" "test_resource_fabric_1" {
 - `syslog_server_collection` (Set of String) List of Syslog server IPv4/IPv6 addresses and/or hostnames.
 - `syslog_server_vrf_collection` (Set of String) Syslog Server VRFs. One VRF for all Syslog servers or a list of VRFs, one per Syslog server.
 - `syslog_servers` (Set of String) Syslog server addresses configured for alert delivery.
+- `syslog_severity_collection` (List of Number) List of Syslog severity values, one per Syslog server.
 - `target_subnet_mask` (Number) Mask for underlay subnet IP range.
 - `tcam_allocation` (Boolean) Automatic TCAM command generation status for VXLAN and vPC fabric peering.
 - `telemetry_collection` (Boolean) Telemetry collection enable status on the fabric.

@@ -2397,6 +2397,14 @@ datasource:
     description: List of Syslog server IPv4/IPv6 addresses and/or hostnames.
     computed: true
 
+  - model_name: syslogSeverityCollection
+    tf_name: syslog_severity_collection
+    type: List:Int64
+    ndfc_nested:
+    - management
+    description: List of Syslog severity values, one per Syslog server.
+    computed: true
+
   - model_name: syslogServerVrfCollection
     tf_name: syslog_server_vrf_collection
     type: List:String

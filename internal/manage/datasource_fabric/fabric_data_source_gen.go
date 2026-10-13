@@ -1903,6 +1903,12 @@ func FabricDataSourceSchema(ctx context.Context) schema.Schema {
 				Description:         "Syslog server addresses configured for alert delivery.",
 				MarkdownDescription: "Syslog server addresses configured for alert delivery.",
 			},
+			"syslog_severity_collection": schema.ListAttribute{
+				ElementType:         types.Int64Type,
+				Computed:            true,
+				Description:         "List of Syslog severity values, one per Syslog server.",
+				MarkdownDescription: "List of Syslog severity values, one per Syslog server.",
+			},
 			"target_subnet_mask": schema.Int64Attribute{
 				Computed:            true,
 				Description:         "Mask for underlay subnet IP range.",
@@ -2514,6 +2520,7 @@ type FabricModel struct {
 	SyslogServerCollection                     types.Set     `tfsdk:"syslog_server_collection"`
 	SyslogServerVrfCollection                  types.Set     `tfsdk:"syslog_server_vrf_collection"`
 	SyslogServers                              types.Set     `tfsdk:"syslog_servers"`
+	SyslogSeverityCollection                   types.List    `tfsdk:"syslog_severity_collection"`
 	TargetSubnetMask                           types.Int64   `tfsdk:"target_subnet_mask"`
 	TcamAllocation                             types.Bool    `tfsdk:"tcam_allocation"`
 	TelemetryCollection                        types.Bool    `tfsdk:"telemetry_collection"`

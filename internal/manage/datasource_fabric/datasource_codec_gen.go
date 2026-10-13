@@ -2029,6 +2029,21 @@ func (v *FabricModel) SetModelData(jsonData *resource_fabric_common.NDFCFabricCo
 		}
 	}
 
+	if len(jsonData.Management.SyslogSeverityCollection) == 0 {
+		log.Printf("v.SyslogSeverityCollection is empty")
+		v.SyslogSeverityCollection = types.ListNull(types.Int64Type)
+	} else {
+		listData := make([]attr.Value, len(jsonData.Management.SyslogSeverityCollection))
+		for i, item := range jsonData.Management.SyslogSeverityCollection {
+			listData[i] = types.Int64Value(item)
+		}
+		v.SyslogSeverityCollection, err = types.ListValue(types.Int64Type, listData)
+		if err != nil {
+			log.Printf("Error in converting []int64 to  List")
+			return err
+		}
+	}
+
 	if len(jsonData.Management.SyslogServerVrfCollection) == 0 {
 		log.Printf("v.SyslogServerVrfCollection is empty")
 		v.SyslogServerVrfCollection = types.SetNull(types.StringType)
