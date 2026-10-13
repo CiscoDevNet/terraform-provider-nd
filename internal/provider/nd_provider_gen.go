@@ -12,6 +12,12 @@ import (
 func NdProviderSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"api_key": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				Description:         "API key for Nexus Dashboard authentication (alternative to password). Environment variable `ND_API_KEY` can be used to override the provider configuration.",
+				MarkdownDescription: "API key for Nexus Dashboard authentication (alternative to password). Environment variable `ND_API_KEY` can be used to override the provider configuration.",
+			},
 			"domain": schema.StringAttribute{
 				Optional:            true,
 				Description:         "NDFC Login credentials - domain. Environment variable `ND_DOMAIN` can be used to override the provider configuration.",
@@ -28,7 +34,7 @@ func NdProviderSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "Maximum number of retries for HTTP requests. Environment variable `ND_MAX_RETRIES` can be used to override the provider configuration.",
 			},
 			"password": schema.StringAttribute{
-				Required:            true,
+				Optional:            true,
 				Sensitive:           true,
 				Description:         "NDFC Login credentials - password. Environment variable `ND_PASSWORD` can be used to override the provider configuration.",
 				MarkdownDescription: "NDFC Login credentials - password. Environment variable `ND_PASSWORD` can be used to override the provider configuration.",
@@ -53,6 +59,7 @@ func NdProviderSchema(ctx context.Context) schema.Schema {
 }
 
 type NdModel struct {
+	ApiKey     types.String `tfsdk:"api_key"`
 	Domain     types.String `tfsdk:"domain"`
 	Insecure   types.Bool   `tfsdk:"insecure"`
 	MaxRetries types.Int64  `tfsdk:"max_retries"`
