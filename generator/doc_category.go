@@ -25,10 +25,15 @@ const definitionsPath = "./generator/defs"
 
 type docConfig struct {
 	Name        string `yaml:"name"`
-	Subcategory string `yaml:"subcategory"`
+	DocCategory string `yaml:"doc_category"`
 }
 
 func main() {
+	docCategories, ok := loadDocCategories()
+	if !ok {
+		return
+	}
+
 	content, _ := os.ReadFile(filepath.Join(definitionsPath, "defs.yaml"))
 	var manifest struct {
 		Files []string `yaml:"files"`
@@ -51,12 +56,33 @@ func main() {
 
 		for kind, directory := range docDirectories {
 			definition := definitions[kind]
-			if definition.Name == "" || definition.Subcategory == "" {
+			if definition.Name == "" || definition.DocCategory == "" {
 				continue
 			}
-			updateDoc(filepath.Join("docs", directory, definition.Name+".md"), definition.Subcategory)
+			if _, ok := docCategories[definition.DocCategory]; !ok {
+				continue
+			}
+			updateDoc(filepath.Join("docs", directory, definition.Name+".md"), definition.DocCategory)
 		}
 	}
+}
+
+func loadDocCategories() (map[string]struct{}, bool) {
+	content, err := os.ReadFile(filepath.Join(definitionsPath, "doc_categories.yaml"))
+	if err != nil {
+		return nil, false
+	}
+
+	var categories []string
+	if yaml.Unmarshal(content, &categories) != nil {
+		return nil, false
+	}
+
+	docCategories := make(map[string]struct{}, len(categories))
+	for _, category := range categories {
+		docCategories[category] = struct{}{}
+	}
+	return docCategories, true
 }
 
 func updateDoc(filename, subcategory string) {
