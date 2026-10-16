@@ -46,6 +46,21 @@ func newChangeControlAcceptanceClient(t *testing.T) *nd.Client {
 	return &client
 }
 
+// skipUnsupportedChangeControlTargetError skips an acceptance test when ND rejects
+// enabling a target because of environment support or tenant-association constraints.
+// The HTTP 400 and target-specific rejection match keep unrelated failures visible.
+func skipUnsupportedChangeControlTargetError(t *testing.T, capability string, rejection *regexp.Regexp) resource.ErrorCheckFunc {
+	t.Helper()
+
+	return func(err error) error {
+		message := err.Error()
+		if regexp.MustCompile(`(?s)Error Updating Change Control.*StatusCode 400`).MatchString(message) && rejection.MatchString(message) {
+			t.Skipf("ND cannot enable change control for %s: %s", capability, message)
+		}
+		return err
+	}
+}
+
 func putChangeControlOutsideTerraform(
 	t *testing.T,
 	client *nd.Client,
@@ -122,7 +137,7 @@ func changeControlStateChecks(
 	return append(checks, ChangeControlModelHelperStateCheck(resourceName, model, path.Empty())...)
 }
 
-func TestAccChangeControlResource(t *testing.T) {
+func TestAccInfraChangeControlResource(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	client := newChangeControlAcceptanceClient(t)
 	cleanupEnabled := false
@@ -158,6 +173,9 @@ func TestAccChangeControlResource(t *testing.T) {
 			testAccPreCheck(t, "global")
 			cleanupEnabled = true
 		},
+		ErrorCheck: skipUnsupportedChangeControlTargetError(t, "orchestration", regexp.MustCompile(
+			`(?is)(?:Unable\s+to\s+enable\s+change\s+control\s+for\s+Orchestration\.\s+Confirm\s+the\s+Orchestration\s+feature\s+is\s+enabled\.|orchestration.{0,120}(?:not supported|unsupported|not available|not allowed)|(?:not supported|unsupported|not available|not allowed).{0,120}orchestration)`,
+		)),
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -278,7 +296,7 @@ func TestAccChangeControlResource(t *testing.T) {
 	})
 }
 
-func TestAccChangeControlResourceManagedFabrics(t *testing.T) {
+func TestAccInfraChangeControlResourceManagedFabrics(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	client := newChangeControlAcceptanceClient(t)
 	cleanupEnabled := false
@@ -310,6 +328,9 @@ func TestAccChangeControlResourceManagedFabrics(t *testing.T) {
 			testAccPreCheck(t, "global")
 			cleanupEnabled = true
 		},
+		ErrorCheck: skipUnsupportedChangeControlTargetError(t, "nd_managed_fabrics", regexp.MustCompile(
+			`(?is)Enabling the change control feature is\s+not allowed if tenant associations exist for some managed LAN fabrics|(?:ND[- ]managed fabrics?.{0,120}(?:not supported|unsupported|not available|not allowed)|(?:not supported|unsupported|not available|not allowed).{0,120}ND[- ]managed fabrics?)`,
+		)),
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -372,7 +393,7 @@ func TestAccChangeControlResourceManagedFabrics(t *testing.T) {
 	})
 }
 
-func TestAccChangeControlResourceInvalidConfiguration(t *testing.T) {
+func TestAccInfraChangeControlResourceInvalidConfiguration(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	x := &map[string]string{
 		"RscType":  "nd_change_control",

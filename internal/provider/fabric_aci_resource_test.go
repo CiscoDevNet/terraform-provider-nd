@@ -111,15 +111,57 @@ func deleteFabricAciOutsideTerraform(t *testing.T, fabricName, username, passwor
 	}
 }
 
-func TestAccFabricAciResourceCRUD(t *testing.T) {
-	const (
-		rscAddr  = "nd_fabric_aci.fabric_test"
-		hostname = "1.1.1.1"
-		username = "admin"
-		password = "**********"
-	)
+func updateFabricAciOutsideTerraform(t *testing.T, fabricName string) {
+	t.Helper()
 
 	cfg := helper.GetConfig("global")
+	client, err := nd.NewClient(
+		cfg.ND.URL,
+		"/api/v1",
+		cfg.ND.User,
+		cfg.ND.Password,
+		"",
+		cfg.ND.Insecure == "true",
+		nd.MaxRetries(3),
+	)
+	if err != nil {
+		t.Fatalf("failed to create ND client for out-of-band Fabric ACI update: %v", err)
+	}
+
+	payload, err := json.Marshal(map[string]interface{}{
+		"category":       "fabric",
+		"name":           fabricName,
+		"licenseTier":    "advantage",
+		"securityDomain": "all",
+		"location": map[string]float64{
+			"latitude":  12,
+			"longitude": 34,
+		},
+		"telemetryCollection": false,
+		"management": map[string]interface{}{
+			"type":          "aci",
+			"orchestration": false,
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to marshal out-of-band Fabric ACI update payload: %v", err)
+	}
+
+	fabricAPI := api.NewFabricAciAPI(&client, ndapi.DefaultFabric)
+	fabricAPI.ClusterName = fabricName
+	res, err := fabricAPI.Put(payload, nil)
+	if err != nil {
+		t.Fatalf("failed to update Fabric ACI %q outside Terraform: %v %s", fabricName, err, res.String())
+	}
+}
+
+func TestAccManageFabricAciResourceCRUD(t *testing.T) {
+	const rscAddr = "nd_fabric_aci.fabric_test"
+
+	cfg := helper.GetConfig("global")
+	hostname := cfg.ND.FabricAci.Hostname
+	username := cfg.ND.FabricAci.Username
+	password := cfg.ND.FabricAci.Password
 	fabricName := "tf-" + acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 	environmentVariablePrefix := strings.ToUpper(strings.ReplaceAll(fabricName, "-", "_"))
 	forceEnvironmentVariable := environmentVariablePrefix + "_FORCE"
@@ -152,6 +194,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 		"Verify importing the removed fabric reports resource not found",
 		"Recreate the fabric with orchestration enabled",
 		"Disable orchestration before normal removal",
+		"Detect Fabric ACI drift after out-of-band changes",
 		"Delete outside Terraform and verify provider Delete treats HTTP 404 as success",
 	}
 	for _, testCase := range testCases {
@@ -220,6 +263,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 	s10 := &helper.StepInfo{}
 	s11 := &helper.StepInfo{}
 	s12 := &helper.StepInfo{}
+	s13 := &helper.StepInfo{}
 	stepTracker := helper.NewStepTracker(t)
 
 	resource.Test(t, resource.TestCase{
@@ -545,8 +589,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Check:         fabricAciStateCheck(*fabricRsc),
 				PostApplyFunc: func() { stepTracker.Complete(11) },
 			},
-			// Step 12: Delete outside Terraform, then disable plan refresh so the
-			// provider Delete receives the stale state and handles HTTP 404.
+			// Step 12: Change mutable fields outside Terraform and require a drift plan.
 			{
 				Config: func() string {
 					*stepCount++
@@ -562,6 +605,29 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				PreConfig: func() {
 					stepTracker.RequirePrevious(12)
 					helper.LogStep(t, s12.Index, s12.Name, redactConfig(s12.Cfg))
+					updateFabricAciOutsideTerraform(t, fabricName)
+				},
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+				PostApplyFunc:      func() { stepTracker.Complete(12) },
+			},
+			// Step 13: Delete outside Terraform, then disable plan refresh so the
+			// provider Delete receives the stale state and handles HTTP 404.
+			{
+				Config: func() string {
+					*stepCount++
+					s13.Index = *stepCount
+					s13.Name = stepName(13)
+
+					helper.GetTFConfigWithSingleResource(s13.Name, *x,
+						[]interface{}{fabricRsc}, &tfConfig)
+
+					s13.Cfg = *tfConfig
+					return *tfConfig
+				}(),
+				PreConfig: func() {
+					stepTracker.RequirePrevious(13)
+					helper.LogStep(t, s13.Index, s13.Name, redactConfig(s13.Cfg))
 					if err := os.Unsetenv(forceEnvironmentVariable); err != nil {
 						t.Fatalf("Failed to unset %s before final destroy: %v", forceEnvironmentVariable, err)
 					}
@@ -578,7 +644,7 @@ func TestAccFabricAciResourceCRUD(t *testing.T) {
 				Destroy: true,
 				PostApplyFunc: func() {
 					restoreTerraformPlanArgs()
-					stepTracker.Complete(12)
+					stepTracker.Complete(13)
 				},
 			},
 		},

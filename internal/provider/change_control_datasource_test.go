@@ -10,6 +10,7 @@ package provider
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"terraform-provider-nd/internal/infra/resource_change_control"
@@ -19,14 +20,54 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccChangeControlDataSource(t *testing.T) {
+func TestAccInfraChangeControlDataSource(t *testing.T) {
+	// Test each target independently because an ND deployment can support one
+	// change control target while rejecting the other.
+	t.Run("Orchestration", func(t *testing.T) {
+		testAccInfraChangeControlDataSourceTarget(
+			t,
+			"orchestration",
+			true,
+			false,
+			"TF_DS_ORCH_CC_",
+			regexp.MustCompile(
+				`(?is)(?:Unable\s+to\s+enable\s+change\s+control\s+for\s+Orchestration\.\s+Confirm\s+the\s+Orchestration\s+feature\s+is\s+enabled\.|orchestration.{0,120}(?:not supported|unsupported|not available|not allowed)|(?:not supported|unsupported|not available|not allowed).{0,120}orchestration)`,
+			),
+		)
+	})
+
+	t.Run("NDManagedFabrics", func(t *testing.T) {
+		testAccInfraChangeControlDataSourceTarget(
+			t,
+			"nd_managed_fabrics",
+			false,
+			true,
+			"TF_DS_FABRIC_CC_",
+			regexp.MustCompile(
+				`(?is)Enabling the change control feature is\s+not allowed if tenant associations exist for some managed LAN fabrics|(?:ND[- ]managed fabrics?.{0,120}(?:not supported|unsupported|not available|not allowed)|(?:not supported|unsupported|not available|not allowed).{0,120}ND[- ]managed fabrics?)`,
+			),
+		)
+	})
+}
+
+func testAccInfraChangeControlDataSourceTarget(
+	t *testing.T,
+	capability string,
+	orchestration bool,
+	ndManagedFabrics bool,
+	ticketNamePrefix string,
+	rejection *regexp.Regexp,
+) {
+	t.Helper()
+
 	cfg := helper.GetConfig("global")
-	resourceName := "nd_change_control.change_control_datasource_test"
-	dataSourceName := "data.nd_change_control.change_control_datasource_test"
+	testName := fmt.Sprintf("change_control_datasource_%s_test", capability)
+	resourceName := "nd_change_control." + testName
+	dataSourceName := "data.nd_change_control." + testName
 
 	x := &map[string]string{
 		"RscType":  "nd_change_control",
-		"RscName":  "change_control_datasource_test",
+		"RscName":  testName,
 		"User":     cfg.ND.User,
 		"Password": cfg.ND.Password,
 		"Host":     cfg.ND.URL,
@@ -36,7 +77,7 @@ func TestAccChangeControlDataSource(t *testing.T) {
 	tfConfig := new(string)
 	changeControl := new(resource_change_control.NDFCChangeControlModel)
 	changeControlDataSource := &helper.ChangeControlDataSourceTestData{
-		RscName:   "change_control_datasource_test",
+		RscName:   testName,
 		DependsOn: resourceName,
 	}
 	s1 := &helper.StepInfo{}
@@ -57,21 +98,22 @@ func TestAccChangeControlDataSource(t *testing.T) {
 	// built-in GET/PUT singleton with no datasource lookup attribute.
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ErrorCheck:               skipUnsupportedChangeControlTargetError(t, capability, rejection),
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: func() string {
 					s1.Index = 1
-					s1.Name = fmt.Sprintf("%s - %s", t.Name(), "Configure change control for datasource reads")
+					s1.Name = fmt.Sprintf("%s - Configure change control for %s datasource reads", t.Name(), capability)
 
 					helper.GenerateChangeControlObject(&changeControl, map[string]interface{}{
 						"admin_status":                    true,
-						"orchestration":                   true,
-						"nd_managed_fabrics":              false,
+						"orchestration":                   orchestration,
+						"nd_managed_fabrics":              ndManagedFabrics,
 						"bypass_telemetry_change_control": true,
 						"number_of_approvers":             3,
 						"allow_self_approval":             false,
-						"ticket_name_prefix":              "TF_DS_CC_",
+						"ticket_name_prefix":              ticketNamePrefix,
 					})
 					helper.GetTFConfigWithSingleResource(s1.Name, *x, []interface{}{changeControl}, &tfConfig)
 					s1.Cfg = *tfConfig
@@ -85,7 +127,7 @@ func TestAccChangeControlDataSource(t *testing.T) {
 			{
 				Config: func() string {
 					s2.Index = 2
-					s2.Name = fmt.Sprintf("%s - %s", t.Name(), "Read the change control singleton through the datasource")
+					s2.Name = fmt.Sprintf("%s - Read the %s change control configuration through the datasource", t.Name(), capability)
 
 					helper.GetTFConfigWithSingleResource(
 						s2.Name,
@@ -98,13 +140,13 @@ func TestAccChangeControlDataSource(t *testing.T) {
 				}(),
 				PreConfig: func() { helper.LogStep(t, s2.Index, s2.Name, s2.Cfg) },
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(dataSourceName, "ticket_name_prefix", "TF_DS_CC_"),
+					resource.TestCheckResourceAttr(dataSourceName, "ticket_name_prefix", ticketNamePrefix),
 				),
 			},
 			{
 				Config: func() string {
 					s3.Index = 3
-					s3.Name = fmt.Sprintf("%s - %s", t.Name(), "Match all datasource attributes with the configured change control settings")
+					s3.Name = fmt.Sprintf("%s - Match all datasource attributes with the configured %s settings", t.Name(), capability)
 
 					helper.GetTFConfigWithSingleResource(
 						s3.Name,

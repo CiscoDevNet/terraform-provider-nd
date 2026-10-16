@@ -161,7 +161,7 @@ func tenantDomainStateChecks(
 	return checks
 }
 
-func TestAccTenantDomainResourceCRUD(t *testing.T) {
+func TestAccInfraTenantDomainResourceCRUD(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	client := newTenantDomainAcceptanceClient(t)
 	suffix := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)

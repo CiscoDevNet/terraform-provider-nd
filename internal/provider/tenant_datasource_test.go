@@ -21,12 +21,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccTenantDataSource(t *testing.T) {
+func TestAccInfraTenantDataSource(t *testing.T) {
 	cfg := helper.GetConfig("global")
 	suffix := acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)
 	tenantName := fmt.Sprintf("tf_tenant_ds_%s", suffix)
 	missingName := tenantName + "_missing"
-	fabricName := "ansible-test"
+	fabricName := tenantFabricOne
 	resourceName := "nd_tenant.tenant_test"
 	dataSourceName := "data.nd_tenant.tenant_test"
 
@@ -88,6 +88,7 @@ func TestAccTenantDataSource(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
+		ErrorCheck:               skipMissingTenantTestFabric(t, fabricName),
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
