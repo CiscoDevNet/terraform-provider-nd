@@ -45,28 +45,24 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 
 	if jsonData.FeatureStatus.ControllerStatus != "" {
 		v.ControllerStatus = types.StringValue(jsonData.FeatureStatus.ControllerStatus)
-
 	} else {
 		v.ControllerStatus = types.StringNull()
 	}
 
 	if jsonData.FeatureStatus.TelemetryStatus != "" {
 		v.TelemetryStatus = types.StringValue(jsonData.FeatureStatus.TelemetryStatus)
-
 	} else {
 		v.TelemetryStatus = types.StringNull()
 	}
 
 	if jsonData.FeatureStatus.OrchestrationStatus != "" {
 		v.OrchestrationStatus = types.StringValue(jsonData.FeatureStatus.OrchestrationStatus)
-
 	} else {
 		v.OrchestrationStatus = types.StringNull()
 	}
 
 	if jsonData.FeatureStatus.TrapForwarderStatus != "" {
 		v.TrapForwarderStatus = types.StringValue(jsonData.FeatureStatus.TrapForwarderStatus)
-
 	} else {
 		v.TrapForwarderStatus = types.StringNull()
 	}
@@ -125,91 +121,78 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 
 	if jsonData.Management.FabricType != "" {
 		v.FabricType = types.StringValue(jsonData.Management.FabricType)
-
 	} else {
 		v.FabricType = types.StringNull()
 	}
 
 	if jsonData.Management.BgpAsn != "" {
 		v.BgpAsn = types.StringValue(jsonData.Management.BgpAsn)
-
 	} else {
 		v.BgpAsn = types.StringNull()
 	}
 
 	if jsonData.Management.SuperSpineBgpAs != "" {
 		v.SuperSpineBgpAs = types.StringValue(jsonData.Management.SuperSpineBgpAs)
-
 	} else {
 		v.SuperSpineBgpAs = types.StringNull()
 	}
 
 	if jsonData.Management.LeafBgpAs != "" {
 		v.LeafBgpAs = types.StringValue(jsonData.Management.LeafBgpAs)
-
 	} else {
 		v.LeafBgpAs = types.StringNull()
 	}
 
 	if jsonData.Management.BorderBgpAs != "" {
 		v.BorderBgpAs = types.StringValue(jsonData.Management.BorderBgpAs)
-
 	} else {
 		v.BorderBgpAs = types.StringNull()
 	}
 
 	if jsonData.Management.BgpAsMode != "" {
 		v.BgpAsMode = types.StringValue(jsonData.Management.BgpAsMode)
-
 	} else {
 		v.BgpAsMode = types.StringNull()
 	}
 
 	if jsonData.Management.TargetSubnetMask != nil {
 		v.TargetSubnetMask = types.Int64Value(*jsonData.Management.TargetSubnetMask)
-
 	} else {
 		v.TargetSubnetMask = types.Int64Null()
 	}
 
 	if jsonData.Management.AnycastGatewayMac != "" {
 		v.AnycastGatewayMac = types.StringValue(jsonData.Management.AnycastGatewayMac)
-
 	} else {
 		v.AnycastGatewayMac = types.StringNull()
 	}
 
 	if jsonData.Management.PerformanceMonitoring != nil {
 		v.PerformanceMonitoring = types.BoolValue(*jsonData.Management.PerformanceMonitoring)
-
 	} else {
 		v.PerformanceMonitoring = types.BoolNull()
 	}
 
 	if jsonData.Management.ReplicationMode != "" {
 		v.ReplicationMode = types.StringValue(jsonData.Management.ReplicationMode)
-
 	} else {
 		v.ReplicationMode = types.StringNull()
 	}
 
 	if jsonData.Management.MulticastGroupSubnet != "" {
 		v.MulticastGroupSubnet = types.StringValue(jsonData.Management.MulticastGroupSubnet)
-
 	} else {
 		v.MulticastGroupSubnet = types.StringNull()
 	}
 
 	if jsonData.Management.TenantRoutedMulticast != nil {
 		v.TenantRoutedMulticast = types.BoolValue(*jsonData.Management.TenantRoutedMulticast)
-
 	} else {
 		v.TenantRoutedMulticast = types.BoolNull()
 	}
 
 	if jsonData.Management.RendezvousPointCount != nil {
 		v.RendezvousPointCount = types.Int64Value(*jsonData.Management.RendezvousPointCount)
-
 	} else {
 		v.RendezvousPointCount = types.Int64Null()
 	}
@@ -221,7 +204,6 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 	}
 
 	v.Location.SetValue(&jsonData.Location)
-	v.Location.state = attr.ValueStateKnown
 
 	if jsonData.AlertSuspend != "" {
 		v.AlertSuspend = types.StringValue(jsonData.AlertSuspend)
@@ -231,1505 +213,1290 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 
 	if jsonData.Management.RendezvousPointLoopbackId != nil {
 		v.RendezvousPointLoopbackId = types.Int64Value(*jsonData.Management.RendezvousPointLoopbackId)
-
 	} else {
 		v.RendezvousPointLoopbackId = types.Int64Null()
 	}
 
 	if jsonData.Management.VpcPeerLinkVlan != "" {
 		v.VpcPeerLinkVlan = types.StringValue(jsonData.Management.VpcPeerLinkVlan)
-
 	} else {
 		v.VpcPeerLinkVlan = types.StringNull()
 	}
 
 	if jsonData.Management.VpcPeerLinkEnableNativeVlan != nil {
 		v.VpcPeerLinkEnableNativeVlan = types.BoolValue(*jsonData.Management.VpcPeerLinkEnableNativeVlan)
-
 	} else {
 		v.VpcPeerLinkEnableNativeVlan = types.BoolNull()
 	}
 
 	if jsonData.Management.VpcPeerKeepAliveOption != "" {
 		v.VpcPeerKeepAliveOption = types.StringValue(jsonData.Management.VpcPeerKeepAliveOption)
-
 	} else {
 		v.VpcPeerKeepAliveOption = types.StringNull()
 	}
 
 	if jsonData.Management.VpcAutoRecoveryTimer != nil {
 		v.VpcAutoRecoveryTimer = types.Int64Value(*jsonData.Management.VpcAutoRecoveryTimer)
-
 	} else {
 		v.VpcAutoRecoveryTimer = types.Int64Null()
 	}
 
 	if jsonData.Management.VpcDelayRestoreTimer != nil {
 		v.VpcDelayRestoreTimer = types.Int64Value(*jsonData.Management.VpcDelayRestoreTimer)
-
 	} else {
 		v.VpcDelayRestoreTimer = types.Int64Null()
 	}
 
 	if jsonData.Management.VpcPeerLinkPortChannelId != "" {
 		v.VpcPeerLinkPortChannelId = types.StringValue(jsonData.Management.VpcPeerLinkPortChannelId)
-
 	} else {
 		v.VpcPeerLinkPortChannelId = types.StringNull()
 	}
 
 	if jsonData.Management.VpcIpv6NeighborDiscoverySync != nil {
 		v.VpcIpv6NeighborDiscoverySync = types.BoolValue(*jsonData.Management.VpcIpv6NeighborDiscoverySync)
-
 	} else {
 		v.VpcIpv6NeighborDiscoverySync = types.BoolNull()
 	}
 
 	if jsonData.Management.AdvertisePhysicalIp != nil {
 		v.AdvertisePhysicalIp = types.BoolValue(*jsonData.Management.AdvertisePhysicalIp)
-
 	} else {
 		v.AdvertisePhysicalIp = types.BoolNull()
 	}
 
 	if jsonData.Management.VpcDomainIdRange != "" {
 		v.VpcDomainIdRange = types.StringValue(jsonData.Management.VpcDomainIdRange)
-
 	} else {
 		v.VpcDomainIdRange = types.StringNull()
 	}
 
 	if jsonData.Management.BgpLoopbackId != nil {
 		v.BgpLoopbackId = types.Int64Value(*jsonData.Management.BgpLoopbackId)
-
 	} else {
 		v.BgpLoopbackId = types.Int64Null()
 	}
 
 	if jsonData.Management.NveLoopbackId != nil {
 		v.NveLoopbackId = types.Int64Value(*jsonData.Management.NveLoopbackId)
-
 	} else {
 		v.NveLoopbackId = types.Int64Null()
 	}
 
 	if jsonData.Management.VrfTemplate != "" {
 		v.VrfTemplate = types.StringValue(jsonData.Management.VrfTemplate)
-
 	} else {
 		v.VrfTemplate = types.StringNull()
 	}
 
 	if jsonData.Management.NetworkTemplate != "" {
 		v.NetworkTemplate = types.StringValue(jsonData.Management.NetworkTemplate)
-
 	} else {
 		v.NetworkTemplate = types.StringNull()
 	}
 
 	if jsonData.Management.VrfExtensionTemplate != "" {
 		v.VrfExtensionTemplate = types.StringValue(jsonData.Management.VrfExtensionTemplate)
-
 	} else {
 		v.VrfExtensionTemplate = types.StringNull()
 	}
 
 	if jsonData.Management.NetworkExtensionTemplate != "" {
 		v.NetworkExtensionTemplate = types.StringValue(jsonData.Management.NetworkExtensionTemplate)
-
 	} else {
 		v.NetworkExtensionTemplate = types.StringNull()
 	}
 
 	if jsonData.Management.L3VniNoVlanDefaultOption != nil {
 		v.L3VniNoVlanDefaultOption = types.BoolValue(*jsonData.Management.L3VniNoVlanDefaultOption)
-
 	} else {
 		v.L3VniNoVlanDefaultOption = types.BoolNull()
 	}
 
 	if jsonData.Management.SiteId != "" {
 		v.SiteId = types.StringValue(jsonData.Management.SiteId)
-
 	} else {
 		v.SiteId = types.StringNull()
 	}
 
 	if jsonData.Management.FabricMtu != nil {
 		v.FabricMtu = types.Int64Value(*jsonData.Management.FabricMtu)
-
 	} else {
 		v.FabricMtu = types.Int64Null()
 	}
 
 	if jsonData.Management.L2HostInterfaceMtu != nil {
 		v.L2HostInterfaceMtu = types.Int64Value(*jsonData.Management.L2HostInterfaceMtu)
-
 	} else {
 		v.L2HostInterfaceMtu = types.Int64Null()
 	}
 
 	if jsonData.Management.TenantDhcp != nil {
 		v.TenantDhcp = types.BoolValue(*jsonData.Management.TenantDhcp)
-
 	} else {
 		v.TenantDhcp = types.BoolNull()
 	}
 
 	if jsonData.Management.Nxapi != nil {
 		v.Nxapi = types.BoolValue(*jsonData.Management.Nxapi)
-
 	} else {
 		v.Nxapi = types.BoolNull()
 	}
 
 	if jsonData.Management.NxapiHttpsPort != nil {
 		v.NxapiHttpsPort = types.Int64Value(*jsonData.Management.NxapiHttpsPort)
-
 	} else {
 		v.NxapiHttpsPort = types.Int64Null()
 	}
 
 	if jsonData.Management.NxapiHttp != nil {
 		v.NxapiHttp = types.BoolValue(*jsonData.Management.NxapiHttp)
-
 	} else {
 		v.NxapiHttp = types.BoolNull()
 	}
 
 	if jsonData.Management.NxapiHttpPort != nil {
 		v.NxapiHttpPort = types.Int64Value(*jsonData.Management.NxapiHttpPort)
-
 	} else {
 		v.NxapiHttpPort = types.Int64Null()
 	}
 
 	if jsonData.Management.SnmpTrap != nil {
 		v.SnmpTrap = types.BoolValue(*jsonData.Management.SnmpTrap)
-
 	} else {
 		v.SnmpTrap = types.BoolNull()
 	}
 
 	if jsonData.Management.AnycastBorderGatewayAdvertisePhysicalIp != nil {
 		v.AnycastBorderGatewayAdvertisePhysicalIp = types.BoolValue(*jsonData.Management.AnycastBorderGatewayAdvertisePhysicalIp)
-
 	} else {
 		v.AnycastBorderGatewayAdvertisePhysicalIp = types.BoolNull()
 	}
 
 	if jsonData.Management.GreenfieldDebugFlag != "" {
 		v.GreenfieldDebugFlag = types.StringValue(jsonData.Management.GreenfieldDebugFlag)
-
 	} else {
 		v.GreenfieldDebugFlag = types.StringNull()
 	}
 
 	if jsonData.Management.TcamAllocation != nil {
 		v.TcamAllocation = types.BoolValue(*jsonData.Management.TcamAllocation)
-
 	} else {
 		v.TcamAllocation = types.BoolNull()
 	}
 
 	if jsonData.Management.RealTimeInterfaceStatisticsCollection != nil {
 		v.RealTimeInterfaceStatisticsCollection = types.BoolValue(*jsonData.Management.RealTimeInterfaceStatisticsCollection)
-
 	} else {
 		v.RealTimeInterfaceStatisticsCollection = types.BoolNull()
 	}
 
 	if jsonData.Management.InterfaceStatisticsLoadInterval != nil {
 		v.InterfaceStatisticsLoadInterval = types.Int64Value(*jsonData.Management.InterfaceStatisticsLoadInterval)
-
 	} else {
 		v.InterfaceStatisticsLoadInterval = types.Int64Null()
 	}
 
 	if jsonData.Management.BgpLoopbackIpRange != "" {
 		v.BgpLoopbackIpRange = types.StringValue(jsonData.Management.BgpLoopbackIpRange)
-
 	} else {
 		v.BgpLoopbackIpRange = types.StringNull()
 	}
 
 	if jsonData.Management.NveLoopbackIpRange != "" {
 		v.NveLoopbackIpRange = types.StringValue(jsonData.Management.NveLoopbackIpRange)
-
 	} else {
 		v.NveLoopbackIpRange = types.StringNull()
 	}
 
 	if jsonData.Management.AnycastRendezvousPointIpRange != "" {
 		v.AnycastRendezvousPointIpRange = types.StringValue(jsonData.Management.AnycastRendezvousPointIpRange)
-
 	} else {
 		v.AnycastRendezvousPointIpRange = types.StringNull()
 	}
 
 	if jsonData.Management.IntraFabricSubnetRange != "" {
 		v.IntraFabricSubnetRange = types.StringValue(jsonData.Management.IntraFabricSubnetRange)
-
 	} else {
 		v.IntraFabricSubnetRange = types.StringNull()
 	}
 
 	if jsonData.Management.L2VniRange != "" {
 		v.L2VniRange = types.StringValue(jsonData.Management.L2VniRange)
-
 	} else {
 		v.L2VniRange = types.StringNull()
 	}
 
 	if jsonData.Management.L3VniRange != "" {
 		v.L3VniRange = types.StringValue(jsonData.Management.L3VniRange)
-
 	} else {
 		v.L3VniRange = types.StringNull()
 	}
 
 	if jsonData.Management.NetworkVlanRange != "" {
 		v.NetworkVlanRange = types.StringValue(jsonData.Management.NetworkVlanRange)
-
 	} else {
 		v.NetworkVlanRange = types.StringNull()
 	}
 
 	if jsonData.Management.VrfVlanRange != "" {
 		v.VrfVlanRange = types.StringValue(jsonData.Management.VrfVlanRange)
-
 	} else {
 		v.VrfVlanRange = types.StringNull()
 	}
 
 	if jsonData.Management.SubInterfaceDot1qRange != "" {
 		v.SubInterfaceDot1qRange = types.StringValue(jsonData.Management.SubInterfaceDot1qRange)
-
 	} else {
 		v.SubInterfaceDot1qRange = types.StringNull()
 	}
 
 	if jsonData.Management.VrfLiteAutoConfig != "" {
 		v.VrfLiteAutoConfig = types.StringValue(jsonData.Management.VrfLiteAutoConfig)
-
 	} else {
 		v.VrfLiteAutoConfig = types.StringNull()
 	}
 
 	if jsonData.Management.VrfLiteSubnetRange != "" {
 		v.VrfLiteSubnetRange = types.StringValue(jsonData.Management.VrfLiteSubnetRange)
-
 	} else {
 		v.VrfLiteSubnetRange = types.StringNull()
 	}
 
 	if jsonData.Management.VrfLiteSubnetTargetMask != nil {
 		v.VrfLiteSubnetTargetMask = types.Int64Value(*jsonData.Management.VrfLiteSubnetTargetMask)
-
 	} else {
 		v.VrfLiteSubnetTargetMask = types.Int64Null()
 	}
 
 	if jsonData.Management.VrfLiteIpv6SubnetRange != "" {
 		v.VrfLiteIpv6SubnetRange = types.StringValue(jsonData.Management.VrfLiteIpv6SubnetRange)
-
 	} else {
 		v.VrfLiteIpv6SubnetRange = types.StringNull()
 	}
 
 	if jsonData.Management.VrfLiteIpv6SubnetTargetMask != nil {
 		v.VrfLiteIpv6SubnetTargetMask = types.Int64Value(*jsonData.Management.VrfLiteIpv6SubnetTargetMask)
-
 	} else {
 		v.VrfLiteIpv6SubnetTargetMask = types.Int64Null()
 	}
 
 	if jsonData.Management.AutoUniqueVrfLiteIpPrefix != nil {
 		v.AutoUniqueVrfLiteIpPrefix = types.BoolValue(*jsonData.Management.AutoUniqueVrfLiteIpPrefix)
-
 	} else {
 		v.AutoUniqueVrfLiteIpPrefix = types.BoolNull()
 	}
 
 	if jsonData.Management.PerVrfLoopbackAutoProvision != nil {
 		v.PerVrfLoopbackAutoProvision = types.BoolValue(*jsonData.Management.PerVrfLoopbackAutoProvision)
-
 	} else {
 		v.PerVrfLoopbackAutoProvision = types.BoolNull()
 	}
 
 	if jsonData.Management.PerVrfLoopbackIpRange != "" {
 		v.PerVrfLoopbackIpRange = types.StringValue(jsonData.Management.PerVrfLoopbackIpRange)
-
 	} else {
 		v.PerVrfLoopbackIpRange = types.StringNull()
 	}
 
 	if jsonData.Management.PerVrfLoopbackAutoProvisionIpv6 != nil {
 		v.PerVrfLoopbackAutoProvisionIpv6 = types.BoolValue(*jsonData.Management.PerVrfLoopbackAutoProvisionIpv6)
-
 	} else {
 		v.PerVrfLoopbackAutoProvisionIpv6 = types.BoolNull()
 	}
 
 	if jsonData.Management.PerVrfLoopbackIpv6Range != "" {
 		v.PerVrfLoopbackIpv6Range = types.StringValue(jsonData.Management.PerVrfLoopbackIpv6Range)
-
 	} else {
 		v.PerVrfLoopbackIpv6Range = types.StringNull()
 	}
 
 	if jsonData.Management.Banner != "" {
 		v.Banner = types.StringValue(jsonData.Management.Banner)
-
 	} else {
 		v.Banner = types.StringNull()
 	}
 
 	if jsonData.Management.Day0Bootstrap != nil {
 		v.Day0Bootstrap = types.BoolValue(*jsonData.Management.Day0Bootstrap)
-
 	} else {
 		v.Day0Bootstrap = types.BoolNull()
 	}
 
 	if jsonData.Management.LocalDhcpServer != nil {
 		v.LocalDhcpServer = types.BoolValue(*jsonData.Management.LocalDhcpServer)
-
 	} else {
 		v.LocalDhcpServer = types.BoolNull()
 	}
 
 	if jsonData.Management.DhcpProtocolVersion != "" {
 		v.DhcpProtocolVersion = types.StringValue(jsonData.Management.DhcpProtocolVersion)
-
 	} else {
 		v.DhcpProtocolVersion = types.StringNull()
 	}
 
 	if jsonData.Management.DhcpStartAddress != "" {
 		v.DhcpStartAddress = types.StringValue(jsonData.Management.DhcpStartAddress)
-
 	} else {
 		v.DhcpStartAddress = types.StringNull()
 	}
 
 	if jsonData.Management.DhcpEndAddress != "" {
 		v.DhcpEndAddress = types.StringValue(jsonData.Management.DhcpEndAddress)
-
 	} else {
 		v.DhcpEndAddress = types.StringNull()
 	}
 
 	if jsonData.Management.ManagementGateway != "" {
 		v.ManagementGateway = types.StringValue(jsonData.Management.ManagementGateway)
-
 	} else {
 		v.ManagementGateway = types.StringNull()
 	}
 
 	if jsonData.Management.ManagementIpv4Prefix != nil {
 		v.ManagementIpv4Prefix = types.Int64Value(*jsonData.Management.ManagementIpv4Prefix)
-
 	} else {
 		v.ManagementIpv4Prefix = types.Int64Null()
 	}
 
 	if jsonData.Management.ManagementIpv6Prefix != nil {
 		v.ManagementIpv6Prefix = types.Int64Value(*jsonData.Management.ManagementIpv6Prefix)
-
 	} else {
 		v.ManagementIpv6Prefix = types.Int64Null()
 	}
 
 	if jsonData.Management.BootstrapMultiSubnet != "" {
 		v.BootstrapMultiSubnet = types.StringValue(jsonData.Management.BootstrapMultiSubnet)
-
 	} else {
 		v.BootstrapMultiSubnet = types.StringNull()
 	}
 
 	if jsonData.Management.ExtraConfigNxosBootstrap != "" {
 		v.ExtraConfigNxosBootstrap = types.StringValue(jsonData.Management.ExtraConfigNxosBootstrap)
-
 	} else {
 		v.ExtraConfigNxosBootstrap = types.StringNull()
 	}
 
 	if jsonData.Management.RealTimeBackup != nil {
 		v.RealTimeBackup = types.BoolValue(*jsonData.Management.RealTimeBackup)
-
 	} else {
 		v.RealTimeBackup = types.BoolNull()
 	}
 
 	if jsonData.Management.ScheduledBackup != nil {
 		v.ScheduledBackup = types.BoolValue(*jsonData.Management.ScheduledBackup)
-
 	} else {
 		v.ScheduledBackup = types.BoolNull()
 	}
 
 	if jsonData.Management.ScheduledBackupTime != "" {
 		v.ScheduledBackupTime = types.StringValue(jsonData.Management.ScheduledBackupTime)
-
 	} else {
 		v.ScheduledBackupTime = types.StringNull()
 	}
 
 	if jsonData.Management.UnderlayIpv6 != nil {
 		v.UnderlayIpv6 = types.BoolValue(*jsonData.Management.UnderlayIpv6)
-
 	} else {
 		v.UnderlayIpv6 = types.BoolNull()
 	}
 
 	if jsonData.Management.Ipv6MulticastGroupSubnet != "" {
 		v.Ipv6MulticastGroupSubnet = types.StringValue(jsonData.Management.Ipv6MulticastGroupSubnet)
-
 	} else {
 		v.Ipv6MulticastGroupSubnet = types.StringNull()
 	}
 
 	if jsonData.Management.TenantRoutedMulticastIpv6 != nil {
 		v.TenantRoutedMulticastIpv6 = types.BoolValue(*jsonData.Management.TenantRoutedMulticastIpv6)
-
 	} else {
 		v.TenantRoutedMulticastIpv6 = types.BoolNull()
 	}
 
 	if jsonData.Management.MvpnVrfRouteImportId != nil {
 		v.MvpnVrfRouteImportId = types.BoolValue(*jsonData.Management.MvpnVrfRouteImportId)
-
 	} else {
 		v.MvpnVrfRouteImportId = types.BoolNull()
 	}
 
 	if jsonData.Management.MvpnVrfRouteImportIdRange != "" {
 		v.MvpnVrfRouteImportIdRange = types.StringValue(jsonData.Management.MvpnVrfRouteImportIdRange)
-
 	} else {
 		v.MvpnVrfRouteImportIdRange = types.StringNull()
 	}
 
 	if jsonData.Management.VrfRouteImportIdReallocation != nil {
 		v.VrfRouteImportIdReallocation = types.BoolValue(*jsonData.Management.VrfRouteImportIdReallocation)
-
 	} else {
 		v.VrfRouteImportIdReallocation = types.BoolNull()
 	}
 
 	if jsonData.Management.L3vniMulticastGroup != "" {
 		v.L3vniMulticastGroup = types.StringValue(jsonData.Management.L3vniMulticastGroup)
-
 	} else {
 		v.L3vniMulticastGroup = types.StringNull()
 	}
 
 	if jsonData.Management.L3VniIpv6MulticastGroup != "" {
 		v.L3VniIpv6MulticastGroup = types.StringValue(jsonData.Management.L3VniIpv6MulticastGroup)
-
 	} else {
 		v.L3VniIpv6MulticastGroup = types.StringNull()
 	}
 
 	if jsonData.Management.RendezvousPointMode != "" {
 		v.RendezvousPointMode = types.StringValue(jsonData.Management.RendezvousPointMode)
-
 	} else {
 		v.RendezvousPointMode = types.StringNull()
 	}
 
 	if jsonData.Management.AutoGenerateMulticastGroupAddress != nil {
 		v.AutoGenerateMulticastGroupAddress = types.BoolValue(*jsonData.Management.AutoGenerateMulticastGroupAddress)
-
 	} else {
 		v.AutoGenerateMulticastGroupAddress = types.BoolNull()
 	}
 
 	if jsonData.Management.PhantomRendezvousPointLoopbackId1 != nil {
 		v.PhantomRendezvousPointLoopbackId1 = types.Int64Value(*jsonData.Management.PhantomRendezvousPointLoopbackId1)
-
 	} else {
 		v.PhantomRendezvousPointLoopbackId1 = types.Int64Null()
 	}
 
 	if jsonData.Management.PhantomRendezvousPointLoopbackId2 != nil {
 		v.PhantomRendezvousPointLoopbackId2 = types.Int64Value(*jsonData.Management.PhantomRendezvousPointLoopbackId2)
-
 	} else {
 		v.PhantomRendezvousPointLoopbackId2 = types.Int64Null()
 	}
 
 	if jsonData.Management.PhantomRendezvousPointLoopbackId3 != nil {
 		v.PhantomRendezvousPointLoopbackId3 = types.Int64Value(*jsonData.Management.PhantomRendezvousPointLoopbackId3)
-
 	} else {
 		v.PhantomRendezvousPointLoopbackId3 = types.Int64Null()
 	}
 
 	if jsonData.Management.PhantomRendezvousPointLoopbackId4 != nil {
 		v.PhantomRendezvousPointLoopbackId4 = types.Int64Value(*jsonData.Management.PhantomRendezvousPointLoopbackId4)
-
 	} else {
 		v.PhantomRendezvousPointLoopbackId4 = types.Int64Null()
 	}
 
 	if jsonData.Management.AdvertisePhysicalIpOnBorder != nil {
 		v.AdvertisePhysicalIpOnBorder = types.BoolValue(*jsonData.Management.AdvertisePhysicalIpOnBorder)
-
 	} else {
 		v.AdvertisePhysicalIpOnBorder = types.BoolNull()
 	}
 
 	if jsonData.Management.FabricVpcDomainId != nil {
 		v.FabricVpcDomainId = types.BoolValue(*jsonData.Management.FabricVpcDomainId)
-
 	} else {
 		v.FabricVpcDomainId = types.BoolNull()
 	}
 
 	if jsonData.Management.SharedVpcDomainId != nil {
 		v.SharedVpcDomainId = types.Int64Value(*jsonData.Management.SharedVpcDomainId)
-
 	} else {
 		v.SharedVpcDomainId = types.Int64Null()
 	}
 
 	if jsonData.Management.VpcLayer3PeerRouter != nil {
 		v.VpcLayer3PeerRouter = types.BoolValue(*jsonData.Management.VpcLayer3PeerRouter)
-
 	} else {
 		v.VpcLayer3PeerRouter = types.BoolNull()
 	}
 
 	if jsonData.Management.FabricVpcQos != nil {
 		v.FabricVpcQos = types.BoolValue(*jsonData.Management.FabricVpcQos)
-
 	} else {
 		v.FabricVpcQos = types.BoolNull()
 	}
 
 	if jsonData.Management.FabricVpcQosPolicyName != "" {
 		v.FabricVpcQosPolicyName = types.StringValue(jsonData.Management.FabricVpcQosPolicyName)
-
 	} else {
 		v.FabricVpcQosPolicyName = types.StringNull()
 	}
 
 	if jsonData.Management.AnycastLoopbackId != nil {
 		v.AnycastLoopbackId = types.Int64Value(*jsonData.Management.AnycastLoopbackId)
-
 	} else {
 		v.AnycastLoopbackId = types.Int64Null()
 	}
 
 	if jsonData.Management.BgpAuthentication != nil {
 		v.BgpAuthentication = types.BoolValue(*jsonData.Management.BgpAuthentication)
-
 	} else {
 		v.BgpAuthentication = types.BoolNull()
 	}
 
 	if jsonData.Management.BgpAuthenticationKeyType != "" {
 		v.BgpAuthenticationKeyType = types.StringValue(jsonData.Management.BgpAuthenticationKeyType)
-
 	} else {
 		v.BgpAuthenticationKeyType = types.StringNull()
 	}
 
 	if jsonData.Management.BgpAuthenticationKey != "" {
 		v.BgpAuthenticationKey = types.StringValue(jsonData.Management.BgpAuthenticationKey)
-
 	} else {
 		v.BgpAuthenticationKey = types.StringNull()
 	}
 
 	if jsonData.Management.PimHelloAuthentication != nil {
 		v.PimHelloAuthentication = types.BoolValue(*jsonData.Management.PimHelloAuthentication)
-
 	} else {
 		v.PimHelloAuthentication = types.BoolNull()
 	}
 
 	if jsonData.Management.PimHelloAuthenticationKey != "" {
 		v.PimHelloAuthenticationKey = types.StringValue(jsonData.Management.PimHelloAuthenticationKey)
-
 	} else {
 		v.PimHelloAuthenticationKey = types.StringNull()
 	}
 
 	if jsonData.Management.Bfd != nil {
 		v.Bfd = types.BoolValue(*jsonData.Management.Bfd)
-
 	} else {
 		v.Bfd = types.BoolNull()
 	}
 
 	if jsonData.Management.BfdIbgp != nil {
 		v.BfdIbgp = types.BoolValue(*jsonData.Management.BfdIbgp)
-
 	} else {
 		v.BfdIbgp = types.BoolNull()
 	}
 
 	if jsonData.Management.BfdAuthentication != nil {
 		v.BfdAuthentication = types.BoolValue(*jsonData.Management.BfdAuthentication)
-
 	} else {
 		v.BfdAuthentication = types.BoolNull()
 	}
 
 	if jsonData.Management.BfdAuthenticationKeyId != nil {
 		v.BfdAuthenticationKeyId = types.Int64Value(*jsonData.Management.BfdAuthenticationKeyId)
-
 	} else {
 		v.BfdAuthenticationKeyId = types.Int64Null()
 	}
 
 	if jsonData.Management.BfdAuthenticationKey != "" {
 		v.BfdAuthenticationKey = types.StringValue(jsonData.Management.BfdAuthenticationKey)
-
 	} else {
 		v.BfdAuthenticationKey = types.StringNull()
 	}
 
 	if jsonData.Management.Macsec != nil {
 		v.Macsec = types.BoolValue(*jsonData.Management.Macsec)
-
 	} else {
 		v.Macsec = types.BoolNull()
 	}
 
 	if jsonData.Management.MacsecCipherSuite != "" {
 		v.MacsecCipherSuite = types.StringValue(jsonData.Management.MacsecCipherSuite)
-
 	} else {
 		v.MacsecCipherSuite = types.StringNull()
 	}
 
 	if jsonData.Management.MacsecKeyString != "" {
 		v.MacsecKeyString = types.StringValue(jsonData.Management.MacsecKeyString)
-
 	} else {
 		v.MacsecKeyString = types.StringNull()
 	}
 
 	if jsonData.Management.MacsecAlgorithm != "" {
 		v.MacsecAlgorithm = types.StringValue(jsonData.Management.MacsecAlgorithm)
-
 	} else {
 		v.MacsecAlgorithm = types.StringNull()
 	}
 
 	if jsonData.Management.MacsecFallbackKeyString != "" {
 		v.MacsecFallbackKeyString = types.StringValue(jsonData.Management.MacsecFallbackKeyString)
-
 	} else {
 		v.MacsecFallbackKeyString = types.StringNull()
 	}
 
 	if jsonData.Management.MacsecFallbackAlgorithm != "" {
 		v.MacsecFallbackAlgorithm = types.StringValue(jsonData.Management.MacsecFallbackAlgorithm)
-
 	} else {
 		v.MacsecFallbackAlgorithm = types.StringNull()
 	}
 
 	if jsonData.Management.MacsecReportTimer != nil {
 		v.MacsecReportTimer = types.Int64Value(*jsonData.Management.MacsecReportTimer)
-
 	} else {
 		v.MacsecReportTimer = types.Int64Null()
 	}
 
 	if jsonData.Management.OverlayMode != "" {
 		v.OverlayMode = types.StringValue(jsonData.Management.OverlayMode)
-
 	} else {
 		v.OverlayMode = types.StringNull()
 	}
 
 	if jsonData.Management.PrivateVlan != nil {
 		v.PrivateVlan = types.BoolValue(*jsonData.Management.PrivateVlan)
-
 	} else {
 		v.PrivateVlan = types.BoolNull()
 	}
 
 	if jsonData.Management.DefaultPrivateVlanSecondaryNetworkTemplate != "" {
 		v.DefaultPrivateVlanSecondaryNetworkTemplate = types.StringValue(jsonData.Management.DefaultPrivateVlanSecondaryNetworkTemplate)
-
 	} else {
 		v.DefaultPrivateVlanSecondaryNetworkTemplate = types.StringNull()
 	}
 
 	if jsonData.Management.PowerRedundancyMode != "" {
 		v.PowerRedundancyMode = types.StringValue(jsonData.Management.PowerRedundancyMode)
-
 	} else {
 		v.PowerRedundancyMode = types.StringNull()
 	}
 
 	if jsonData.Management.CoppPolicy != "" {
 		v.CoppPolicy = types.StringValue(jsonData.Management.CoppPolicy)
-
 	} else {
 		v.CoppPolicy = types.StringNull()
 	}
 
 	if jsonData.Management.NveHoldDownTimer != nil {
 		v.NveHoldDownTimer = types.Int64Value(*jsonData.Management.NveHoldDownTimer)
-
 	} else {
 		v.NveHoldDownTimer = types.Int64Null()
 	}
 
 	if jsonData.Management.Cdp != nil {
 		v.Cdp = types.BoolValue(*jsonData.Management.Cdp)
-
 	} else {
 		v.Cdp = types.BoolNull()
 	}
 
 	if jsonData.Management.NextGenerationOam != nil {
 		v.NextGenerationOam = types.BoolValue(*jsonData.Management.NextGenerationOam)
-
 	} else {
 		v.NextGenerationOam = types.BoolNull()
 	}
 
 	if jsonData.Management.NgoamSouthBoundLoopDetect != nil {
 		v.NgoamSouthBoundLoopDetect = types.BoolValue(*jsonData.Management.NgoamSouthBoundLoopDetect)
-
 	} else {
 		v.NgoamSouthBoundLoopDetect = types.BoolNull()
 	}
 
 	if jsonData.Management.NgoamSouthBoundLoopDetectProbeInterval != nil {
 		v.NgoamSouthBoundLoopDetectProbeInterval = types.Int64Value(*jsonData.Management.NgoamSouthBoundLoopDetectProbeInterval)
-
 	} else {
 		v.NgoamSouthBoundLoopDetectProbeInterval = types.Int64Null()
 	}
 
 	if jsonData.Management.NgoamSouthBoundLoopDetectRecoveryInterval != nil {
 		v.NgoamSouthBoundLoopDetectRecoveryInterval = types.Int64Value(*jsonData.Management.NgoamSouthBoundLoopDetectRecoveryInterval)
-
 	} else {
 		v.NgoamSouthBoundLoopDetectRecoveryInterval = types.Int64Null()
 	}
 
 	if jsonData.Management.StrictConfigComplianceMode != nil {
 		v.StrictConfigComplianceMode = types.BoolValue(*jsonData.Management.StrictConfigComplianceMode)
-
 	} else {
 		v.StrictConfigComplianceMode = types.BoolNull()
 	}
 
 	if jsonData.Management.AdvancedSshOption != nil {
 		v.AdvancedSshOption = types.BoolValue(*jsonData.Management.AdvancedSshOption)
-
 	} else {
 		v.AdvancedSshOption = types.BoolNull()
 	}
 
 	if jsonData.Management.Ptp != nil {
 		v.Ptp = types.BoolValue(*jsonData.Management.Ptp)
-
 	} else {
 		v.Ptp = types.BoolNull()
 	}
 
 	if jsonData.Management.PtpLoopbackId != nil {
 		v.PtpLoopbackId = types.Int64Value(*jsonData.Management.PtpLoopbackId)
-
 	} else {
 		v.PtpLoopbackId = types.Int64Null()
 	}
 
 	if jsonData.Management.PtpDomainId != nil {
 		v.PtpDomainId = types.Int64Value(*jsonData.Management.PtpDomainId)
-
 	} else {
 		v.PtpDomainId = types.Int64Null()
 	}
 
 	if jsonData.Management.DefaultQueuingPolicy != nil {
 		v.DefaultQueuingPolicy = types.BoolValue(*jsonData.Management.DefaultQueuingPolicy)
-
 	} else {
 		v.DefaultQueuingPolicy = types.BoolNull()
 	}
 
 	if jsonData.Management.DefaultQueuingPolicyCloudscale != "" {
 		v.DefaultQueuingPolicyCloudscale = types.StringValue(jsonData.Management.DefaultQueuingPolicyCloudscale)
-
 	} else {
 		v.DefaultQueuingPolicyCloudscale = types.StringNull()
 	}
 
 	if jsonData.Management.DefaultQueuingPolicyRSeries != "" {
 		v.DefaultQueuingPolicyRSeries = types.StringValue(jsonData.Management.DefaultQueuingPolicyRSeries)
-
 	} else {
 		v.DefaultQueuingPolicyRSeries = types.StringNull()
 	}
 
 	if jsonData.Management.DefaultQueuingPolicyOther != "" {
 		v.DefaultQueuingPolicyOther = types.StringValue(jsonData.Management.DefaultQueuingPolicyOther)
-
 	} else {
 		v.DefaultQueuingPolicyOther = types.StringNull()
 	}
 
 	if jsonData.Management.AimlQos != nil {
 		v.AimlQos = types.BoolValue(*jsonData.Management.AimlQos)
-
 	} else {
 		v.AimlQos = types.BoolNull()
 	}
 
 	if jsonData.Management.AimlQosPolicy != "" {
 		v.AimlQosPolicy = types.StringValue(jsonData.Management.AimlQosPolicy)
-
 	} else {
 		v.AimlQosPolicy = types.StringNull()
 	}
 
 	if jsonData.Management.PriorityFlowControlWatchInterval != nil {
 		v.PriorityFlowControlWatchInterval = types.Int64Value(*jsonData.Management.PriorityFlowControlWatchInterval)
-
 	} else {
 		v.PriorityFlowControlWatchInterval = types.Int64Null()
 	}
 
 	if jsonData.Management.StaticUnderlayIpAllocation != nil {
 		v.StaticUnderlayIpAllocation = types.BoolValue(*jsonData.Management.StaticUnderlayIpAllocation)
-
 	} else {
 		v.StaticUnderlayIpAllocation = types.BoolNull()
 	}
 
 	if jsonData.Management.BgpLoopbackIpv6Range != "" {
 		v.BgpLoopbackIpv6Range = types.StringValue(jsonData.Management.BgpLoopbackIpv6Range)
-
 	} else {
 		v.BgpLoopbackIpv6Range = types.StringNull()
 	}
 
 	if jsonData.Management.NveLoopbackIpv6Range != "" {
 		v.NveLoopbackIpv6Range = types.StringValue(jsonData.Management.NveLoopbackIpv6Range)
-
 	} else {
 		v.NveLoopbackIpv6Range = types.StringNull()
 	}
 
 	if jsonData.Management.Ipv6AnycastRendezvousPointIpRange != "" {
 		v.Ipv6AnycastRendezvousPointIpRange = types.StringValue(jsonData.Management.Ipv6AnycastRendezvousPointIpRange)
-
 	} else {
 		v.Ipv6AnycastRendezvousPointIpRange = types.StringNull()
 	}
 
 	if jsonData.Management.ExtraConfigAaa != "" {
 		v.ExtraConfigAaa = types.StringValue(jsonData.Management.ExtraConfigAaa)
-
 	} else {
 		v.ExtraConfigAaa = types.StringNull()
 	}
 
 	if jsonData.Management.Aaa != nil {
 		v.Aaa = types.BoolValue(*jsonData.Management.Aaa)
-
 	} else {
 		v.Aaa = types.BoolNull()
 	}
 
 	if jsonData.Management.Ipv6LinkLocal != nil {
 		v.Ipv6LinkLocal = types.BoolValue(*jsonData.Management.Ipv6LinkLocal)
-
 	} else {
 		v.Ipv6LinkLocal = types.BoolNull()
 	}
 
 	if jsonData.Management.FabricInterfaceType != "" {
 		v.FabricInterfaceType = types.StringValue(jsonData.Management.FabricInterfaceType)
-
 	} else {
 		v.FabricInterfaceType = types.StringNull()
 	}
 
 	if jsonData.Management.Ipv6SubnetTargetMask != nil {
 		v.Ipv6SubnetTargetMask = types.Int64Value(*jsonData.Management.Ipv6SubnetTargetMask)
-
 	} else {
 		v.Ipv6SubnetTargetMask = types.Int64Null()
 	}
 
 	if jsonData.Management.LinkStateRoutingProtocol != "" {
 		v.LinkStateRoutingProtocol = types.StringValue(jsonData.Management.LinkStateRoutingProtocol)
-
 	} else {
 		v.LinkStateRoutingProtocol = types.StringNull()
 	}
 
 	if jsonData.Management.RouteReflectorCount != nil {
 		v.RouteReflectorCount = types.Int64Value(*jsonData.Management.RouteReflectorCount)
-
 	} else {
 		v.RouteReflectorCount = types.Int64Null()
 	}
 
 	if jsonData.Management.VpcTorDelayRestoreTimer != nil {
 		v.VpcTorDelayRestoreTimer = types.Int64Value(*jsonData.Management.VpcTorDelayRestoreTimer)
-
 	} else {
 		v.VpcTorDelayRestoreTimer = types.Int64Null()
 	}
 
 	if jsonData.Management.LeafTorIdRange != nil {
 		v.LeafTorIdRange = types.BoolValue(*jsonData.Management.LeafTorIdRange)
-
 	} else {
 		v.LeafTorIdRange = types.BoolNull()
 	}
 
 	if jsonData.Management.LeafTorVpcPortChannelIdRange != "" {
 		v.LeafTorVpcPortChannelIdRange = types.StringValue(jsonData.Management.LeafTorVpcPortChannelIdRange)
-
 	} else {
 		v.LeafTorVpcPortChannelIdRange = types.StringNull()
 	}
 
 	if jsonData.Management.LinkStateRoutingTag != "" {
 		v.LinkStateRoutingTag = types.StringValue(jsonData.Management.LinkStateRoutingTag)
-
 	} else {
 		v.LinkStateRoutingTag = types.StringNull()
 	}
 
 	if jsonData.Management.OspfAreaId != "" {
 		v.OspfAreaId = types.StringValue(jsonData.Management.OspfAreaId)
-
 	} else {
 		v.OspfAreaId = types.StringNull()
 	}
 
 	if jsonData.Management.OspfAuthentication != nil {
 		v.OspfAuthentication = types.BoolValue(*jsonData.Management.OspfAuthentication)
-
 	} else {
 		v.OspfAuthentication = types.BoolNull()
 	}
 
 	if jsonData.Management.OspfAuthenticationKeyId != nil {
 		v.OspfAuthenticationKeyId = types.Int64Value(*jsonData.Management.OspfAuthenticationKeyId)
-
 	} else {
 		v.OspfAuthenticationKeyId = types.Int64Null()
 	}
 
 	if jsonData.Management.OspfAuthenticationKey != "" {
 		v.OspfAuthenticationKey = types.StringValue(jsonData.Management.OspfAuthenticationKey)
-
 	} else {
 		v.OspfAuthenticationKey = types.StringNull()
 	}
 
 	if jsonData.Management.IsisLevel != "" {
 		v.IsisLevel = types.StringValue(jsonData.Management.IsisLevel)
-
 	} else {
 		v.IsisLevel = types.StringNull()
 	}
 
 	if jsonData.Management.IsisAreaNumber != "" {
 		v.IsisAreaNumber = types.StringValue(jsonData.Management.IsisAreaNumber)
-
 	} else {
 		v.IsisAreaNumber = types.StringNull()
 	}
 
 	if jsonData.Management.IsisPointToPoint != nil {
 		v.IsisPointToPoint = types.BoolValue(*jsonData.Management.IsisPointToPoint)
-
 	} else {
 		v.IsisPointToPoint = types.BoolNull()
 	}
 
 	if jsonData.Management.IsisAuthentication != nil {
 		v.IsisAuthentication = types.BoolValue(*jsonData.Management.IsisAuthentication)
-
 	} else {
 		v.IsisAuthentication = types.BoolNull()
 	}
 
 	if jsonData.Management.IsisAuthenticationKeychainName != "" {
 		v.IsisAuthenticationKeychainName = types.StringValue(jsonData.Management.IsisAuthenticationKeychainName)
-
 	} else {
 		v.IsisAuthenticationKeychainName = types.StringNull()
 	}
 
 	if jsonData.Management.IsisAuthenticationKeychainKeyId != nil {
 		v.IsisAuthenticationKeychainKeyId = types.Int64Value(*jsonData.Management.IsisAuthenticationKeychainKeyId)
-
 	} else {
 		v.IsisAuthenticationKeychainKeyId = types.Int64Null()
 	}
 
 	if jsonData.Management.IsisAuthenticationKey != "" {
 		v.IsisAuthenticationKey = types.StringValue(jsonData.Management.IsisAuthenticationKey)
-
 	} else {
 		v.IsisAuthenticationKey = types.StringNull()
 	}
 
 	if jsonData.Management.IsisOverload != nil {
 		v.IsisOverload = types.BoolValue(*jsonData.Management.IsisOverload)
-
 	} else {
 		v.IsisOverload = types.BoolNull()
 	}
 
 	if jsonData.Management.IsisOverloadElapseTime != nil {
 		v.IsisOverloadElapseTime = types.Int64Value(*jsonData.Management.IsisOverloadElapseTime)
-
 	} else {
 		v.IsisOverloadElapseTime = types.Int64Null()
 	}
 
 	if jsonData.Management.BfdOspf != nil {
 		v.BfdOspf = types.BoolValue(*jsonData.Management.BfdOspf)
-
 	} else {
 		v.BfdOspf = types.BoolNull()
 	}
 
 	if jsonData.Management.BfdIsis != nil {
 		v.BfdIsis = types.BoolValue(*jsonData.Management.BfdIsis)
-
 	} else {
 		v.BfdIsis = types.BoolNull()
 	}
 
 	if jsonData.Management.BfdPim != nil {
 		v.BfdPim = types.BoolValue(*jsonData.Management.BfdPim)
-
 	} else {
 		v.BfdPim = types.BoolNull()
 	}
 
 	if jsonData.Management.AutoBgpNeighborDescription != nil {
 		v.AutoBgpNeighborDescription = types.BoolValue(*jsonData.Management.AutoBgpNeighborDescription)
-
 	} else {
 		v.AutoBgpNeighborDescription = types.BoolNull()
 	}
 
 	if jsonData.Management.IbgpPeerTemplate != "" {
 		v.IbgpPeerTemplate = types.StringValue(jsonData.Management.IbgpPeerTemplate)
-
 	} else {
 		v.IbgpPeerTemplate = types.StringNull()
 	}
 
 	if jsonData.Management.LeafibgpPeerTemplate != "" {
 		v.LeafibgpPeerTemplate = types.StringValue(jsonData.Management.LeafibgpPeerTemplate)
-
 	} else {
 		v.LeafibgpPeerTemplate = types.StringNull()
 	}
 
 	if jsonData.Management.SecurityGroupTag != nil {
 		v.SecurityGroupTag = types.BoolValue(*jsonData.Management.SecurityGroupTag)
-
 	} else {
 		v.SecurityGroupTag = types.BoolNull()
 	}
 
 	if jsonData.Management.SecurityGroupTagPrefix != "" {
 		v.SecurityGroupTagPrefix = types.StringValue(jsonData.Management.SecurityGroupTagPrefix)
-
 	} else {
 		v.SecurityGroupTagPrefix = types.StringNull()
 	}
 
 	if jsonData.Management.SecurityGroupTagIdRange != "" {
 		v.SecurityGroupTagIdRange = types.StringValue(jsonData.Management.SecurityGroupTagIdRange)
-
 	} else {
 		v.SecurityGroupTagIdRange = types.StringNull()
 	}
 
 	if jsonData.Management.SecurityGroupTagPreprovision != nil {
 		v.SecurityGroupTagPreprovision = types.BoolValue(*jsonData.Management.SecurityGroupTagPreprovision)
-
 	} else {
 		v.SecurityGroupTagPreprovision = types.BoolNull()
 	}
 
 	if jsonData.Management.SecurityGroupStatus != "" {
 		v.SecurityGroupStatus = types.StringValue(jsonData.Management.SecurityGroupStatus)
-
 	} else {
 		v.SecurityGroupStatus = types.StringNull()
 	}
 
 	if jsonData.Management.VrfLiteMacsec != nil {
 		v.VrfLiteMacsec = types.BoolValue(*jsonData.Management.VrfLiteMacsec)
-
 	} else {
 		v.VrfLiteMacsec = types.BoolNull()
 	}
 
 	if jsonData.Management.QuantumKeyDistribution != nil {
 		v.QuantumKeyDistribution = types.BoolValue(*jsonData.Management.QuantumKeyDistribution)
-
 	} else {
 		v.QuantumKeyDistribution = types.BoolNull()
 	}
 
 	if jsonData.Management.VrfLiteMacsecCipherSuite != "" {
 		v.VrfLiteMacsecCipherSuite = types.StringValue(jsonData.Management.VrfLiteMacsecCipherSuite)
-
 	} else {
 		v.VrfLiteMacsecCipherSuite = types.StringNull()
 	}
 
 	if jsonData.Management.VrfLiteMacsecKeyString != "" {
 		v.VrfLiteMacsecKeyString = types.StringValue(jsonData.Management.VrfLiteMacsecKeyString)
-
 	} else {
 		v.VrfLiteMacsecKeyString = types.StringNull()
 	}
 
 	if jsonData.Management.VrfLiteMacsecAlgorithm != "" {
 		v.VrfLiteMacsecAlgorithm = types.StringValue(jsonData.Management.VrfLiteMacsecAlgorithm)
-
 	} else {
 		v.VrfLiteMacsecAlgorithm = types.StringNull()
 	}
 
 	if jsonData.Management.VrfLiteMacsecFallbackKeyString != "" {
 		v.VrfLiteMacsecFallbackKeyString = types.StringValue(jsonData.Management.VrfLiteMacsecFallbackKeyString)
-
 	} else {
 		v.VrfLiteMacsecFallbackKeyString = types.StringNull()
 	}
 
 	if jsonData.Management.VrfLiteMacsecFallbackAlgorithm != "" {
 		v.VrfLiteMacsecFallbackAlgorithm = types.StringValue(jsonData.Management.VrfLiteMacsecFallbackAlgorithm)
-
 	} else {
 		v.VrfLiteMacsecFallbackAlgorithm = types.StringNull()
 	}
 
 	if jsonData.Management.QuantumKeyDistributionProfileName != "" {
 		v.QuantumKeyDistributionProfileName = types.StringValue(jsonData.Management.QuantumKeyDistributionProfileName)
-
 	} else {
 		v.QuantumKeyDistributionProfileName = types.StringNull()
 	}
 
 	if jsonData.Management.KeyManagementEntityServerIp != "" {
 		v.KeyManagementEntityServerIp = types.StringValue(jsonData.Management.KeyManagementEntityServerIp)
-
 	} else {
 		v.KeyManagementEntityServerIp = types.StringNull()
 	}
 
 	if jsonData.Management.KeyManagementEntityServerPort != nil {
 		v.KeyManagementEntityServerPort = types.Int64Value(*jsonData.Management.KeyManagementEntityServerPort)
-
 	} else {
 		v.KeyManagementEntityServerPort = types.Int64Null()
 	}
 
 	if jsonData.Management.TrustpointLabel != "" {
 		v.TrustpointLabel = types.StringValue(jsonData.Management.TrustpointLabel)
-
 	} else {
 		v.TrustpointLabel = types.StringNull()
 	}
 
 	if jsonData.Management.SkipCertificateVerification != nil {
 		v.SkipCertificateVerification = types.BoolValue(*jsonData.Management.SkipCertificateVerification)
-
 	} else {
 		v.SkipCertificateVerification = types.BoolNull()
 	}
 
 	if jsonData.Management.HostInterfaceAdminState != nil {
 		v.HostInterfaceAdminState = types.BoolValue(*jsonData.Management.HostInterfaceAdminState)
-
 	} else {
 		v.HostInterfaceAdminState = types.BoolNull()
 	}
 
 	if jsonData.Management.BrownfieldNetworkNameFormat != "" {
 		v.BrownfieldNetworkNameFormat = types.StringValue(jsonData.Management.BrownfieldNetworkNameFormat)
-
 	} else {
 		v.BrownfieldNetworkNameFormat = types.StringNull()
 	}
 
 	if jsonData.Management.BrownfieldSkipOverlayNetworkAttachments != nil {
 		v.BrownfieldSkipOverlayNetworkAttachments = types.BoolValue(*jsonData.Management.BrownfieldSkipOverlayNetworkAttachments)
-
 	} else {
 		v.BrownfieldSkipOverlayNetworkAttachments = types.BoolNull()
 	}
 
 	if jsonData.Management.PolicyBasedRouting != nil {
 		v.PolicyBasedRouting = types.BoolValue(*jsonData.Management.PolicyBasedRouting)
-
 	} else {
 		v.PolicyBasedRouting = types.BoolNull()
 	}
 
 	if jsonData.Management.PtpVlanId != nil {
 		v.PtpVlanId = types.Int64Value(*jsonData.Management.PtpVlanId)
-
 	} else {
 		v.PtpVlanId = types.Int64Null()
 	}
 
 	if jsonData.Management.MplsHandoff != nil {
 		v.MplsHandoff = types.BoolValue(*jsonData.Management.MplsHandoff)
-
 	} else {
 		v.MplsHandoff = types.BoolNull()
 	}
 
 	if jsonData.Management.MplsLoopbackIdentifier != nil {
 		v.MplsLoopbackIdentifier = types.Int64Value(*jsonData.Management.MplsLoopbackIdentifier)
-
 	} else {
 		v.MplsLoopbackIdentifier = types.Int64Null()
 	}
 
 	if jsonData.Management.MplsIsisAreaNumber != "" {
 		v.MplsIsisAreaNumber = types.StringValue(jsonData.Management.MplsIsisAreaNumber)
-
 	} else {
 		v.MplsIsisAreaNumber = types.StringNull()
 	}
 
 	if jsonData.Management.StpRootOption != "" {
 		v.StpRootOption = types.StringValue(jsonData.Management.StpRootOption)
-
 	} else {
 		v.StpRootOption = types.StringNull()
 	}
 
 	if jsonData.Management.StpVlanRange != "" {
 		v.StpVlanRange = types.StringValue(jsonData.Management.StpVlanRange)
-
 	} else {
 		v.StpVlanRange = types.StringNull()
 	}
 
 	if jsonData.Management.MstInstanceRange != "" {
 		v.MstInstanceRange = types.StringValue(jsonData.Management.MstInstanceRange)
-
 	} else {
 		v.MstInstanceRange = types.StringNull()
 	}
 
 	if jsonData.Management.StpBridgePriority != nil {
 		v.StpBridgePriority = types.Int64Value(*jsonData.Management.StpBridgePriority)
-
 	} else {
 		v.StpBridgePriority = types.Int64Null()
 	}
 
 	if jsonData.Management.AllowVlanOnLeafTorPairing != "" {
 		v.AllowVlanOnLeafTorPairing = types.StringValue(jsonData.Management.AllowVlanOnLeafTorPairing)
-
 	} else {
 		v.AllowVlanOnLeafTorPairing = types.StringNull()
 	}
 
 	if jsonData.Management.PreInterfaceConfigLeaf != "" {
 		v.PreInterfaceConfigLeaf = types.StringValue(jsonData.Management.PreInterfaceConfigLeaf)
-
 	} else {
 		v.PreInterfaceConfigLeaf = types.StringNull()
 	}
 
 	if jsonData.Management.PreInterfaceConfigSpine != "" {
 		v.PreInterfaceConfigSpine = types.StringValue(jsonData.Management.PreInterfaceConfigSpine)
-
 	} else {
 		v.PreInterfaceConfigSpine = types.StringNull()
 	}
 
 	if jsonData.Management.PreInterfaceConfigTor != "" {
 		v.PreInterfaceConfigTor = types.StringValue(jsonData.Management.PreInterfaceConfigTor)
-
 	} else {
 		v.PreInterfaceConfigTor = types.StringNull()
 	}
 
 	if jsonData.Management.ExtraConfigLeaf != "" {
 		v.ExtraConfigLeaf = types.StringValue(jsonData.Management.ExtraConfigLeaf)
-
 	} else {
 		v.ExtraConfigLeaf = types.StringNull()
 	}
 
 	if jsonData.Management.ExtraConfigSpine != "" {
 		v.ExtraConfigSpine = types.StringValue(jsonData.Management.ExtraConfigSpine)
-
 	} else {
 		v.ExtraConfigSpine = types.StringNull()
 	}
 
 	if jsonData.Management.ExtraConfigTor != "" {
 		v.ExtraConfigTor = types.StringValue(jsonData.Management.ExtraConfigTor)
-
 	} else {
 		v.ExtraConfigTor = types.StringNull()
 	}
 
 	if jsonData.Management.ExtraConfigIntraFabricLinks != "" {
 		v.ExtraConfigIntraFabricLinks = types.StringValue(jsonData.Management.ExtraConfigIntraFabricLinks)
-
 	} else {
 		v.ExtraConfigIntraFabricLinks = types.StringNull()
 	}
 
 	if jsonData.Management.MplsLoopbackIpRange != "" {
 		v.MplsLoopbackIpRange = types.StringValue(jsonData.Management.MplsLoopbackIpRange)
-
 	} else {
 		v.MplsLoopbackIpRange = types.StringNull()
 	}
 
 	if jsonData.Management.Ipv6SubnetRange != "" {
 		v.Ipv6SubnetRange = types.StringValue(jsonData.Management.Ipv6SubnetRange)
-
 	} else {
 		v.Ipv6SubnetRange = types.StringNull()
 	}
 
 	if jsonData.Management.RouterIdRange != "" {
 		v.RouterIdRange = types.StringValue(jsonData.Management.RouterIdRange)
-
 	} else {
 		v.RouterIdRange = types.StringNull()
 	}
 
 	if jsonData.Management.AutoSymmetricVrfLite != nil {
 		v.AutoSymmetricVrfLite = types.BoolValue(*jsonData.Management.AutoSymmetricVrfLite)
-
 	} else {
 		v.AutoSymmetricVrfLite = types.BoolNull()
 	}
 
 	if jsonData.Management.AutoVrfLiteDefaultVrf != nil {
 		v.AutoVrfLiteDefaultVrf = types.BoolValue(*jsonData.Management.AutoVrfLiteDefaultVrf)
-
 	} else {
 		v.AutoVrfLiteDefaultVrf = types.BoolNull()
 	}
 
 	if jsonData.Management.AutoSymmetricDefaultVrf != nil {
 		v.AutoSymmetricDefaultVrf = types.BoolValue(*jsonData.Management.AutoSymmetricDefaultVrf)
-
 	} else {
 		v.AutoSymmetricDefaultVrf = types.BoolNull()
 	}
 
 	if jsonData.Management.DefaultVrfRedistributionBgpRouteMap != "" {
 		v.DefaultVrfRedistributionBgpRouteMap = types.StringValue(jsonData.Management.DefaultVrfRedistributionBgpRouteMap)
-
 	} else {
 		v.DefaultVrfRedistributionBgpRouteMap = types.StringNull()
 	}
 
 	if jsonData.Management.IpServiceLevelAgreementIdRange != "" {
 		v.IpServiceLevelAgreementIdRange = types.StringValue(jsonData.Management.IpServiceLevelAgreementIdRange)
-
 	} else {
 		v.IpServiceLevelAgreementIdRange = types.StringNull()
 	}
 
 	if jsonData.Management.ObjectTrackingNumberRange != "" {
 		v.ObjectTrackingNumberRange = types.StringValue(jsonData.Management.ObjectTrackingNumberRange)
-
 	} else {
 		v.ObjectTrackingNumberRange = types.StringNull()
 	}
 
 	if jsonData.Management.ServiceNetworkVlanRange != "" {
 		v.ServiceNetworkVlanRange = types.StringValue(jsonData.Management.ServiceNetworkVlanRange)
-
 	} else {
 		v.ServiceNetworkVlanRange = types.StringNull()
 	}
 
 	if jsonData.Management.RouteMapSequenceNumberRange != "" {
 		v.RouteMapSequenceNumberRange = types.StringValue(jsonData.Management.RouteMapSequenceNumberRange)
-
 	} else {
 		v.RouteMapSequenceNumberRange = types.StringNull()
 	}
 
 	if jsonData.Management.InbandManagement != nil {
 		v.InbandManagement = types.BoolValue(*jsonData.Management.InbandManagement)
-
 	} else {
 		v.InbandManagement = types.BoolNull()
 	}
 
 	if jsonData.Management.SeedSwitchCoreInterfaces != "" {
 		v.SeedSwitchCoreInterfaces = types.StringValue(jsonData.Management.SeedSwitchCoreInterfaces)
-
 	} else {
 		v.SeedSwitchCoreInterfaces = types.StringNull()
 	}
 
 	if jsonData.Management.SpineSwitchCoreInterfaces != "" {
 		v.SpineSwitchCoreInterfaces = types.StringValue(jsonData.Management.SpineSwitchCoreInterfaces)
-
 	} else {
 		v.SpineSwitchCoreInterfaces = types.StringNull()
 	}
 
 	if jsonData.Management.InbandDhcpServers != "" {
 		v.InbandDhcpServers = types.StringValue(jsonData.Management.InbandDhcpServers)
-
 	} else {
 		v.InbandDhcpServers = types.StringNull()
 	}
 
 	if jsonData.Management.UnNumberedBootstrapLbId != nil {
 		v.UnNumberedBootstrapLbId = types.Int64Value(*jsonData.Management.UnNumberedBootstrapLbId)
-
 	} else {
 		v.UnNumberedBootstrapLbId = types.Int64Null()
 	}
 
 	if jsonData.Management.UnNumberedDhcpStartAddress != "" {
 		v.UnNumberedDhcpStartAddress = types.StringValue(jsonData.Management.UnNumberedDhcpStartAddress)
-
 	} else {
 		v.UnNumberedDhcpStartAddress = types.StringNull()
 	}
 
 	if jsonData.Management.UnNumberedDhcpEndAddress != "" {
 		v.UnNumberedDhcpEndAddress = types.StringValue(jsonData.Management.UnNumberedDhcpEndAddress)
-
 	} else {
 		v.UnNumberedDhcpEndAddress = types.StringNull()
 	}
 
 	if jsonData.Management.HeartbeatInterval != nil {
 		v.HeartbeatInterval = types.Int64Value(*jsonData.Management.HeartbeatInterval)
-
 	} else {
 		v.HeartbeatInterval = types.Int64Null()
 	}
@@ -1841,7 +1608,6 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 
 	if jsonData.Management.NetflowSettings.NetflowEnable != nil {
 		v.NetflowEnable = types.BoolValue(*jsonData.Management.NetflowSettings.NetflowEnable)
-
 	} else {
 		v.NetflowEnable = types.BoolNull()
 	}
@@ -1859,7 +1625,6 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 			listData[i].state = attr.ValueStateKnown
 		}
 		v.NetflowExporterCollection, err = types.ListValueFrom(context.Background(), NetflowExporterCollectionValue{}.Type(context.Background()), listData)
-
 		if err != nil {
 			return err
 		}
@@ -1877,7 +1642,6 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 			listData[i].state = attr.ValueStateKnown
 		}
 		v.NetflowRecordCollection, err = types.ListValueFrom(context.Background(), NetflowRecordCollectionValue{}.Type(context.Background()), listData)
-
 		if err != nil {
 			return err
 		}
@@ -1895,7 +1659,6 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 			listData[i].state = attr.ValueStateKnown
 		}
 		v.NetflowMonitorCollection, err = types.ListValueFrom(context.Background(), NetflowMonitorCollectionValue{}.Type(context.Background()), listData)
-
 		if err != nil {
 			return err
 		}
@@ -1913,35 +1676,30 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 			listData[i].state = attr.ValueStateKnown
 		}
 		v.NetflowSamplerCollection, err = types.ListValueFrom(context.Background(), NetflowSamplerCollectionValue{}.Type(context.Background()), listData)
-
 		if err != nil {
 			return err
 		}
 	}
 	if jsonData.TelemetrySettings.FlowCollection.TrafficAnalytics != "" {
 		v.TrafficAnalytics = types.StringValue(jsonData.TelemetrySettings.FlowCollection.TrafficAnalytics)
-
 	} else {
 		v.TrafficAnalytics = types.StringNull()
 	}
 
 	if jsonData.TelemetrySettings.FlowCollection.FlowCollectionModes.NetFlow != nil {
 		v.NetFlow = types.BoolValue(*jsonData.TelemetrySettings.FlowCollection.FlowCollectionModes.NetFlow)
-
 	} else {
 		v.NetFlow = types.BoolNull()
 	}
 
 	if jsonData.TelemetrySettings.FlowCollection.FlowCollectionModes.SFlow != nil {
 		v.SFlow = types.BoolValue(*jsonData.TelemetrySettings.FlowCollection.FlowCollectionModes.SFlow)
-
 	} else {
 		v.SFlow = types.BoolNull()
 	}
 
 	if jsonData.TelemetrySettings.FlowCollection.FlowCollectionModes.FlowTelemetry != nil {
 		v.FlowTelemetry = types.BoolValue(*jsonData.TelemetrySettings.FlowCollection.FlowCollectionModes.FlowTelemetry)
-
 	} else {
 		v.FlowTelemetry = types.BoolNull()
 	}
@@ -1959,7 +1717,6 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 			listData[i].state = attr.ValueStateKnown
 		}
 		v.VrfFlowRules, err = types.ListValueFrom(context.Background(), VrfFlowRulesValue{}.Type(context.Background()), listData)
-
 		if err != nil {
 			return err
 		}
@@ -1977,7 +1734,6 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 			listData[i].state = attr.ValueStateKnown
 		}
 		v.InterfaceFlowRules, err = types.ListValueFrom(context.Background(), InterfaceFlowRulesValue{}.Type(context.Background()), listData)
-
 		if err != nil {
 			return err
 		}
@@ -1995,14 +1751,12 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 			listData[i].state = attr.ValueStateKnown
 		}
 		v.L3OutFlowRules, err = types.ListValueFrom(context.Background(), L3OutFlowRulesValue{}.Type(context.Background()), listData)
-
 		if err != nil {
 			return err
 		}
 	}
 	if jsonData.TelemetrySettings.FlowCollection.TrafficAnalyticsRules.TrafficAnalyticsRulesEnabled != nil {
 		v.TrafficAnalyticsRulesEnabled = types.BoolValue(*jsonData.TelemetrySettings.FlowCollection.TrafficAnalyticsRules.TrafficAnalyticsRulesEnabled)
-
 	} else {
 		v.TrafficAnalyticsRulesEnabled = types.BoolNull()
 	}
@@ -2020,91 +1774,78 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 			listData[i].state = attr.ValueStateKnown
 		}
 		v.InterfaceRules, err = types.ListValueFrom(context.Background(), InterfaceRulesValue{}.Type(context.Background()), listData)
-
 		if err != nil {
 			return err
 		}
 	}
 	if jsonData.TelemetrySettings.FlowCollection.FlowCollectionCapabilities.TrafficAnalyticsMode != "" {
 		v.TrafficAnalyticsMode = types.StringValue(jsonData.TelemetrySettings.FlowCollection.FlowCollectionCapabilities.TrafficAnalyticsMode)
-
 	} else {
 		v.TrafficAnalyticsMode = types.StringNull()
 	}
 
 	if jsonData.TelemetrySettings.FlowCollection.FlowCollectionCapabilities.UdpCategorization != "" {
 		v.UdpCategorization = types.StringValue(jsonData.TelemetrySettings.FlowCollection.FlowCollectionCapabilities.UdpCategorization)
-
 	} else {
 		v.UdpCategorization = types.StringNull()
 	}
 
 	if jsonData.TelemetrySettings.FlowCollection.FlowCollectionCapabilities.TrafficAnalyticsFilterRules != "" {
 		v.TrafficAnalyticsFilterRules = types.StringValue(jsonData.TelemetrySettings.FlowCollection.FlowCollectionCapabilities.TrafficAnalyticsFilterRules)
-
 	} else {
 		v.TrafficAnalyticsFilterRules = types.StringNull()
 	}
 
 	if jsonData.TelemetrySettings.FlowCollection.OperatingMode != "" {
 		v.OperatingMode = types.StringValue(jsonData.TelemetrySettings.FlowCollection.OperatingMode)
-
 	} else {
 		v.OperatingMode = types.StringNull()
 	}
 
 	if jsonData.TelemetrySettings.FlowCollection.UdpCategorizationSupport != "" {
 		v.UdpCategorizationSupport = types.StringValue(jsonData.TelemetrySettings.FlowCollection.UdpCategorizationSupport)
-
 	} else {
 		v.UdpCategorizationSupport = types.StringNull()
 	}
 
 	if jsonData.TelemetrySettings.Microburst.Microburst != nil {
 		v.Microburst = types.BoolValue(*jsonData.TelemetrySettings.Microburst.Microburst)
-
 	} else {
 		v.Microburst = types.BoolNull()
 	}
 
 	if jsonData.TelemetrySettings.Microburst.Sensitivity != "" {
 		v.Sensitivity = types.StringValue(jsonData.TelemetrySettings.Microburst.Sensitivity)
-
 	} else {
 		v.Sensitivity = types.StringNull()
 	}
 
 	if jsonData.TelemetrySettings.AnalysisSettings.AnalysisSettingsIsEnabled != nil {
 		v.AnalysisSettingsIsEnabled = types.BoolValue(*jsonData.TelemetrySettings.AnalysisSettings.AnalysisSettingsIsEnabled)
-
 	} else {
 		v.AnalysisSettingsIsEnabled = types.BoolNull()
 	}
 
 	if jsonData.TelemetrySettings.Nas.Server != "" {
 		v.Server = types.StringValue(jsonData.TelemetrySettings.Nas.Server)
-
 	} else {
 		v.Server = types.StringNull()
 	}
 
 	if jsonData.TelemetrySettings.Nas.ExportSettings.ExportType != "" {
 		v.ExportType = types.StringValue(jsonData.TelemetrySettings.Nas.ExportSettings.ExportType)
-
 	} else {
 		v.ExportType = types.StringNull()
 	}
 
 	if jsonData.TelemetrySettings.Nas.ExportSettings.ExportFormat != "" {
 		v.ExportFormat = types.StringValue(jsonData.TelemetrySettings.Nas.ExportSettings.ExportFormat)
-
 	} else {
 		v.ExportFormat = types.StringNull()
 	}
 
 	if jsonData.TelemetrySettings.EnergyManagement.Cost != nil {
 		v.Cost = types.Float64Value(float64(*jsonData.TelemetrySettings.EnergyManagement.Cost))
-
 	} else {
 		v.Cost = types.Float64Null()
 	}
@@ -2122,7 +1863,6 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 			listData[i].state = attr.ValueStateKnown
 		}
 		v.Email, err = types.ListValueFrom(context.Background(), EmailValue{}.Type(context.Background()), listData)
-
 		if err != nil {
 			return err
 		}
@@ -2145,7 +1885,6 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 
 	if jsonData.ExternalStreamingSettings.Syslog.SyslogFacility != "" {
 		v.SyslogFacility = types.StringValue(jsonData.ExternalStreamingSettings.Syslog.SyslogFacility)
-
 	} else {
 		v.SyslogFacility = types.StringNull()
 	}
@@ -2178,7 +1917,6 @@ func (v *FabricVxlanModel) SetModelData(jsonData *resource_fabric_common.NDFCFab
 			listData[i].state = attr.ValueStateKnown
 		}
 		v.MessageBus, err = types.ListValueFrom(context.Background(), MessageBusValue{}.Type(context.Background()), listData)
-
 		if err != nil {
 			return err
 		}
@@ -2191,16 +1929,23 @@ func (v *LocationValue) SetValue(jsonData *resource_fabric_common.NDFCLocationVa
 	var err diag.Diagnostics
 	err = nil
 
+	valueStateKnown := false
 	if jsonData.Latitude != nil {
 		v.Latitude = types.Float64Value(float64(*jsonData.Latitude))
+		valueStateKnown = true
 	} else {
 		v.Latitude = types.Float64Null()
 	}
 
 	if jsonData.Longitude != nil {
 		v.Longitude = types.Float64Value(float64(*jsonData.Longitude))
+		valueStateKnown = true
 	} else {
 		v.Longitude = types.Float64Null()
+	}
+
+	if valueStateKnown {
+		v.state = attr.ValueStateKnown
 	}
 
 	return err
@@ -2236,7 +1981,6 @@ func (v *NetflowExporterCollectionValue) SetValue(jsonData *resource_fabric_comm
 
 	if jsonData.UdpPort != nil {
 		v.UdpPort = types.Int64Value(*jsonData.UdpPort)
-
 	} else {
 		v.UdpPort = types.Int64Null()
 	}
@@ -2313,14 +2057,12 @@ func (v *NetflowSamplerCollectionValue) SetValue(jsonData *resource_fabric_commo
 
 	if jsonData.NumSamples != nil {
 		v.NumSamples = types.Int64Value(*jsonData.NumSamples)
-
 	} else {
 		v.NumSamples = types.Int64Null()
 	}
 
 	if jsonData.SamplingRate != nil {
 		v.SamplingRate = types.Int64Value(*jsonData.SamplingRate)
-
 	} else {
 		v.SamplingRate = types.Int64Null()
 	}
@@ -2952,14 +2694,12 @@ func (v *EmailValue) SetValue(jsonData *resource_fabric_common.NDFCEmailValue) d
 
 	if jsonData.CollectionFrequencyInDays != nil {
 		v.CollectionFrequencyInDays = types.Int64Value(*jsonData.CollectionFrequencyInDays)
-
 	} else {
 		v.CollectionFrequencyInDays = types.Int64Null()
 	}
 
 	if jsonData.CollectionSettings.CollectionType != "" {
 		v.CollectionType = types.StringValue(jsonData.CollectionSettings.CollectionType)
-
 	} else {
 		v.CollectionType = types.StringNull()
 	}
@@ -3037,7 +2777,6 @@ func (v *MessageBusValue) SetValue(jsonData *resource_fabric_common.NDFCMessageB
 
 	if jsonData.CollectionSettings.CollectionSettingsCollectionType != "" {
 		v.CollectionSettingsCollectionType = types.StringValue(jsonData.CollectionSettings.CollectionSettingsCollectionType)
-
 	} else {
 		v.CollectionSettingsCollectionType = types.StringNull()
 	}

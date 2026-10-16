@@ -93,7 +93,6 @@ func (v *VpcPairModel) SetModelData(jsonData *NDFCVpcPairModel) diag.Diagnostics
 	}
 
 	v.VpcPairDetails.SetValue(&jsonData.VpcPairDetails)
-	v.VpcPairDetails.state = attr.ValueStateKnown
 
 	v.Deploy = types.BoolValue(jsonData.Deploy)
 
@@ -105,14 +104,17 @@ func (v *VpcPairDetailsValue) SetValue(jsonData *NDFCVpcPairDetailsValue) diag.D
 	var err diag.Diagnostics
 	err = nil
 
+	valueStateKnown := false
 	if jsonData.TemplateType != "" {
 		v.TemplateType = types.StringValue(jsonData.TemplateType)
+		valueStateKnown = true
 	} else {
 		v.TemplateType = types.StringNull()
 	}
 
 	if jsonData.AdminState != nil {
 		v.AdminState = types.BoolValue(*jsonData.AdminState)
+		valueStateKnown = true
 
 	} else {
 		v.AdminState = types.BoolNull()
@@ -120,19 +122,21 @@ func (v *VpcPairDetailsValue) SetValue(jsonData *NDFCVpcPairDetailsValue) diag.D
 
 	if jsonData.AllowedVlans != "" {
 		v.AllowedVlans = types.StringValue(jsonData.AllowedVlans)
+		valueStateKnown = true
 	} else {
 		v.AllowedVlans = types.StringNull()
 	}
 
 	if jsonData.DomainId != nil {
 		v.DomainId = types.Int64Value(*jsonData.DomainId)
-
+		valueStateKnown = true
 	} else {
 		v.DomainId = types.Int64Null()
 	}
 
 	if jsonData.EnableMirrorConfig != nil {
 		v.EnableMirrorConfig = types.BoolValue(*jsonData.EnableMirrorConfig)
+		valueStateKnown = true
 
 	} else {
 		v.EnableMirrorConfig = types.BoolNull()
@@ -140,13 +144,14 @@ func (v *VpcPairDetailsValue) SetValue(jsonData *NDFCVpcPairDetailsValue) diag.D
 
 	if jsonData.FabricPathSwitchId != nil {
 		v.FabricPathSwitchId = types.Int64Value(*jsonData.FabricPathSwitchId)
-
+		valueStateKnown = true
 	} else {
 		v.FabricPathSwitchId = types.Int64Null()
 	}
 
 	if jsonData.IsVpcPlus != nil {
 		v.IsVpcPlus = types.BoolValue(*jsonData.IsVpcPlus)
+		valueStateKnown = true
 
 	} else {
 		v.IsVpcPlus = types.BoolNull()
@@ -154,6 +159,7 @@ func (v *VpcPairDetailsValue) SetValue(jsonData *NDFCVpcPairDetailsValue) diag.D
 
 	if jsonData.IsVteps != nil {
 		v.IsVteps = types.BoolValue(*jsonData.IsVteps)
+		valueStateKnown = true
 
 	} else {
 		v.IsVteps = types.BoolNull()
@@ -161,38 +167,42 @@ func (v *VpcPairDetailsValue) SetValue(jsonData *NDFCVpcPairDetailsValue) diag.D
 
 	if jsonData.KeepAliveHoldTimeout != nil {
 		v.KeepAliveHoldTimeout = types.Int64Value(*jsonData.KeepAliveHoldTimeout)
-
+		valueStateKnown = true
 	} else {
 		v.KeepAliveHoldTimeout = types.Int64Null()
 	}
 
 	if jsonData.KeepAliveVrf != "" {
 		v.KeepAliveVrf = types.StringValue(jsonData.KeepAliveVrf)
+		valueStateKnown = true
 	} else {
 		v.KeepAliveVrf = types.StringNull()
 	}
 
 	if jsonData.LoopbackSecondaryIp != "" {
 		v.LoopbackSecondaryIp = types.StringValue(jsonData.LoopbackSecondaryIp)
+		valueStateKnown = true
 	} else {
 		v.LoopbackSecondaryIp = types.StringNull()
 	}
 
 	if jsonData.NveInterface != nil {
 		v.NveInterface = types.Int64Value(*jsonData.NveInterface)
-
+		valueStateKnown = true
 	} else {
 		v.NveInterface = types.Int64Null()
 	}
 
 	if jsonData.PeerSwitchKeepAliveLocalIp != "" {
 		v.PeerSwitchKeepAliveLocalIp = types.StringValue(jsonData.PeerSwitchKeepAliveLocalIp)
+		valueStateKnown = true
 	} else {
 		v.PeerSwitchKeepAliveLocalIp = types.StringNull()
 	}
 
 	if jsonData.PeerSwitchDomainConfig != "" {
 		v.PeerSwitchDomainConfig = types.StringValue(jsonData.PeerSwitchDomainConfig)
+		valueStateKnown = true
 	} else {
 		v.PeerSwitchDomainConfig = types.StringNull()
 	}
@@ -210,6 +220,7 @@ func (v *VpcPairDetailsValue) SetValue(jsonData *NDFCVpcPairDetailsValue) diag.D
 			listData[i] = types.StringValue(item)
 		}
 		v.PeerSwitchMemberInterfaces, err = types.SetValue(types.StringType, listData)
+		valueStateKnown = true
 		if err != nil {
 			log.Printf("Error in converting []string to  List")
 			return err
@@ -218,57 +229,63 @@ func (v *VpcPairDetailsValue) SetValue(jsonData *NDFCVpcPairDetailsValue) diag.D
 
 	if jsonData.PeerSwitchNativeVlan != nil {
 		v.PeerSwitchNativeVlan = types.Int64Value(*jsonData.PeerSwitchNativeVlan)
-
+		valueStateKnown = true
 	} else {
 		v.PeerSwitchNativeVlan = types.Int64Null()
 	}
 
 	if jsonData.PeerSwitchPoDescription != "" {
 		v.PeerSwitchPoDescription = types.StringValue(jsonData.PeerSwitchPoDescription)
+		valueStateKnown = true
 	} else {
 		v.PeerSwitchPoDescription = types.StringNull()
 	}
 
 	if jsonData.PeerSwitchPoConfig != "" {
 		v.PeerSwitchPoConfig = types.StringValue(jsonData.PeerSwitchPoConfig)
+		valueStateKnown = true
 	} else {
 		v.PeerSwitchPoConfig = types.StringNull()
 	}
 
 	if jsonData.PeerSwitchPoId != nil {
 		v.PeerSwitchPoId = types.Int64Value(*jsonData.PeerSwitchPoId)
-
+		valueStateKnown = true
 	} else {
 		v.PeerSwitchPoId = types.Int64Null()
 	}
 
 	if jsonData.PeerSwitchPrimaryIp != "" {
 		v.PeerSwitchPrimaryIp = types.StringValue(jsonData.PeerSwitchPrimaryIp)
+		valueStateKnown = true
 	} else {
 		v.PeerSwitchPrimaryIp = types.StringNull()
 	}
 
 	if jsonData.PeerSwitchSourceLoopback != nil {
 		v.PeerSwitchSourceLoopback = types.Int64Value(*jsonData.PeerSwitchSourceLoopback)
-
+		valueStateKnown = true
 	} else {
 		v.PeerSwitchSourceLoopback = types.Int64Null()
 	}
 
 	if jsonData.PoMode != "" {
 		v.PoMode = types.StringValue(jsonData.PoMode)
+		valueStateKnown = true
 	} else {
 		v.PoMode = types.StringNull()
 	}
 
 	if jsonData.SwitchKeepAliveLocalIp != "" {
 		v.SwitchKeepAliveLocalIp = types.StringValue(jsonData.SwitchKeepAliveLocalIp)
+		valueStateKnown = true
 	} else {
 		v.SwitchKeepAliveLocalIp = types.StringNull()
 	}
 
 	if jsonData.SwitchDomainConfig != "" {
 		v.SwitchDomainConfig = types.StringValue(jsonData.SwitchDomainConfig)
+		valueStateKnown = true
 	} else {
 		v.SwitchDomainConfig = types.StringNull()
 	}
@@ -286,6 +303,7 @@ func (v *VpcPairDetailsValue) SetValue(jsonData *NDFCVpcPairDetailsValue) diag.D
 			listData[i] = types.StringValue(item)
 		}
 		v.SwitchMemberInterfaces, err = types.SetValue(types.StringType, listData)
+		valueStateKnown = true
 		if err != nil {
 			log.Printf("Error in converting []string to  List")
 			return err
@@ -294,41 +312,48 @@ func (v *VpcPairDetailsValue) SetValue(jsonData *NDFCVpcPairDetailsValue) diag.D
 
 	if jsonData.SwitchNativeVlan != nil {
 		v.SwitchNativeVlan = types.Int64Value(*jsonData.SwitchNativeVlan)
-
+		valueStateKnown = true
 	} else {
 		v.SwitchNativeVlan = types.Int64Null()
 	}
 
 	if jsonData.SwitchPoDescription != "" {
 		v.SwitchPoDescription = types.StringValue(jsonData.SwitchPoDescription)
+		valueStateKnown = true
 	} else {
 		v.SwitchPoDescription = types.StringNull()
 	}
 
 	if jsonData.SwitchPoConfig != "" {
 		v.SwitchPoConfig = types.StringValue(jsonData.SwitchPoConfig)
+		valueStateKnown = true
 	} else {
 		v.SwitchPoConfig = types.StringNull()
 	}
 
 	if jsonData.SwitchPoId != nil {
 		v.SwitchPoId = types.Int64Value(*jsonData.SwitchPoId)
-
+		valueStateKnown = true
 	} else {
 		v.SwitchPoId = types.Int64Null()
 	}
 
 	if jsonData.SwitchPrimaryIp != "" {
 		v.SwitchPrimaryIp = types.StringValue(jsonData.SwitchPrimaryIp)
+		valueStateKnown = true
 	} else {
 		v.SwitchPrimaryIp = types.StringNull()
 	}
 
 	if jsonData.SwitchSourceLoopback != nil {
 		v.SwitchSourceLoopback = types.Int64Value(*jsonData.SwitchSourceLoopback)
-
+		valueStateKnown = true
 	} else {
 		v.SwitchSourceLoopback = types.Int64Null()
+	}
+
+	if valueStateKnown {
+		v.state = attr.ValueStateKnown
 	}
 
 	return err

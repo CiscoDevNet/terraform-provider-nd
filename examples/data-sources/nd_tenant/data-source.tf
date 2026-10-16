@@ -1,4 +1,4 @@
 
-data "nd_tenant" "test_resource_tenant_1" {
+data "nd_tenant" "test_datasource_tenant_1" {
   name = "tenant1"
 }
