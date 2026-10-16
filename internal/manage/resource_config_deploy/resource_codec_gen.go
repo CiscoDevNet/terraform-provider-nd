@@ -84,7 +84,6 @@ func (v *ConfigDeployModel) SetModelData(jsonData *NDFCConfigDeployModel) diag.D
 
 	v.AlwaysExecute = types.BoolValue(jsonData.AlwaysExecute)
 	v.Behaviour.SetValue(&jsonData.Behaviour)
-	v.Behaviour.state = attr.ValueStateKnown
 
 	if jsonData.Status != "" {
 		v.Status = types.StringValue(jsonData.Status)
@@ -106,8 +105,11 @@ func (v *BehaviourValue) SetValue(jsonData *NDFCBehaviourValue) diag.Diagnostics
 	var err diag.Diagnostics
 	err = nil
 
+	valueStateKnown := false
+
 	if jsonData.ExecuteOnCreate != nil {
 		v.ExecuteOnCreate = types.BoolValue(*jsonData.ExecuteOnCreate)
+		valueStateKnown = true
 
 	} else {
 		v.ExecuteOnCreate = types.BoolNull()
@@ -115,6 +117,7 @@ func (v *BehaviourValue) SetValue(jsonData *NDFCBehaviourValue) diag.Diagnostics
 
 	if jsonData.ExecuteOnUpdate != nil {
 		v.ExecuteOnUpdate = types.BoolValue(*jsonData.ExecuteOnUpdate)
+		valueStateKnown = true
 
 	} else {
 		v.ExecuteOnUpdate = types.BoolNull()
@@ -122,9 +125,14 @@ func (v *BehaviourValue) SetValue(jsonData *NDFCBehaviourValue) diag.Diagnostics
 
 	if jsonData.ExecuteOnDestroy != nil {
 		v.ExecuteOnDestroy = types.BoolValue(*jsonData.ExecuteOnDestroy)
+		valueStateKnown = true
 
 	} else {
 		v.ExecuteOnDestroy = types.BoolNull()
+	}
+
+	if valueStateKnown {
+		v.state = attr.ValueStateKnown
 	}
 
 	return err

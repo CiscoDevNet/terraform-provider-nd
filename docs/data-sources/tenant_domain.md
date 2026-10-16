@@ -13,7 +13,7 @@ Datasource of the tenant domain for Nexus Dashboard
 ## Example Usage
 
 ```terraform
-data "nd_tenant_domain" "test_resource_tenant_domain_1" {
+data "nd_tenant_domain" "test_datasource_tenant_domain_1" {
   name = "tenant_domain1"
 }
 ```

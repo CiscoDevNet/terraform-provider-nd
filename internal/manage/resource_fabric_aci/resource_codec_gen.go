@@ -11,22 +11,14 @@
 package resource_fabric_aci
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 type NDFCFabricAciModel struct {
-	Status NDFCStatusValue `json:"status,omitempty"`
 	Spec   NDFCSpecValue   `json:"spec,omitempty"`
-}
-
-type NDFCStatusValue struct {
-	State      string                    `json:"-"`
-	LastUpdate NDFCStatusLastUpdateValue `json:"lastUpdate,omitempty"`
-}
-
-type NDFCStatusLastUpdateValue struct {
-	LastUpdateMessage string `json:"-"`
+	Status NDFCStatusValue `json:"status,omitempty"`
 }
 
 type NDFCSpecValue struct {
@@ -68,62 +60,63 @@ type NDFCAciOrchestrationValue struct {
 	OrchestrationStatus string `json:"status,omitempty"`
 }
 
+type NDFCStatusValue struct {
+	State      string                    `json:"-"`
+	LastUpdate NDFCStatusLastUpdateValue `json:"lastUpdate,omitempty"`
+}
+
+type NDFCStatusLastUpdateValue struct {
+	LastUpdateMessage string `json:"-"`
+}
+
 func (v *FabricAciModel) SetModelData(jsonData *NDFCFabricAciModel) diag.Diagnostics {
 	var err diag.Diagnostics
 	err = nil
 
 	if jsonData.Spec.Hostname != "" {
 		v.Hostname = types.StringValue(jsonData.Spec.Hostname)
-
 	} else {
 		v.Hostname = types.StringNull()
 	}
 
 	if jsonData.Spec.Location.Latitude != nil {
 		v.Latitude = types.Float64Value(float64(*jsonData.Spec.Location.Latitude))
-
 	} else {
 		v.Latitude = types.Float64Null()
 	}
 
 	if jsonData.Spec.Location.Longitude != nil {
 		v.Longitude = types.Float64Value(float64(*jsonData.Spec.Location.Longitude))
-
 	} else {
 		v.Longitude = types.Float64Null()
 	}
 
 	if jsonData.Spec.Credentials.Username != "" {
 		v.Username = types.StringValue(jsonData.Spec.Credentials.Username)
-
 	} else {
 		v.Username = types.StringNull()
 	}
 
 	if jsonData.Spec.Credentials.Password != "" {
 		v.Password = types.StringValue(jsonData.Spec.Credentials.Password)
-
 	} else {
 		v.Password = types.StringNull()
 	}
 
 	if jsonData.Spec.Credentials.LoginDomain != "" {
 		v.LoginDomain = types.StringValue(jsonData.Spec.Credentials.LoginDomain)
-
 	} else {
 		v.LoginDomain = types.StringNull()
 	}
 
 	if jsonData.Spec.Aci.FabricName != "" {
 		v.FabricName = types.StringValue(jsonData.Spec.Aci.FabricName)
-
 	} else {
 		v.FabricName = types.StringNull()
 	}
 
 	if jsonData.Spec.Aci.LicenseTier != "" {
 		v.LicenseTier = types.StringValue(jsonData.Spec.Aci.LicenseTier)
-
 	} else {
 		v.LicenseTier = types.StringNull()
 	}
@@ -131,35 +124,30 @@ func (v *FabricAciModel) SetModelData(jsonData *NDFCFabricAciModel) diag.Diagnos
 	v.Telemetry.SetValue(&jsonData.Spec.Aci.Telemetry)
 	if jsonData.Spec.Aci.Orchestration.OrchestrationStatus != "" {
 		v.OrchestrationStatus = types.StringValue(jsonData.Spec.Aci.Orchestration.OrchestrationStatus)
-
 	} else {
 		v.OrchestrationStatus = types.StringNull()
 	}
 
 	if jsonData.Spec.Aci.SecurityDomain != "" {
 		v.SecurityDomain = types.StringValue(jsonData.Spec.Aci.SecurityDomain)
-
 	} else {
 		v.SecurityDomain = types.StringNull()
 	}
 
 	if jsonData.Spec.Aci.VerifyCa != nil {
 		v.VerifyCa = types.BoolValue(*jsonData.Spec.Aci.VerifyCa)
-
 	} else {
 		v.VerifyCa = types.BoolNull()
 	}
 
 	if jsonData.Status.State != "" {
 		v.State = types.StringValue(jsonData.Status.State)
-
 	} else {
 		v.State = types.StringNull()
 	}
 
 	if jsonData.Status.LastUpdate.LastUpdateMessage != "" {
 		v.LastUpdateMessage = types.StringValue(jsonData.Status.LastUpdate.LastUpdateMessage)
-
 	} else {
 		v.LastUpdateMessage = types.StringNull()
 	}
@@ -172,28 +160,37 @@ func (v *TelemetryValue) SetValue(jsonData *NDFCTelemetryValue) diag.Diagnostics
 	var err diag.Diagnostics
 	err = nil
 
+	valueStateKnown := false
 	if jsonData.Status != "" {
 		v.Status = types.StringValue(jsonData.Status)
+		valueStateKnown = true
 	} else {
 		v.Status = types.StringNull()
 	}
 
 	if jsonData.Network != "" {
 		v.Network = types.StringValue(jsonData.Network)
+		valueStateKnown = true
 	} else {
 		v.Network = types.StringNull()
 	}
 
 	if jsonData.Epg != "" {
 		v.Epg = types.StringValue(jsonData.Epg)
+		valueStateKnown = true
 	} else {
 		v.Epg = types.StringNull()
 	}
 
 	if jsonData.StreamingProtocol != "" {
 		v.StreamingProtocol = types.StringValue(jsonData.StreamingProtocol)
+		valueStateKnown = true
 	} else {
 		v.StreamingProtocol = types.StringNull()
+	}
+
+	if valueStateKnown {
+		v.state = attr.ValueStateKnown
 	}
 
 	return err

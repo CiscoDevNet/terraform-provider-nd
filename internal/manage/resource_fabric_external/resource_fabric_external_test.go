@@ -5,10 +5,11 @@ package resource_fabric_external
 import (
 	"encoding/json"
 	"os"
-	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"terraform-provider-nd/internal/manage/resource_fabric_common"
 )
 
 func TestResourceFabricExternal(t *testing.T) {

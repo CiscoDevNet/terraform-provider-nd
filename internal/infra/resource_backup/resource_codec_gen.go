@@ -58,7 +58,6 @@ func (v *BackupModel) SetModelData(jsonData *NDFCBackupModel) diag.Diagnostics {
 	}
 
 	v.Timeouts.SetValue(&jsonData.Timeouts)
-	v.Timeouts.state = attr.ValueStateKnown
 
 	return err
 }
@@ -68,16 +67,23 @@ func (v *TimeoutsValue) SetValue(jsonData *NDFCTimeoutsValue) diag.Diagnostics {
 	var err diag.Diagnostics
 	err = nil
 
+	valueStateKnown := false
 	if jsonData.Create != "" {
 		v.Create = types.StringValue(jsonData.Create)
+		valueStateKnown = true
 	} else {
 		v.Create = types.StringNull()
 	}
 
 	if jsonData.Read != "" {
 		v.Read = types.StringValue(jsonData.Read)
+		valueStateKnown = true
 	} else {
 		v.Read = types.StringNull()
+	}
+
+	if valueStateKnown {
+		v.state = attr.ValueStateKnown
 	}
 
 	return err
