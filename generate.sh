@@ -103,16 +103,15 @@ $GOPATH/bin/addlicense -c "Cisco Systems, Inc. and its affiliates" -l "mpl" -s  
 
 terraform fmt -recursive examples/
 
-if [[ -f $GOPATH/bin/tfplugindocs ]]
+if [[ ! -f $GOPATH/bin/tfplugindocs ]]
 then
-    $GOPATH/bin/tfplugindocs generate
-else
     go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
 fi
 
+$GOPATH/bin/tfplugindocs generate
+go run ./generator/doc_category.go
+
 rm -rf ./out
-
-
 
 
 

@@ -1,6 +1,6 @@
 resource:
   name: local_user
-  doc_category: Users and Security
+  doc_category: Authentication
   category: infra
   generate_tf_resource: true
   skip_equality: true
@@ -107,7 +107,7 @@ resource:
 
 datasource:
   name: local_user
-  doc_category: Users and Security
+  doc_category: Authentication
   category: infra
   generate_tf_resource: true
   skip_equality: true
