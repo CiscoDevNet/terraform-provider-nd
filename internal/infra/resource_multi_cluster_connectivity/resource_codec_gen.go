@@ -35,42 +35,36 @@ func (v *MultiClusterConnectivityModel) SetModelData(jsonData *NDFCMultiClusterC
 
 	if jsonData.Spec.ClusterName != "" {
 		v.ClusterName = types.StringValue(jsonData.Spec.ClusterName)
-
 	} else {
 		v.ClusterName = types.StringNull()
 	}
 
 	if jsonData.Spec.Hostname != "" {
 		v.Hostname = types.StringValue(jsonData.Spec.Hostname)
-
 	} else {
 		v.Hostname = types.StringNull()
 	}
 
 	if jsonData.Spec.Credentials.Username != "" {
 		v.Username = types.StringValue(jsonData.Spec.Credentials.Username)
-
 	} else {
 		v.Username = types.StringNull()
 	}
 
 	if jsonData.Spec.Credentials.Password != "" {
 		v.Password = types.StringValue(jsonData.Spec.Credentials.Password)
-
 	} else {
 		v.Password = types.StringNull()
 	}
 
 	if jsonData.Spec.Credentials.LoginDomain != "" {
 		v.LoginDomain = types.StringValue(jsonData.Spec.Credentials.LoginDomain)
-
 	} else {
 		v.LoginDomain = types.StringNull()
 	}
 
 	if jsonData.Spec.Nd.MultiClusterLoginDomain != "" {
 		v.MultiClusterLoginDomain = types.StringValue(jsonData.Spec.Nd.MultiClusterLoginDomain)
-
 	} else {
 		v.MultiClusterLoginDomain = types.StringNull()
 	}

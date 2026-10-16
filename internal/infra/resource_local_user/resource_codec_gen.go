@@ -80,7 +80,6 @@ func (v *LocalUserModel) SetModelData(jsonData *NDFCLocalUserModel) diag.Diagnos
 
 	if jsonData.Rbac.TenantDomain != "" {
 		v.TenantDomain = types.StringValue(jsonData.Rbac.TenantDomain)
-
 	} else {
 		v.TenantDomain = types.StringNull()
 	}

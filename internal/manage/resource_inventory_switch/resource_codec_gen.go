@@ -111,7 +111,6 @@ func (v *InventorySwitchModel) SetModelData(jsonData *NDFCInventorySwitchModel) 
 	}
 
 	v.SwitchDetail.SetValue(&jsonData.SwitchDetail)
-	v.SwitchDetail.state = attr.ValueStateKnown
 
 	if jsonData.DiscoveryUsername != "" {
 		v.DiscoveryUsername = types.StringValue(jsonData.DiscoveryUsername)
@@ -178,85 +177,103 @@ func (v *SwitchDetailValue) SetValue(jsonData *NDFCSwitchDetailValue) diag.Diagn
 	var err diag.Diagnostics
 	err = nil
 
+	valueStateKnown := false
 	if jsonData.Hostname != "" {
 		v.Hostname = types.StringValue(jsonData.Hostname)
+		valueStateKnown = true
 	} else {
 		v.Hostname = types.StringNull()
 	}
 
 	if jsonData.SerialNumber != "" {
 		v.SerialNumber = types.StringValue(jsonData.SerialNumber)
+		valueStateKnown = true
 	} else {
 		v.SerialNumber = types.StringNull()
 	}
 
 	if jsonData.IpAddress != "" {
 		v.IpAddress = types.StringValue(jsonData.IpAddress)
+		valueStateKnown = true
 	} else if jsonData.FabricManagementIp != "" {
 		v.IpAddress = types.StringValue(jsonData.FabricManagementIp)
+		valueStateKnown = true
 	} else {
 		v.IpAddress = types.StringNull()
 	}
 
 	if jsonData.Model != "" {
 		v.Model = types.StringValue(jsonData.Model)
+		valueStateKnown = true
 	} else {
 		v.Model = types.StringNull()
 	}
 
 	if jsonData.SoftwareVersion != "" {
 		v.SoftwareVersion = types.StringValue(jsonData.SoftwareVersion)
+		valueStateKnown = true
 	} else {
 		v.SoftwareVersion = types.StringNull()
 	}
 
 	if jsonData.SoftwareImage != "" {
 		v.SoftwareImage = types.StringValue(jsonData.SoftwareImage)
+		valueStateKnown = true
 	} else {
 		v.SoftwareImage = types.StringNull()
 	}
 
 	if jsonData.SwitchRole != "" {
 		v.SwitchRole = types.StringValue(jsonData.SwitchRole)
+		valueStateKnown = true
 	} else {
 		v.SwitchRole = types.StringNull()
 	}
 
 	if jsonData.Status != "" {
 		v.Status = types.StringValue(jsonData.Status)
+		valueStateKnown = true
 	} else {
 		v.Status = types.StringNull()
 	}
 
 	if jsonData.StatusReason != "" {
 		v.StatusReason = types.StringValue(jsonData.StatusReason)
+		valueStateKnown = true
 	} else {
 		v.StatusReason = types.StringNull()
 	}
 
 	if jsonData.GatewayIpMask != "" {
 		v.GatewayIpMask = types.StringValue(jsonData.GatewayIpMask)
+		valueStateKnown = true
 	} else {
 		v.GatewayIpMask = types.StringNull()
 	}
 
 	if jsonData.DiscoveryAuthProtocol != "" {
 		v.DiscoveryAuthProtocol = types.StringValue(jsonData.DiscoveryAuthProtocol)
+		valueStateKnown = true
 	} else {
 		v.DiscoveryAuthProtocol = types.StringNull()
 	}
 
 	if jsonData.VdcId != nil {
 		v.VdcId = types.Int64Value(*jsonData.VdcId)
-
+		valueStateKnown = true
 	} else {
 		v.VdcId = types.Int64Null()
 	}
 
 	if jsonData.VdcMac != "" {
 		v.VdcMac = types.StringValue(jsonData.VdcMac)
+		valueStateKnown = true
 	} else {
 		v.VdcMac = types.StringNull()
+	}
+
+	if valueStateKnown {
+		v.state = attr.ValueStateKnown
 	}
 
 	return err
