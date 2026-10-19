@@ -55,8 +55,8 @@ func (c *LocalUserAPI) DeleteUrl() string {
 	return fmt.Sprintf(UrlLocalUserByLoginId, c.LoginId)
 }
 
-// Local User Delete API does not support query params.
-func (c *LocalUserAPI) GetDeleteQP() []string {
+// Local User API does not use query parameters for GET or DELETE.
+func (c *LocalUserAPI) GetQueryParams() []string {
 	return nil
 }
 

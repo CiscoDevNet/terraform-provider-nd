@@ -56,8 +56,8 @@ func (c *BackupAPI) DeleteUrl() string {
 	return fmt.Sprintf(UrlBackupById, c.Name)
 }
 
-// Backup Delete API does not support query params.
-func (c *BackupAPI) GetDeleteQP() []string {
+// Backup API does not use query parameters for GET or DELETE.
+func (c *BackupAPI) GetQueryParams() []string {
 	return nil
 }
 

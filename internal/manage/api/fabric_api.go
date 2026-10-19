@@ -85,7 +85,7 @@ func (c *FabricAPI) DeleteUrl() string {
 	return fmt.Sprintf(urlPerFabric, c.FabricName)
 }
 
-func (c *FabricAPI) GetDeleteQP() []string {
+func (c *FabricAPI) GetQueryParams() []string {
 	return nil
 }
 

@@ -23,7 +23,7 @@ type NexusDashboardAPI interface {
 	PostUrl() string
 	PutUrl() string
 	DeleteUrl() string
-	GetDeleteQP() []string
+	GetQueryParams() []string
 	RscName() string
 }
 
@@ -62,6 +62,14 @@ func (c NexusDashboardAPICommon) Get() ([]byte, error) {
 	guard := Acquire(c.FabricScope(), c.NexusDashboardAPI.RscName(), LockCRUD)
 	defer guard.Release()
 	url := c.NexusDashboardAPI.GetUrl()
+	// Append query parameters (e.g. configOnly=true) if the resource provides them.
+	if qp := c.NexusDashboardAPI.GetQueryParams(); len(qp) > 0 {
+		sep := "?"
+		if strings.Contains(url, "?") {
+			sep = "&"
+		}
+		url += sep + strings.Join(qp, "&")
+	}
 	log.Printf("Get URL: %s\n", url)
 	if c.Client == nil {
 		log.Printf("************Client is nil********************")
@@ -71,7 +79,7 @@ func (c NexusDashboardAPICommon) Get() ([]byte, error) {
 		return nil, err
 	}
 
-	log.Printf("Finished GET: %s\n", c.NexusDashboardAPI.GetUrl())
+	log.Printf("Finished GET: %s\n", url)
 	return res, nil
 }
 
@@ -110,7 +118,7 @@ func (c NexusDashboardAPICommon) Delete(payload ...[]byte) (gjson.Result, error)
 		body = string(payload[0])
 	}
 
-	qp := c.NexusDashboardAPI.GetDeleteQP()
+	qp := c.NexusDashboardAPI.GetQueryParams()
 	var res nd.Res
 	var err error
 	if qp != nil && body == "" {

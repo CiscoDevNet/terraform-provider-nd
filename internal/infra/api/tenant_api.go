@@ -56,7 +56,7 @@ func (c *TenantAPI) DeleteUrl() string {
 	return fmt.Sprintf(UrlTenantByName, c.TenantName)
 }
 
-func (c *TenantAPI) GetDeleteQP() []string {
+func (c *TenantAPI) GetQueryParams() []string {
 	return nil
 }
 

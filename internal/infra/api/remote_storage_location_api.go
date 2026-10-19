@@ -58,7 +58,7 @@ func (c *RemoteStorageLocationAPI) DeleteUrl() string {
 }
 
 // Remote Storage Location Delete API does not support query params.
-func (c *RemoteStorageLocationAPI) GetDeleteQP() []string {
+func (c *RemoteStorageLocationAPI) GetQueryParams() []string {
 	return nil
 }
 

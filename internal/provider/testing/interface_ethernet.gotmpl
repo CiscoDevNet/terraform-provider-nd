@@ -1,0 +1,227 @@
+{{define "ND_INTERFACE_ETHERNET_RSC"}}
+resource "nd_interface_ethernet" "{{.RscName}}" {
+{{with .InterfaceEthernet}}
+    fabric_name = "{{.FabricName}}"
+    switch_id   = "{{.SwitchId}}"
+    deploy      = {{.Deploy}}
+    {{- if .Interfaces}}
+    interfaces = {
+        {{- range $ifName, $entry := .Interfaces}}
+        "{{$ifName}}" = {
+            {{- with $entry.ConfigData}}
+            {{- if .Mode}}
+            mode = "{{.Mode}}"
+            {{- end}}
+            {{- with .NetworkOS}}
+            {{- if .NetworkOsType}}
+            network_os_type = "{{.NetworkOsType}}"
+            {{- end}}
+            {{- with .Policy}}
+            {{- if .PolicyType}}
+            policy_type = "{{.PolicyType}}"
+            {{- end}}
+            {{- if .TemplateName}}
+            template_name = "{{.TemplateName}}"
+            {{- end}}
+            {{- if .AdminState}}
+            admin_state = {{deref_bool .AdminState}}
+            {{- end}}
+            {{- if .Description}}
+            description = "{{.Description}}"
+            {{- end}}
+            {{- if .Mtu}}
+            mtu = "{{.Mtu}}"
+            {{- end}}
+            {{- if .ExtraConfig}}
+            extra_config = "{{.ExtraConfig}}"
+            {{- end}}
+            {{- if .AccessVlan}}
+            access_vlan = {{deref_int64 .AccessVlan}}
+            {{- end}}
+            {{- if .AllowedVlans}}
+            allowed_vlans = "{{.AllowedVlans}}"
+            {{- end}}
+            {{- if .Bandwidth}}
+            bandwidth = {{deref_int64 .Bandwidth}}
+            {{- end}}
+            {{- if .BandwidthCapacityPercent}}
+            bandwidth_capacity_percent = {{deref_int64 .BandwidthCapacityPercent}}
+            {{- end}}
+            {{- if .BorderRouter}}
+            border_router = {{deref_bool .BorderRouter}}
+            {{- end}}
+            {{- if .BpduFilter}}
+            bpdu_filter = "{{.BpduFilter}}"
+            {{- end}}
+            {{- if .BpduGuard}}
+            bpdu_guard = "{{.BpduGuard}}"
+            {{- end}}
+            {{- if .Cdp}}
+            cdp = {{deref_bool .Cdp}}
+            {{- end}}
+            {{- if .DebounceLinkupTimer}}
+            debounce_linkup_timer = {{deref_int64 .DebounceLinkupTimer}}
+            {{- end}}
+            {{- if .DebounceTimer}}
+            debounce_timer = {{deref_int64 .DebounceTimer}}
+            {{- end}}
+            {{- if .DuplexMode}}
+            duplex_mode = "{{.DuplexMode}}"
+            {{- end}}
+            {{- if .ErrorDetectionAcl}}
+            error_detection_acl = {{deref_bool .ErrorDetectionAcl}}
+            {{- end}}
+            {{- if .Fec}}
+            fec = "{{.Fec}}"
+            {{- end}}
+            {{- if .GuardMode}}
+            guard_mode = "{{.GuardMode}}"
+            {{- end}}
+            {{- if .InheritBandwidth}}
+            inherit_bandwidth = {{deref_int64 .InheritBandwidth}}
+            {{- end}}
+            {{- if .Ip}}
+            ip = "{{.Ip}}"
+            {{- end}}
+            {{- if .IpRedirects}}
+            ip_redirects = {{deref_bool .IpRedirects}}
+            {{- end}}
+            {{- if .Ipv6}}
+            ipv6 = "{{.Ipv6}}"
+            {{- end}}
+            {{- if .Ipv6Prefix}}
+            ipv6_prefix = {{deref_int64 .Ipv6Prefix}}
+            {{- end}}
+            {{- if .LinkType}}
+            link_type = "{{.LinkType}}"
+            {{- end}}
+            {{- if .Mask}}
+            mask = "{{.Mask}}"
+            {{- end}}
+            {{- if .Monitor}}
+            monitor = {{deref_bool .Monitor}}
+            {{- end}}
+            {{- if .NativeVlan}}
+            native_vlan = {{deref_int64 .NativeVlan}}
+            {{- end}}
+            {{- if .NegotiateAuto}}
+            negotiate_auto = {{deref_bool .NegotiateAuto}}
+            {{- end}}
+            {{- if .Netflow}}
+            netflow = {{deref_bool .Netflow}}
+            {{- end}}
+            {{- if .NetflowMonitor}}
+            netflow_monitor = "{{.NetflowMonitor}}"
+            {{- end}}
+            {{- if .NetflowSampler}}
+            netflow_sampler = "{{.NetflowSampler}}"
+            {{- end}}
+            {{- if .OrphanPort}}
+            orphan_port = {{deref_bool .OrphanPort}}
+            {{- end}}
+            {{- if .PathCost}}
+            path_cost = {{deref_int64 .PathCost}}
+            {{- end}}
+            {{- if .Pfc}}
+            pfc = {{deref_bool .Pfc}}
+            {{- end}}
+            {{- if .PimDrPriority}}
+            pim_dr_priority = {{deref_int64 .PimDrPriority}}
+            {{- end}}
+            {{- if .PimSparse}}
+            pim_sparse = {{deref_bool .PimSparse}}
+            {{- end}}
+            {{- if .PortTypeEdgeTrunk}}
+            port_type_edge_trunk = {{deref_bool .PortTypeEdgeTrunk}}
+            {{- end}}
+            {{- if .Prefix}}
+            prefix = "{{.Prefix}}"
+            {{- end}}
+            {{- if .Ptp}}
+            ptp = {{deref_bool .Ptp}}
+            {{- end}}
+            {{- if .PtpProfile}}
+            ptp_profile = "{{.PtpProfile}}"
+            {{- end}}
+            {{- if .PtpRole}}
+            ptp_role = {{deref_bool .PtpRole}}
+            {{- end}}
+            {{- if .PtpVlan}}
+            ptp_vlan = {{deref_int64 .PtpVlan}}
+            {{- end}}
+            {{- if .PvlanAllowedVlans}}
+            pvlan_allowed_vlans = "{{.PvlanAllowedVlans}}"
+            {{- end}}
+            {{- if .PvlanMode}}
+            pvlan_mode = "{{.PvlanMode}}"
+            {{- end}}
+            {{- if .PvlanNativeVlan}}
+            pvlan_native_vlan = {{deref_int64 .PvlanNativeVlan}}
+            {{- end}}
+            {{- if .Qos}}
+            qos = {{deref_bool .Qos}}
+            {{- end}}
+            {{- if .QosPolicy}}
+            qos_policy = "{{.QosPolicy}}"
+            {{- end}}
+            {{- if .QueuingPolicy}}
+            queuing_policy = "{{.QueuingPolicy}}"
+            {{- end}}
+            {{- if .RoutingTag}}
+            routing_tag = "{{.RoutingTag}}"
+            {{- end}}
+            {{- if .SecurityGroupProxy}}
+            security_group_proxy = {{deref_bool .SecurityGroupProxy}}
+            {{- end}}
+            {{- if .Speed}}
+            speed = "{{.Speed}}"
+            {{- end}}
+            {{- if .StormControl}}
+            storm_control = {{deref_bool .StormControl}}
+            {{- end}}
+            {{- if .StormControlAction}}
+            storm_control_action = "{{.StormControlAction}}"
+            {{- end}}
+            {{- if .StormControlBroadcastLevel}}
+            storm_control_broadcast_level = {{deref_float64 .StormControlBroadcastLevel}}
+            {{- end}}
+            {{- if .StormControlBroadcastLevelPps}}
+            storm_control_broadcast_level_pps = {{deref_int64 .StormControlBroadcastLevelPps}}
+            {{- end}}
+            {{- if .StormControlMulticastLevel}}
+            storm_control_multicast_level = {{deref_float64 .StormControlMulticastLevel}}
+            {{- end}}
+            {{- if .StormControlMulticastLevelPps}}
+            storm_control_multicast_level_pps = {{deref_int64 .StormControlMulticastLevelPps}}
+            {{- end}}
+            {{- if .StormControlUnicastLevel}}
+            storm_control_unicast_level = {{deref_float64 .StormControlUnicastLevel}}
+            {{- end}}
+            {{- if .StormControlUnicastLevelPps}}
+            storm_control_unicast_level_pps = {{deref_int64 .StormControlUnicastLevelPps}}
+            {{- end}}
+            {{- if .UnicastBandwidthPercent}}
+            unicast_bandwidth_percent = {{deref_int64 .UnicastBandwidthPercent}}
+            {{- end}}
+            {{- if .V6prefix}}
+            v6prefix = {{deref_int64 .V6prefix}}
+            {{- end}}
+            {{- if .VlanMapping}}
+            vlan_mapping = {{deref_bool .VlanMapping}}
+            {{- end}}
+            {{- if .VrfInterface}}
+            vrf_interface = "{{.VrfInterface}}"
+            {{- end}}
+            {{- if .WanLink}}
+            wan_link = {{deref_bool .WanLink}}
+            {{- end}}
+            {{- end}}{{/* .Policy */}}
+            {{- end}}{{/* .NetworkOS */}}
+            {{- end}}{{/* .ConfigData */}}
+        }
+        {{- end}}{{/* range */}}
+    }
+    {{- end}}
+{{end}}
+}
+{{end}}
