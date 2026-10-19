@@ -46,7 +46,7 @@ func (c *TenantFabricAssociationAPI) DeleteUrl() string {
 	return UrlTenantFabricAssociations
 }
 
-func (c *TenantFabricAssociationAPI) GetDeleteQP() []string {
+func (c *TenantFabricAssociationAPI) GetQueryParams() []string {
 	return nil
 }
 

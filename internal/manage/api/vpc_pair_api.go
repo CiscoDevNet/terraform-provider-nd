@@ -48,7 +48,7 @@ func (c *VpcPairAPI) PutUrl() string {
 func (c *VpcPairAPI) DeleteUrl() string {
 	return fmt.Sprintf(urlVpcPairGet, c.FabricName, c.SwitchID)
 }
-func (c *VpcPairAPI) GetDeleteQP() []string {
+func (c *VpcPairAPI) GetQueryParams() []string {
 	return nil
 }
 

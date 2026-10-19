@@ -13,7 +13,7 @@ Reads fabric attributes returned by the Nexus Dashboard API.
 ## Example Usage
 
 ```terraform
-data "nd_fabric" "test_resource_fabric_1" {
+data "nd_fabric" "test_datasource_fabric_1" {
   fabric_name = "fabric1"
 }
 ```

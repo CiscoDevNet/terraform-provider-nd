@@ -18,4 +18,6 @@ files:
   - config_deploy.yaml
   - change_control.yaml
   - tenant_domain.yaml
+  - interface_common.yaml
+  - interface_ethernet.yaml
   #- sample.yaml
