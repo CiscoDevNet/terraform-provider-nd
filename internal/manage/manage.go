@@ -9,6 +9,8 @@
 package manage
 
 import (
+	"terraform-provider-nd/internal/common/templates"
+
 	nd "github.com/netascode/go-nd"
 )
 
@@ -23,9 +25,13 @@ var manageInstance *NexusDashboardManage
 
 func NewManage(client *nd.Client) *NexusDashboardManage {
 	if manageInstance == nil {
+		// Initialise shared singletons that all manage resources may use.
+		templates.InitInstance(client)
+		InitSwitchDBInstance(client)
+
 		manageInstance = &NexusDashboardManage{
 			ApiClient: client,
-			SwitchDB:  NewSwitchDB(client),
+			SwitchDB:  GetSwitchDBInstance(),
 		}
 	}
 	return manageInstance

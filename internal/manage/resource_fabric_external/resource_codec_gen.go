@@ -3189,7 +3189,6 @@ func (v FabricExternalModel) GetModelData() *resource_fabric_common.NDFCFabricCo
 
 				copy(data.ExternalStreamingSettings.Email[i1].CollectionSettings.Anomalies, listStringData)
 			}
-
 			//-----inline nesting end----
 
 			//-----inline nesting Start---- .ExternalStreamingSettings.Email[i1]
@@ -3204,7 +3203,6 @@ func (v FabricExternalModel) GetModelData() *resource_fabric_common.NDFCFabricCo
 
 				copy(data.ExternalStreamingSettings.Email[i1].CollectionSettings.Advisories, listStringData)
 			}
-
 			//-----inline nesting end----
 
 			//-----inline nesting Start---- .ExternalStreamingSettings.Email[i1]
@@ -3219,7 +3217,6 @@ func (v FabricExternalModel) GetModelData() *resource_fabric_common.NDFCFabricCo
 
 				copy(data.ExternalStreamingSettings.Email[i1].CollectionSettings.RiskAndConformanceReports, listStringData)
 			}
-
 			//-----inline nesting end----
 
 			if !ele1.OnlyIncludeActiveAlerts.IsNull() && !ele1.OnlyIncludeActiveAlerts.IsUnknown() {
@@ -3284,7 +3281,6 @@ func (v FabricExternalModel) GetModelData() *resource_fabric_common.NDFCFabricCo
 
 				copy(data.ExternalStreamingSettings.MessageBus[i1].CollectionSettings.Anomalies, listStringData)
 			}
-
 			//-----inline nesting end----
 
 			//-----inline nesting Start---- .ExternalStreamingSettings.MessageBus[i1]
@@ -3299,7 +3295,6 @@ func (v FabricExternalModel) GetModelData() *resource_fabric_common.NDFCFabricCo
 
 				copy(data.ExternalStreamingSettings.MessageBus[i1].CollectionSettings.Advisories, listStringData)
 			}
-
 			//-----inline nesting end----
 
 			//-----inline nesting Start---- .ExternalStreamingSettings.MessageBus[i1]
@@ -3314,7 +3309,6 @@ func (v FabricExternalModel) GetModelData() *resource_fabric_common.NDFCFabricCo
 
 				copy(data.ExternalStreamingSettings.MessageBus[i1].CollectionSettings.Statistics, listStringData)
 			}
-
 			//-----inline nesting end----
 
 			//-----inline nesting Start---- .ExternalStreamingSettings.MessageBus[i1]
@@ -3329,7 +3323,6 @@ func (v FabricExternalModel) GetModelData() *resource_fabric_common.NDFCFabricCo
 
 				copy(data.ExternalStreamingSettings.MessageBus[i1].CollectionSettings.Faults, listStringData)
 			}
-
 			//-----inline nesting end----
 
 			//-----inline nesting Start---- .ExternalStreamingSettings.MessageBus[i1]
@@ -3344,7 +3337,6 @@ func (v FabricExternalModel) GetModelData() *resource_fabric_common.NDFCFabricCo
 
 				copy(data.ExternalStreamingSettings.MessageBus[i1].CollectionSettings.AuditLogs, listStringData)
 			}
-
 			//-----inline nesting end----
 
 		} /* for loop */

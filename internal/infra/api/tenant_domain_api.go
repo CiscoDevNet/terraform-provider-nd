@@ -56,7 +56,7 @@ func (c *TenantDomainAPI) DeleteUrl() string {
 	return fmt.Sprintf(UrlTenantDomainByName, c.TenantDomainName)
 }
 
-func (c *TenantDomainAPI) GetDeleteQP() []string {
+func (c *TenantDomainAPI) GetQueryParams() []string {
 	return nil
 }
 
