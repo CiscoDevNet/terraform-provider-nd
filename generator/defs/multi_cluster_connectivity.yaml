@@ -4,13 +4,14 @@ resource:
   skip_equality: true
   subcategory: Multi-Cluster Connectivity
   category: infra
-  description: Manages multi-cluster connectivity for Nexus Dashboard clusters.
+  description: Manages an ND cluster for Multi-Cluster Connectivity in Nexus Dashboard
   attributes:
   - model_name: id
     tf_name: id
-    description: The unique identifier of the terraform resource.
+    description: The unique identifier for the resource, it is the cluster_name of the ND cluster (for example, nd4x).
     type: String
     computed: true
+    use_state: true
     id: true
     payload_hide: true
 
@@ -19,7 +20,6 @@ resource:
     tf_name: cluster_type
     description: The type of the cluster. The value will be auto filled as "ND" for this resource.
     type: String
-    computed: true
     tf_hide: true
     default_value: ND
     ndfc_nested:
@@ -31,9 +31,9 @@ resource:
     description: The name of the ND cluster.
     type: String
     computed: true
+    use_state: true
     ndfc_nested:
     - spec
-    example: nd4x
 
   - model_name: onboardUrl
     tf_name: hostname
@@ -92,3 +92,28 @@ resource:
     - spec
     - nd
     example: multi_cluster_login_domain
+
+datasource:
+  name: multi_cluster_connectivity
+  generate_tf_resource: true
+  skip_equality: true
+  subcategory: Multi-Cluster Connectivity
+  category: infra
+  description: Datasource of the ND cluster for Multi-Cluster Connectivity in Nexus Dashboard
+  attributes:
+  - model_name: name
+    tf_name: cluster_name
+    description: The name that uniquely identifies the ND cluster datasource.
+    type: String
+    mandatory: true
+    ndfc_nested:
+    - spec
+    example: nd4x
+
+  - model_name: onboardUrl
+    tf_name: hostname
+    description: The IP address or Hostname of the ND cluster.
+    type: String
+    computed: true
+    ndfc_nested:
+    - spec
