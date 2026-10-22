@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "counts": {
+      "remaining": 0,
+      "total": 2
+    }
+  },
+  "switches": [
+    {
+      "additionalData": {
+        "configSyncStatus": "outOfSync",
+        "discoveryStatus": "ok",
+        "platformType": "nx-os",
+        "sourceInterfaceName": "mgmt0",
+        "sourceVrfName": "management",
+        "username": "excluded-sensitive-value",
+        "vendor": "Cisco"
+      },
+      "advisoryLevel": "none",
+      "alertSuspend": "disabled",
+      "anomalyLevel": "minor",
+      "fabricManagementIp": "192.168.10.204",
+      "fabricName": "fabric1_vxlan",
+      "fabricType": "vxlanIbgp",
+      "hostname": "leaf3",
+      "model": "N9K-C9300v",
+      "serialNumber": "9R518K2AT3R",
+      "softwareVersion": "10.3(1)",
+      "switchId": "9R518K2AT3R",
+      "switchRole": "leaf",
+      "systemUpTime": "4 days, 18:41:45",
+      "vpcConfigured": false
+    },
+    {
+      "additionalData": {
+        "configSyncStatus": "outOfSync",
+        "discoveryStatus": "ok",
+        "platformType": "nx-os",
+        "sourceInterfaceName": "mgmt0",
+        "sourceVrfName": "management",
+        "username": "excluded-sensitive-value",
+        "vendor": "Cisco"
+      },
+      "advisoryLevel": "none",
+      "alertSuspend": "disabled",
+      "anomalyLevel": "major",
+      "fabricManagementIp": "192.168.10.201",
+      "fabricName": "fabric1_vxlan",
+      "fabricType": "vxlanIbgp",
+      "hostname": "spine2",
+      "model": "N9K-C9300v",
+      "serialNumber": "9N2SFZYSDIJ",
+      "softwareVersion": "10.3(1)",
+      "switchId": "9N2SFZYSDIJ",
+      "switchRole": "spine",
+      "systemUpTime": "4 days, 18:43:35",
+      "vpcConfigured": false
+    }
+  ]
+}
