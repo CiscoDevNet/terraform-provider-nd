@@ -100,7 +100,7 @@ func (c *ConfigAPI) DeleteUrl() string {
 	return c.urlForOp()
 }
 
-func (c *ConfigAPI) GetDeleteQP() []string {
+func (c *ConfigAPI) GetQueryParams() []string {
 	return nil
 }
 

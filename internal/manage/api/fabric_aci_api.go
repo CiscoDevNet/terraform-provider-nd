@@ -62,7 +62,7 @@ func (c *FabricAciAPI) DeleteUrl() string {
 	return fmt.Sprintf(UrlAciClusterRemoveByName, c.ClusterName)
 }
 
-func (c *FabricAciAPI) GetDeleteQP() []string {
+func (c *FabricAciAPI) GetQueryParams() []string {
 	return nil
 }
 

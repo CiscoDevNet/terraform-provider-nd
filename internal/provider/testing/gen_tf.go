@@ -28,6 +28,7 @@ import (
 	"terraform-provider-nd/internal/manage/resource_config_deploy"
 	"terraform-provider-nd/internal/manage/resource_fabric_aci"
 	"terraform-provider-nd/internal/manage/resource_fabric_common"
+	"terraform-provider-nd/internal/manage/resource_interface_common"
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
 	"terraform-provider-nd/internal/manage/resource_vpc_pair"
 )
@@ -324,6 +325,14 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 			err = t.ExecuteTemplate(&output, "ND_FABRIC_ACI_RSC", args)
 			if err != nil {
 				panic(fmt.Sprintf("Failed to execute ND_FABRIC_ACI_RSC template: %v", err))
+			}
+
+		case *resource_interface_common.NDFCInterfaceCommonModel:
+			args["InterfaceEthernet"] = v
+			args["RscName"] = rscName
+			err = t.ExecuteTemplate(&output, "ND_INTERFACE_ETHERNET_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_INTERFACE_ETHERNET_RSC template: %v", err))
 			}
 
 		default:

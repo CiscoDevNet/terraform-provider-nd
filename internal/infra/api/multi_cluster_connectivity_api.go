@@ -60,9 +60,9 @@ func (c *ClusterAPI) DeleteUrl() string {
 	return fmt.Sprintf(UrlClusterRemoveByName, c.ClusterName)
 }
 
-// GetDeleteQP satisfies the shared NexusDashboardAPI interface. This resource
-// does not use query parameters for delete-style operations.
-func (c *ClusterAPI) GetDeleteQP() []string {
+// GetQueryParams satisfies the shared NexusDashboardAPI interface. This resource
+// does not use query parameters for GET or DELETE operations.
+func (c *ClusterAPI) GetQueryParams() []string {
 	return nil
 }
 

@@ -1,0 +1,1144 @@
+---
+# Feature 001 — common model for all nd_interface_* resources.
+#
+# This file is the shared Go payload definition. It generates
+# NDFCInterfaceCommonModel in internal/manage/resource_interface_common,
+# which per-type resources (nd_interface_ethernet, ...) parent via
+# parent_package / parent_model.
+#
+# Nesting decision (feature 001 open-point, approved by reviewer 2026-10-15):
+# the TF plugin framework cannot represent a user-declared sub-Struct inside
+# a Map element (sub-objects become basetypes.ObjectValue with no .SetValue).
+# We therefore FLATTEN the policy block: every policy scalar lives directly
+# on the Map element and carries ndfc_nested: [configData, networkOS, policy].
+# The user-facing HCL loses the `policy = { ... }` block from the spec example.
+#
+# Attribute scope: feature 001 lands only the foundation attributes needed to
+# describe any ethernet policy (mode, network_os_type, policy_type, admin_state,
+# description, mtu, plus templateName/templateConfig for userDefined). The full
+# 65-scalar ethernet union lands in feature 002 (expands this file + the
+# per-type interface_ethernet.yaml in lockstep).
+resource:
+  name: interface_common
+  generate_tf_resource: false
+  inherited_model: true
+  skip_equality: false
+  category: manage
+  attributes:
+  - model_name: id
+    tf_name: id
+    description: The unique identifier of the nd_interface resource. Format
+      `<fabric_name>/<switch_id>/<interface_names csv>`.
+    type: String
+    computed: true
+    payload_hide: true
+  - model_name: fabricName
+    tf_name: fabric_name
+    description: The name of the fabric that owns the interfaces
+    type: String
+    mandatory: true
+    tf_requires_replace: true
+    payload_hide: true
+    example: Trial_VXLAN
+  - model_name: switchId
+    tf_name: switch_id
+    description: Default switch serial number or management IP address applied to
+      every interface entry that does not override it. Accepts either a serial
+      or an IP; IPs are resolved via SwitchDB.
+    type: String
+    optional: true
+    tf_requires_replace: true
+    payload_hide: true
+    example: FDO22412H7U
+  - model_name: deploy
+    tf_name: deploy
+    description: When true, deploy the interface configuration to the switches
+      after create or update via /fabrics/{f}/interfaceActions/deploy.
+    type: Bool
+    ndfc_type: bool
+    default_value: "false"
+    payload_hide: true
+    example: true
+  - model_name: interfaces
+    tf_name: interfaces
+    description: Map of interfaces keyed by interface name.
+    type: Map
+    mandatory: true
+    bulk: true
+    attributes:
+    - model_name: interfaceName
+      tf_name: interface_name
+      description: Interface name (populated from the map key)
+      type: String
+      tf_hide: true
+      example: Ethernet1/13
+    - model_name: interfaceType
+      tf_name: interface_type
+      description: Interface type (fixed per resource; populated by the backend)
+      type: String
+      tf_hide: true
+      example: ethernet
+    - model_name: switchId
+      tf_name: switch_id
+      description: Switch serial number or management IP address owning this interface.
+        Overrides the resource-level switch_id when set.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      requires_replace: true
+      tf_requires_replace: true
+      example: FDO22412H7U
+    - model_name: mode
+      tf_name: mode
+      description: Interface operational mode. Allowed values depend on the
+        interface type (e.g. access/trunk/routed/pvlan/dot1qTunnel/managed/
+        unmanaged for ethernet).
+      type: String
+      mandatory: true
+      requires_replace: true
+      ndfc_nested:
+      - configData
+      example: access
+    - model_name: networkOSType
+      tf_name: network_os_type
+      description: Network operating system of the switch (nx-os, ios-xe, ios-xr).
+        Allowed values depend on the interface type and mode.
+      type: String
+      mandatory: true
+      requires_replace: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      example: nx-os
+    - model_name: policyType
+      tf_name: policy_type
+      description: Built-in policy type for the (interface_type, mode, network_os_type)
+        combination, or `userDefined` to select a custom template via template_name.
+      type: String
+      mandatory: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: accessHost
+    - model_name: templateName
+      tf_name: template_name
+      description: Name of the user-defined template. Required when
+        policy_type is `userDefined`; must be null otherwise.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: my_custom_template
+    - model_name: templateConfig
+      tf_name: template_config
+      description: Name/value pairs defined by the selected user-defined template.
+        Only valid when policy_type is `userDefined`.
+      type: Map:String
+      optional: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: '{"ADMIN_STATE" = "true", "SPEED" = "Auto"}'
+    - model_name: adminState
+      tf_name: admin_state
+      description: Administrative state. Uncheck to disable the interface.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: true
+    - model_name: description
+      tf_name: description
+      description: Free-form description applied to the interface config.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: access port for lab host
+    - model_name: mtu
+      tf_name: mtu
+      description: MTU of the interface. The wire representation is template-
+        dependent — a JSON integer for L3/ios-xe templates (e.g. 1500..9216) and
+        a JSON string enum (`default`|`jumbo`) for nx-os L2 templates. Exposed as
+        a String; the dual-form marshal lives in resource_custom_codec.go.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: default
+    - model_name: extraConfig
+      tf_name: extra_config
+      description: Additional raw configuration appended to the interface.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: logging event port link-status
+    - model_name: accessVlan
+      tf_name: access_vlan
+      description: VLAN for this access port.
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 100
+    - model_name: allowedVlans
+      tf_name: allowed_vlans
+      description: 'Allowed VLANs. Use ''none'', ''all'', or specify VLAN ranges such
+        as 1-200, 500-2000, 3000.'
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: none
+    - model_name: bandwidth
+      tf_name: bandwidth
+      description: Configure the bandwidth value for this interface.
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 1000
+    - model_name: bandwidthCapacityPercent
+      tf_name: bandwidth_capacity_percent
+      description: Percentage of bandwidth capacity for this interface.
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 50
+    - model_name: borderRouter
+      tf_name: border_router
+      description: Indicates if the interface is a boundary of a PIM-SM domain.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: bpduFilter
+      tf_name: bpdu_filter
+      description: Configure spanning-tree bpdu filter (enable/disable/default).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: default
+    - model_name: bpduGuard
+      tf_name: bpdu_guard
+      description: Enable or disable spanning-tree bpdu guard (enable/disable/default).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: enable
+    - model_name: cdp
+      tf_name: cdp
+      description: Enable Cisco Discovery Protocol (CDP) on the interface.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: true
+    - model_name: debounceLinkupTimer
+      tf_name: debounce_linkup_timer
+      description: Debounce timer for link-up transitions (1000..10000).
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 1000
+    - model_name: debounceTimer
+      tf_name: debounce_timer
+      description: Debounce timer (0..20000).
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 100
+    - model_name: duplexMode
+      tf_name: duplex_mode
+      description: Port duplex mode (auto/full/half).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: auto
+    - model_name: errorDetectionAcl
+      tf_name: error_detection_acl
+      description: Enable error detection for access-list installation failures.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: true
+    - model_name: fec
+      tf_name: fec
+      description: Forward error correction mode (auto/fcFec/off/rsCons16/rsFec/rsIEEE).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: auto
+    - model_name: guardMode
+      tf_name: guard_mode
+      description: Spanning-tree guard mode (root/none/loop/delete).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: root
+    - model_name: ifName
+      tf_name: if_name
+      description: Internal interface name selector used by csr_multisite_ifc_underlay.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: GigabitEthernet0
+    - model_name: inheritBandwidth
+      tf_name: inherit_bandwidth
+      description: Sub-interfaces inherit this bandwidth value.
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 1000
+    - model_name: ip
+      tf_name: ip
+      description: IP address of the interface.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 10.1.1.1
+    - model_name: ipRedirects
+      tf_name: ip_redirects
+      description: Disable IPv4 and IPv6 redirects on the interface.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: ipv6
+      tf_name: ipv6
+      description: IPv6 address of the interface.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 'fd00::1'
+    - model_name: ipv6Prefix
+      tf_name: ipv6_prefix
+      description: Prefix length associated with the IPv6 address (64..127).
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 64
+    - model_name: linkType
+      tf_name: link_type
+      description: Link type for spanning tree (auto/pointToPoint/shared).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: auto
+    - model_name: mask
+      tf_name: mask
+      description: Subnet mask for the IP address (csr_multisite_ifc_underlay).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 255.255.255.252
+    - model_name: monitor
+      tf_name: monitor
+      description: Enable switchport monitoring for SPAN or ERSPAN.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: nativeVlan
+      tf_name: native_vlan
+      description: Native VLAN for the interface (1..4094).
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 1
+    - model_name: negotiateAuto
+      tf_name: negotiate_auto
+      description: Enable link auto-negotiation.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: true
+    - model_name: netflow
+      tf_name: netflow
+      description: Enable netflow collection (requires fabric netflow enabled).
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: netflowMonitor
+      tf_name: netflow_monitor
+      description: Layer 2 monitor name for netflow.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: NFMon
+    - model_name: netflowSampler
+      tf_name: netflow_sampler
+      description: Netflow sampler name (N7K only).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: NFSamp
+    - model_name: orphanPort
+      tf_name: orphan_port
+      description: Configure the interface as a VPC orphan port.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: pathCost
+      tf_name: path_cost
+      description: Spanning-tree port path cost (1..200000000).
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 2000
+    - model_name: pfc
+      tf_name: pfc
+      description: Enable priority flow control.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: pimDrPriority
+      tf_name: pim_dr_priority
+      description: Priority for PIM DR election (1..4294967295).
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 1
+    - model_name: pimSparse
+      tf_name: pim_sparse
+      description: Enable PIM sparse mode on the interface.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: portChannelId
+      tf_name: port_channel_id
+      description: Port-channel identifier the member belongs to.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: '10'
+    - model_name: portChannelMode
+      tf_name: port_channel_mode
+      description: Port-channel mode (on/active/passive/auto/desirable).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: active
+    - model_name: portTypeEdgeTrunk
+      tf_name: port_type_edge_trunk
+      description: Enables spanning-tree edge port (PortFast) behaviour.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: true
+    - model_name: prefix
+      tf_name: prefix
+      description: Netmask length for the IP address. Represented as String —
+        serialised as a JSON integer in L3/ios-xe templates and as a JSON string
+        in a subset of templates. Dual-form marshaling in resource_custom_codec.go.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: '30'
+    - model_name: ptp
+      tf_name: ptp
+      description: Enable precision time protocol (PTP) on the interface.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: ptpProfile
+      tf_name: ptp_profile
+      description: PTP profile (ieee1588v2/smpte20592/aes672015).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: smpte20592
+    - model_name: ptpRole
+      tf_name: ptp_role
+      description: Set PTP role to primary-only.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: ptpVlan
+      tf_name: ptp_vlan
+      description: VLAN for PTP traffic (1..4094).
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 100
+    - model_name: pvlanAllowedVlans
+      tf_name: pvlan_allowed_vlans
+      description: Private-VLAN allowed VLANs (none or ranges).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: none
+    - model_name: pvlanMode
+      tf_name: pvlan_mode
+      description: Private-VLAN mode (promiscuous/trunkPromiscuous/host/trunkSecondary).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: host
+    - model_name: pvlanNativeVlan
+      tf_name: pvlan_native_vlan
+      description: Native VLAN on a promiscuous PVLAN port (1..4094).
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 1
+    - model_name: qos
+      tf_name: qos
+      description: Enable a QoS policy for this interface.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: qosPolicy
+      tf_name: qos_policy
+      description: Custom QoS policy name.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: QOSP
+    - model_name: queuingPolicy
+      tf_name: queuing_policy
+      description: Queuing policy name.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: QPol
+    - model_name: routingTag
+      tf_name: routing_tag
+      description: Routing tag associated with the interface IP. Represented as
+        String — JSON integer in some templates (0..4294967295), JSON string in
+        ipfm templates. Dual-form marshaling in resource_custom_codec.go.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: '12345'
+    - model_name: securityGroupProxy
+      tf_name: security_group_proxy
+      description: Enable host group proxy functionality.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: speed
+      tf_name: speed
+      description: Speed setting (auto, 10Mb..800Gb depending on template).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: auto
+    - model_name: stormControl
+      tf_name: storm_control
+      description: Configure storm control on this interface.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: stormControlAction
+      tf_name: storm_control_action
+      description: Storm-control action (shutdown/trap/default).
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: default
+    - model_name: stormControlBroadcastLevel
+      tf_name: storm_control_broadcast_level
+      description: Broadcast storm-control level (percentage).
+      type: Float64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 10.5
+    - model_name: stormControlBroadcastLevelPps
+      tf_name: storm_control_broadcast_level_pps
+      description: Broadcast storm-control level (packets per second).
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 100000
+    - model_name: stormControlMulticastLevel
+      tf_name: storm_control_multicast_level
+      description: Multicast storm-control level (percentage).
+      type: Float64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 10.5
+    - model_name: stormControlMulticastLevelPps
+      tf_name: storm_control_multicast_level_pps
+      description: Multicast storm-control level (packets per second).
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 100000
+    - model_name: stormControlUnicastLevel
+      tf_name: storm_control_unicast_level
+      description: Unicast storm-control level (percentage).
+      type: Float64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 10.5
+    - model_name: stormControlUnicastLevelPps
+      tf_name: storm_control_unicast_level_pps
+      description: Unicast storm-control level (packets per second).
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 100000
+    - model_name: unicastBandwidthPercent
+      tf_name: unicast_bandwidth_percent
+      description: Local override for percentage of bandwidth set aside for unicast.
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 50
+    - model_name: v6prefix
+      tf_name: v6prefix
+      description: IPv6 netmask length used with the IPv6 address (iosXeNumbered).
+      type: Int64
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: 64
+    - model_name: vlanMapping
+      tf_name: vlan_mapping
+      description: Enable VLAN mapping.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+    - model_name: vrfInterface
+      tf_name: vrf_interface
+      description: VRF name for the interface. Uses default VRF if not specified.
+      type: String
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: default
+    - model_name: wanLink
+      tf_name: wan_link
+      description: Indicates if the interface is connected to an external network.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      example: false
+
+    # --- Array-of-object attributes ---
+
+    - model_name: associationList
+      tf_name: association_list
+      description: Private VLAN host association. Each entry pairs a primary VLAN (pVlan) with a secondary VLAN (sVlan).
+      type: List
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      attributes:
+      - model_name: pVlan
+        tf_name: p_vlan
+        type: Int64
+        description: Primary VLAN ID for private VLAN isolation (1-4094).
+        optional: true
+        example: 100
+      - model_name: sVlan
+        tf_name: s_vlan
+        type: Int64
+        description: Secondary VLAN ID for private VLAN isolation (1-4094).
+        optional: true
+        example: 200
+
+    - model_name: mappingList
+      tf_name: mapping_list
+      description: Private VLAN promiscuous mapping. Each entry maps a primary VLAN (pVlan) to a secondary VLAN (sVlan).
+      type: List
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      attributes:
+      - model_name: pVlan
+        tf_name: p_vlan
+        type: Int64
+        description: Primary VLAN ID for private VLAN mapping (1-4094).
+        optional: true
+        example: 100
+      - model_name: sVlan
+        tf_name: s_vlan
+        type: Int64
+        description: Secondary VLAN ID for private VLAN mapping (1-4094).
+        optional: true
+        example: 200
+
+    - model_name: igmpGroupRanges
+      tf_name: igmp_group_ranges
+      description: Proxy group ranges with prefixes. If not supplied, all groups are forwarded. Use this table to control which source groups are forwarded upstream. Maximum 20 entries.
+      type: List
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      attributes:
+      - model_name: groupAddress
+        tf_name: group_address
+        type: String
+        description: Source host group proxy subnet (IPv4 address).
+        optional: true
+        example: 239.1.1.0
+      - model_name: prefix
+        tf_name: prefix
+        type: Int64
+        description: Subnet mask length (4-32).
+        optional: true
+        example: 24
+
+    - model_name: mstPathCostList
+      tf_name: mst_path_cost_list
+      description: MST instance lists (0-4094) with different port path costs.
+      type: List
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      attributes:
+      - model_name: mstInstanceList
+        tf_name: mst_instance_list
+        type: List:String
+        description: Collection of spanning tree instances (e.g. 0,2-4,6,8-12).
+        optional: true
+        example: '["0"]'
+      - model_name: pathCost
+        tf_name: path_cost
+        type: Int64
+        description: Spanning tree port path cost (1-200000000).
+        optional: true
+        example: 1
+
+    - model_name: mstPortPrioList
+      tf_name: mst_port_prio_list
+      description: MST instance lists with different port priorities.
+      type: List
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      attributes:
+      - model_name: mstInstanceList
+        tf_name: mst_instance_list
+        type: List:String
+        description: Collection of spanning tree instances (e.g. 0,2-4,6,8-12).
+        optional: true
+        example: '["0"]'
+      - model_name: portPriority
+        tf_name: port_priority
+        type: Int64
+        description: Port priority (0, 32, 64, 96, 128, 160, 192, 224).
+        optional: true
+        example: 128
+
+    - model_name: vlanMappingEntries
+      tf_name: vlan_mapping_entries
+      description: Configured rules on a network device that allow the modification of VLAN tags in Ethernet frames as they traverse an interface.
+      type: List
+      optional: true
+      computed: true
+      use_state: true
+      ndfc_nested:
+      - configData
+      - networkOS
+      - policy
+      attributes:
+      - model_name: customerVlanId
+        tf_name: customer_vlan_id
+        type: List:String
+        description: Customer VLAN ID ranges (1-4094).
+        optional: true
+        example: '["100"]'
+      - model_name: dot1qTunnel
+        tf_name: dot1q_tunnel
+        type: Bool
+        ndfc_type: bool
+        description: Enable flexible S-VLAN tag configuration based on inner C-VLAN tag.
+        optional: true
+        example: false
+      - model_name: customerInnerVlanId
+        tf_name: customer_inner_vlan_id
+        type: Int64
+        description: Customer inner VLAN ID (1-4094).
+        optional: true
+        example: 100
+      - model_name: providerVlanId
+        tf_name: provider_vlan_id
+        type: Int64
+        description: Service provider VLAN ID (1-4094).
+        optional: true
+        example: 200

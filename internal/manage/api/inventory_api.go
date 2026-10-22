@@ -155,7 +155,7 @@ func (c *InventoryAPI) DeleteUrl() string {
 	return fmt.Sprintf(UrlFabricSwitches, c.FabricName)
 }
 
-func (c *InventoryAPI) GetDeleteQP() []string {
+func (c *InventoryAPI) GetQueryParams() []string {
 	return nil
 }
 

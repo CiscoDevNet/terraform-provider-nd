@@ -42,7 +42,7 @@ func (c *ChangeControlAPI) PutUrl() string {
 	return UrlChangeControl
 }
 
-func (c *ChangeControlAPI) GetDeleteQP() []string {
+func (c *ChangeControlAPI) GetQueryParams() []string {
 	return nil
 }
 

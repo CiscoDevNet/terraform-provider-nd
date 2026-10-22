@@ -61,6 +61,35 @@ type SwitchDB struct {
 	client *nd.Client
 }
 
+// switchDBInstance is the process-wide singleton, initialised once in
+// InitSwitchDBInstance (called from manage.NewManage). Any package that
+// needs IP→serial resolution can call GetSwitchDBInstance() instead of
+// threading a *SwitchDB argument through the call chain.
+var switchDBInstance *SwitchDB
+
+// InitSwitchDBInstance creates the singleton SwitchDB with the given API
+// client. Safe to call multiple times; only the first call takes effect.
+func InitSwitchDBInstance(client *nd.Client) {
+	if switchDBInstance == nil {
+		switchDBInstance = NewSwitchDB(client)
+	}
+}
+
+// GetSwitchDBInstance returns the singleton SwitchDB. Panics if
+// InitSwitchDBInstance has not been called (provider misconfiguration).
+func GetSwitchDBInstance() *SwitchDB {
+	if switchDBInstance == nil {
+		panic("manage.GetSwitchDBInstance called before InitSwitchDBInstance")
+	}
+	return switchDBInstance
+}
+
+// ResetSwitchDBForTest tears down the singleton so unit tests can
+// re-initialise with a fresh instance. Production code must not call this.
+func ResetSwitchDBForTest() {
+	switchDBInstance = nil
+}
+
 // NewSwitchDB creates a new SwitchDB backed by the given API client.
 func NewSwitchDB(client *nd.Client) *SwitchDB {
 	return &SwitchDB{
