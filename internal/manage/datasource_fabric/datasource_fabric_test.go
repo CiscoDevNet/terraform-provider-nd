@@ -5,8 +5,9 @@ package datasource_fabric
 import (
 	"encoding/json"
 	"os"
-	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	"testing"
+
+	"terraform-provider-nd/internal/manage/resource_fabric_common"
 )
 
 func TestDatasourceFabric(t *testing.T) {

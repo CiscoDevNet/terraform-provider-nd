@@ -126,6 +126,12 @@ func fabricAciEnvironmentVariableName(fabricName string, variableName string) st
 func (r *fabricAciResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	log.Printf("[DEBUG] Start create of resource: nd_fabric_aci")
 
+	var config FabricAciModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	var in FabricAciModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &in)...)
 	if resp.Diagnostics.HasError() {
@@ -135,7 +141,7 @@ func (r *fabricAciResource) Create(ctx context.Context, req resource.CreateReque
 	in.Id = in.FabricName
 	log.Printf("[DEBUG] Creating Fabric ACI: id=%s", in.Id.ValueString())
 
-	r.rscCreateFabricAci(ctx, &resp.Diagnostics, &in)
+	r.rscCreateFabricAci(ctx, &resp.Diagnostics, &in, config.Telemetry.IsNull())
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -157,7 +163,7 @@ func (r *fabricAciResource) Read(ctx context.Context, req resource.ReadRequest, 
 	id := state.Id.ValueString()
 	log.Printf("[DEBUG] Reading Fabric ACI: id=%s", id)
 
-	if r.rscGetFabricAci(ctx, &resp.Diagnostics, &state) {
+	if r.rscGetFabricAci(ctx, &resp.Diagnostics, &state, state.Telemetry.IsNull() || state.Telemetry.IsUnknown()) {
 		log.Printf("[DEBUG] Fabric ACI %q not found, removing from state", id)
 		resp.State.RemoveResource(ctx)
 		return
@@ -174,6 +180,12 @@ func (r *fabricAciResource) Read(ctx context.Context, req resource.ReadRequest, 
 func (r *fabricAciResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	log.Printf("[DEBUG] Start update of resource: nd_fabric_aci")
 
+	var config FabricAciModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	var plan FabricAciModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
@@ -183,7 +195,7 @@ func (r *fabricAciResource) Update(ctx context.Context, req resource.UpdateReque
 	plan.Id = plan.FabricName
 	log.Printf("[DEBUG] Updating Fabric ACI: id=%s", plan.Id.ValueString())
 
-	r.rscUpdateFabricAci(ctx, &resp.Diagnostics, &plan)
+	r.rscUpdateFabricAci(ctx, &resp.Diagnostics, &plan, config.Telemetry.IsNull())
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -247,7 +259,7 @@ func (r *fabricAciResource) ImportState(ctx context.Context, req resource.Import
 	// Setting default value false to VerifyCa because the API does not return it.
 	state.VerifyCa = types.BoolValue(false)
 
-	if r.rscGetFabricAci(ctx, &resp.Diagnostics, &state) {
+	if r.rscGetFabricAci(ctx, &resp.Diagnostics, &state, false) {
 		resp.Diagnostics.AddError(
 			"Error Importing Fabric ACI",
 			fmt.Sprintf("Could not import nd_fabric_aci with id %q: resource not found", state.Id.ValueString()),

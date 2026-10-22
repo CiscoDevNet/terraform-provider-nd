@@ -67,14 +67,9 @@ func (r aciClusterResponse) modelData() NDFCFabricAciModel {
 }
 
 // rscCreateFabricAci creates a fabric ACI resource.
-func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Diagnostics, fabricAciModel *FabricAciModel) {
+func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Diagnostics, fabricAciModel *FabricAciModel, preserveTelemetryNull bool) {
 	id := fabricAciModel.Id.ValueString()
 	log.Printf("[INFO] Create nd_fabric_aci id=%s", id)
-
-	// Setting default value false to VerifyCa when it is null/unknown
-	if fabricAciModel.VerifyCa.IsNull() || fabricAciModel.VerifyCa.IsUnknown() {
-		fabricAciModel.VerifyCa = types.BoolValue(false)
-	}
 
 	inData := fabricAciModel.GetModelData()
 	inData.Spec.ClusterType = "APIC"
@@ -102,7 +97,7 @@ func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Dia
 		return
 	}
 
-	if r.rscGetFabricAci(ctx, dg, fabricAciModel) && !dg.HasError() {
+	if r.rscGetFabricAci(ctx, dg, fabricAciModel, preserveTelemetryNull) && !dg.HasError() {
 		dg.AddError(
 			"Error Reading Fabric ACI",
 			fmt.Sprintf("Could not read nd_fabric_aci %q after create: resource not found", id),
@@ -112,7 +107,7 @@ func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Dia
 
 // rscGetFabricAci retrieves fabric ACI information by id.
 // It returns true when the remote object was not found.
-func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagnostics, fabricAciModel *FabricAciModel) bool {
+func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagnostics, fabricAciModel *FabricAciModel, preserveTelemetryNull bool) bool {
 	id := fabricAciModel.Id.ValueString()
 	log.Printf("[INFO] Read nd_fabric_aci id=%s", id)
 
@@ -162,7 +157,14 @@ func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagno
 	if dg.HasError() {
 		return false
 	}
-	fabricAciModel.NormalizeTelemetryNetworkState()
+	if preserveTelemetryNull {
+		// The API returns telemetry.status="disabled" even when telemetry is
+		// omitted from configuration. Keep the optional-only Terraform object
+		// null so resource state remains consistent with the configuration.
+		fabricAciModel.Telemetry = NewTelemetryValueNull()
+	} else {
+		fabricAciModel.NormalizeTelemetryNetworkState()
+	}
 
 	fabricAciModel.Username = preservedUsername
 	fabricAciModel.Password = preservedPassword
@@ -173,7 +175,7 @@ func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagno
 }
 
 // rscUpdateFabricAci updates a fabric ACI resource.
-func (r *fabricAciResource) rscUpdateFabricAci(ctx context.Context, dg *diag.Diagnostics, plan *FabricAciModel) {
+func (r *fabricAciResource) rscUpdateFabricAci(ctx context.Context, dg *diag.Diagnostics, plan *FabricAciModel, preserveTelemetryNull bool) {
 	id := plan.Id.ValueString()
 	log.Printf("[INFO] Update nd_fabric_aci id=%s", id)
 
@@ -202,7 +204,7 @@ func (r *fabricAciResource) rscUpdateFabricAci(ctx context.Context, dg *diag.Dia
 		return
 	}
 
-	if r.rscGetFabricAci(ctx, dg, plan) && !dg.HasError() {
+	if r.rscGetFabricAci(ctx, dg, plan, preserveTelemetryNull) && !dg.HasError() {
 		dg.AddError(
 			"Error Reading Fabric ACI",
 			fmt.Sprintf("Could not read nd_fabric_aci %q after update: resource not found", id),
