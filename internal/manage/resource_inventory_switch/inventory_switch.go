@@ -382,7 +382,7 @@ func (r *inventorySwitchResource) rscImportInventory(ctx context.Context, dg *di
 		return
 	}
 
-	fabricName := parts[0]
+	fabricName := strings.TrimSpace(parts[0])
 	serial := strings.TrimSpace(parts[1])
 
 	if fabricName == "" || serial == "" {
@@ -402,11 +402,18 @@ func (r *inventorySwitchResource) rscImportInventory(ctx context.Context, dg *di
 			SerialNumber: serial,
 		},
 	}
-	input.SetModelData(switchData)
+	dg.Append(input.SetModelData(switchData)...)
+	if dg.HasError() {
+		return
+	}
 
 	// Read the actual state
-	r.rscGetInventory(ctx, dg, input)
+	found := r.rscGetInventory(ctx, dg, input)
 	if dg.HasError() {
+		return
+	}
+	if !found {
+		dg.AddError("Error Importing Inventory Switch", fmt.Sprintf("Switch with serial number %q was not found in fabric %q", serial, fabricName))
 		return
 	}
 
