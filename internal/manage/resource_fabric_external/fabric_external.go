@@ -17,13 +17,15 @@ import (
 	"terraform-provider-nd/internal/registry"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure the implementation satisfies the expected interfaces
 var (
-	_ resource.Resource              = &fabricExternalResource{}
-	_ resource.ResourceWithConfigure = &fabricExternalResource{}
+	_ resource.Resource                = &fabricExternalResource{}
+	_ resource.ResourceWithConfigure   = &fabricExternalResource{}
+	_ resource.ResourceWithImportState = &fabricExternalResource{}
 )
 
 // NewFabricExternalResource is a helper function to simplify the provider implementation.
@@ -123,6 +125,23 @@ func (r *fabricExternalResource) Read(ctx context.Context, req resource.ReadRequ
 	}
 
 	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// ImportState imports an existing external fabric by fabric name.
+func (r *fabricExternalResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	var state FabricExternalModel
+	state.FabricName = types.StringValue(req.ID)
+
+	found := resource_fabric_common.RscGetFabric(ctx, r.manageClient.ApiClient, &resp.Diagnostics, &state)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !found {
+		resp.Diagnostics.AddError("Error Importing Fabric External", fmt.Sprintf("Fabric %q was not found", req.ID))
+		return
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 

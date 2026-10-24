@@ -17,13 +17,15 @@ import (
 	"terraform-provider-nd/internal/registry"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure the implementation satisfies the expected interfaces
 var (
-	_ resource.Resource              = &fabricVxlanEbgpResource{}
-	_ resource.ResourceWithConfigure = &fabricVxlanEbgpResource{}
+	_ resource.Resource                = &fabricVxlanEbgpResource{}
+	_ resource.ResourceWithConfigure   = &fabricVxlanEbgpResource{}
+	_ resource.ResourceWithImportState = &fabricVxlanEbgpResource{}
 )
 
 // NewFabricVxlanEbgpResource is a helper function to simplify the provider implementation.
@@ -123,6 +125,23 @@ func (r *fabricVxlanEbgpResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// ImportState imports an existing VXLAN eBGP fabric by fabric name.
+func (r *fabricVxlanEbgpResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	var state FabricVxlanEbgpModel
+	state.FabricName = types.StringValue(req.ID)
+
+	found := resource_fabric_common.RscGetFabric(ctx, r.manageClient.ApiClient, &resp.Diagnostics, &state)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !found {
+		resp.Diagnostics.AddError("Error Importing Fabric VXLAN eBGP", fmt.Sprintf("Fabric %q was not found", req.ID))
+		return
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 

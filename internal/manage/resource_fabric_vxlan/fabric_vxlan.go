@@ -17,6 +17,7 @@ import (
 	"terraform-provider-nd/internal/registry"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -25,8 +26,9 @@ const ModuleKey = "manage"
 
 // Ensure the implementation satisfies the expected interfaces
 var (
-	_ resource.Resource              = &fabricVxlanResource{}
-	_ resource.ResourceWithConfigure = &fabricVxlanResource{}
+	_ resource.Resource                = &fabricVxlanResource{}
+	_ resource.ResourceWithConfigure   = &fabricVxlanResource{}
+	_ resource.ResourceWithImportState = &fabricVxlanResource{}
 )
 
 // NewFabricVxlanResource is a helper function to simplify the provider implementation.
@@ -126,6 +128,23 @@ func (r *fabricVxlanResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// ImportState imports an existing VXLAN fabric by fabric name.
+func (r *fabricVxlanResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	var state FabricVxlanModel
+	state.FabricName = types.StringValue(req.ID)
+
+	found := resource_fabric_common.RscGetFabric(ctx, r.manageClient.ApiClient, &resp.Diagnostics, &state)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !found {
+		resp.Diagnostics.AddError("Error Importing Fabric VXLAN", fmt.Sprintf("Fabric %q was not found", req.ID))
+		return
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 

@@ -119,8 +119,24 @@ func TestAccFabricVxlanResourceCRUD(t *testing.T) {
 					)...,
 				),
 			},
+			// Import the existing fabric by name and verify the imported state.
+			{
+				PreConfig: func() {
+					t.Logf("Importing fabric %q into nd_fabric_vxlan.fabric_test", helper.GetConfig("global").ND.Fabric)
+				},
+				ResourceName:                         "nd_fabric_vxlan.fabric_test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        helper.GetConfig("global").ND.Fabric,
+				ImportStateVerifyIdentifierAttribute: "fabric_name",
+			},
 		},
 	})
+}
+
+// TestAccFabricVxlanResourceImportExisting verifies importing an existing VXLAN fabric.
+func TestAccFabricVxlanResourceImportExisting(t *testing.T) {
+	testAccImportExistingFabric(t, "nd_fabric_vxlan", "vxlan", "vxlanIbgp", "vxlanEbgp")
 }
 
 // TestAccFabricVxlanResourceDrift verifies that when a fabric is deleted
