@@ -59,7 +59,6 @@ func TestAccInventorySwitchDataSource(t *testing.T) {
 				"Password": cfg.ND.Password,
 				"Host":     cfg.ND.URL,
 				"Insecure": cfg.ND.Insecure,
-				"Domain":   cfg.ND.LoginDomain,
 			},
 			nil,
 			&tfConfig,
