@@ -60,4 +60,16 @@ resource "nd_change_control" "test_resource_change_control_1" {
 
 ### Read-Only
 
-- `id` (String) The fixed Terraform identifier for the Change Control settings is changeControl.
+- `id` (String) The fixed Terraform identifier for the Change Control settings is `change_control`.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Format of ID used for import:
+# The fixed import ID for the Change Control settings
+terraform import nd_change_control.test_resource_change_control change_control
+```

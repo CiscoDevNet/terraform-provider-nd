@@ -4,6 +4,13 @@ resource:
   category: infra
   generate_tf_resource: true
   skip_equality: true
+  import_id:
+    - "local_user_123"
+  import_desc:
+    - "The login ID of the local user: local_user_123"
+    - ""
+    - "Nexus Dashboard does not return user_password during import, so Terraform"
+    - "will show a plan difference for the configured user_password after import."
   description: Manages local user for Nexus Dashboard
   attributes:
   - model_name: id

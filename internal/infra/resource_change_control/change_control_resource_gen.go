@@ -44,8 +44,8 @@ func ChangeControlResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
-				Description:         "The fixed Terraform identifier for the Change Control settings is changeControl.",
-				MarkdownDescription: "The fixed Terraform identifier for the Change Control settings is changeControl.",
+				Description:         "The fixed Terraform identifier for the Change Control settings is `change_control`.",
+				MarkdownDescription: "The fixed Terraform identifier for the Change Control settings is `change_control`.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},

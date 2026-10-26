@@ -35,3 +35,15 @@ resource "nd_tenant_domain" "test_resource_tenant_domain_1" {
 ### Read-Only
 
 - `id` (String) The unique identifier for the resource, it is the name of the tenant domain (for example, tenant_domain1).
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Format of ID used for import:
+# The name of the tenant domain: tenant_domain1
+terraform import nd_tenant_domain.test_resource_tenant_domain tenant_domain1
+```
