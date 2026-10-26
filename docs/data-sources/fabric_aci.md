@@ -35,7 +35,7 @@ data "nd_fabric_aci" "test_datasource_fabric_aci_1" {
 - `orchestration_status` (String) The status of the orchestration feature for the APIC cluster.
 - `security_domain` (String) The name of the security domain for the APIC cluster.
 - `state` (String) The state of the APIC cluster.
-- `telemetry` (Attributes) Configures telemetry collection for the APIC cluster. (see [below for nested schema](#nestedatt--telemetry))
+- `telemetry` (Attributes) Telemetry collection settings for the APIC cluster. (see [below for nested schema](#nestedatt--telemetry))
 
 <a id="nestedatt--telemetry"></a>
 ### Nested Schema for `telemetry`

@@ -67,7 +67,7 @@ func (r aciClusterResponse) modelData() NDFCFabricAciModel {
 }
 
 // rscCreateFabricAci creates a fabric ACI resource.
-func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Diagnostics, fabricAciModel *FabricAciModel, preserveTelemetryNull bool) {
+func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Diagnostics, fabricAciModel *FabricAciModel) {
 	id := fabricAciModel.Id.ValueString()
 	log.Printf("[INFO] Create nd_fabric_aci id=%s", id)
 
@@ -97,7 +97,7 @@ func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Dia
 		return
 	}
 
-	if r.rscGetFabricAci(ctx, dg, fabricAciModel, preserveTelemetryNull) && !dg.HasError() {
+	if r.rscGetFabricAci(ctx, dg, fabricAciModel) && !dg.HasError() {
 		dg.AddError(
 			"Error Reading Fabric ACI",
 			fmt.Sprintf("Could not read nd_fabric_aci %q after create: resource not found", id),
@@ -107,7 +107,7 @@ func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Dia
 
 // rscGetFabricAci retrieves fabric ACI information by id.
 // It returns true when the remote object was not found.
-func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagnostics, fabricAciModel *FabricAciModel, preserveTelemetryNull bool) bool {
+func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagnostics, fabricAciModel *FabricAciModel) bool {
 	id := fabricAciModel.Id.ValueString()
 	log.Printf("[INFO] Read nd_fabric_aci id=%s", id)
 
@@ -151,13 +151,31 @@ func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagno
 		)
 		return false
 	}
+	if clusterResp.Spec.ClusterType != "APIC" {
+		dg.AddError(
+			"Invalid Fabric ACI Response",
+			fmt.Sprintf("Expected APIC cluster type for nd_fabric_aci %q, got %q.", id, clusterResp.Spec.ClusterType),
+		)
+		return false
+	}
+	returnedFabricName := clusterResp.Spec.Aci.FabricName
+	if returnedFabricName == "" {
+		returnedFabricName = clusterResp.Spec.FabricName
+	}
+	if returnedFabricName == "" || returnedFabricName != id {
+		dg.AddError(
+			"Invalid Fabric ACI Response",
+			fmt.Sprintf("Expected Fabric ACI name %q in the API response, got %q.", id, returnedFabricName),
+		)
+		return false
+	}
 
 	modelData := clusterResp.modelData()
 	dg.Append(fabricAciModel.SetModelData(&modelData)...)
 	if dg.HasError() {
 		return false
 	}
-	if preserveTelemetryNull {
+	if fabricAciModel.Telemetry.Status.ValueString() == "disabled" {
 		// The API returns telemetry.status="disabled" even when telemetry is
 		// omitted from configuration. Keep the optional-only Terraform object
 		// null so resource state remains consistent with the configuration.
@@ -175,7 +193,7 @@ func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagno
 }
 
 // rscUpdateFabricAci updates a fabric ACI resource.
-func (r *fabricAciResource) rscUpdateFabricAci(ctx context.Context, dg *diag.Diagnostics, plan *FabricAciModel, preserveTelemetryNull bool) {
+func (r *fabricAciResource) rscUpdateFabricAci(ctx context.Context, dg *diag.Diagnostics, plan *FabricAciModel) {
 	id := plan.Id.ValueString()
 	log.Printf("[INFO] Update nd_fabric_aci id=%s", id)
 
@@ -204,7 +222,7 @@ func (r *fabricAciResource) rscUpdateFabricAci(ctx context.Context, dg *diag.Dia
 		return
 	}
 
-	if r.rscGetFabricAci(ctx, dg, plan, preserveTelemetryNull) && !dg.HasError() {
+	if r.rscGetFabricAci(ctx, dg, plan) && !dg.HasError() {
 		dg.AddError(
 			"Error Reading Fabric ACI",
 			fmt.Sprintf("Could not read nd_fabric_aci %q after update: resource not found", id),

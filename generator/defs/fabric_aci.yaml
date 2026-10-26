@@ -131,7 +131,6 @@ resource:
       description: The status of telemetry collection for the APIC cluster.
       type: String
       computed: true
-      example: enabled
 
     - model_name: network
       tf_name: network
@@ -267,7 +266,7 @@ datasource:
 
   - model_name: telemetry
     tf_name: telemetry
-    description: Configures telemetry collection for the APIC cluster.
+    description: Telemetry collection settings for the APIC cluster.
     type: Struct
     computed: true
     ndfc_nested:
