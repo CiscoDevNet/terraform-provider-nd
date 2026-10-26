@@ -80,3 +80,15 @@ Optional:
 - `password` (String, Sensitive) The password used to authenticate with the SCP or SFTP server. Configure exactly one of `password` or `ssh_key`.
 - `port` (Number) The port number for connecting to the SCP or SFTP server. Valid values are between 1 and 65535. Defaults to `22` when not specified in the configuration.
 - `ssh_key` (String, Sensitive) The private key used to authenticate with the SCP or SFTP server. Configure exactly one of `ssh_key` or `password`.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Format of ID used for import:
+# The name of the remote storage location: scp-server
+terraform import nd_remote_storage_location.test_resource_remote_storage_location scp-server
+```

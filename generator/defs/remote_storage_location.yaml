@@ -4,6 +4,10 @@ resource:
   category: infra
   generate_tf_resource: true
   skip_equality: true
+  import_id:
+    - "scp-server"
+  import_desc:
+    - "The name of the remote storage location: scp-server"
   description: Manages remote storage location for Nexus Dashboard
   attributes:
   - model_name: id

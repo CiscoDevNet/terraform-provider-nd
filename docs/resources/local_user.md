@@ -59,3 +59,18 @@ resource "nd_local_user" "test_resource_local_user_1" {
 Required:
 
 - `roles` (Set of String) The list of Nexus Dashboard Roles of the local user. Allowed values are `approver`, `designer`, `fabric-admin`, `observer`, `super-admin`, and `support-engineer`. At least one role must be configured for each security domain.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Format of ID used for import:
+# The login ID of the local user: local_user_123
+# 
+# Nexus Dashboard does not return user_password during import, so Terraform
+# will show a plan difference for the configured user_password after import.
+terraform import nd_local_user.test_resource_local_user local_user_123
+```

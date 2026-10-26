@@ -4,6 +4,18 @@ resource:
   skip_equality: true
   subcategory: Multi-Cluster Connectivity
   category: infra
+  import_id:
+    - "nd4x"
+  import_desc:
+    - "Import uses the cluster name of an already registered Nexus Dashboard cluster."
+    - "Nexus Dashboard readback does not return username, password, login_domain, or"
+    - "multi_cluster_login_domain. These attributes will not be populated in"
+    - "Terraform state for the imported resource, and Terraform will emit a warning"
+    - "for this behavior during import."
+    - ""
+    - "To update an imported cluster connection, include the username, password, and"
+    - "login_domain attributes in the Terraform configuration. These values are"
+    - "required for Terraform to re-register the imported cluster during update."
   description: Manages multi-cluster connectivity for Nexus Dashboard clusters.
   attributes:
   - model_name: id
