@@ -91,13 +91,6 @@ func (d *inventorySwitchDataSource) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
-	if data.FabricName.IsNull() || data.FabricName.IsUnknown() {
-		resp.Diagnostics.AddError(
-			"Fabric Name Required",
-			"The fabric_name attribute must contain a known value to read switch inventory.",
-		)
-		return
-	}
 	if d.manageClient == nil || d.manageClient.ApiClient == nil {
 		resp.Diagnostics.AddError(
 			"Manage Client Not Configured",

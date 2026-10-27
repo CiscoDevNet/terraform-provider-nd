@@ -57,7 +57,7 @@ Read-Only:
 - `preserve_config` (Boolean)
 - `remote_credential_store` (String)
 - `scalable_unit` (String)
-- `serial_number` (String)
+- `serial_number` (String) Serial number identifying this switch.
 - `smart_switch` (Boolean)
 - `software_image` (String)
 - `software_version` (String)

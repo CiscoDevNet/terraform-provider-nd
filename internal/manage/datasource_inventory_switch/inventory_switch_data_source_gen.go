@@ -5,11 +5,14 @@ package datasource_inventory_switch
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -22,6 +25,9 @@ func InventorySwitchDataSourceSchema(ctx context.Context) schema.Schema {
 				Required:            true,
 				Description:         "Name of the fabric containing the switch.",
 				MarkdownDescription: "Name of the fabric containing the switch.",
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "must not be empty or whitespace"),
+				},
 			},
 			"serial_number": schema.StringAttribute{
 				Optional:            true,
@@ -128,8 +134,8 @@ func InventorySwitchDataSourceSchema(ctx context.Context) schema.Schema {
 						},
 						"serial_number": schema.StringAttribute{
 							Computed:            true,
-							Description:         "",
-							MarkdownDescription: "",
+							Description:         "Serial number identifying this switch.",
+							MarkdownDescription: "Serial number identifying this switch.",
 						},
 						"smart_switch": schema.BoolAttribute{
 							Computed:            true,
