@@ -24,6 +24,7 @@ type Config struct {
 
 // NDConfig represents the ND controller configuration
 type NDConfig struct {
+<<<<<<< HEAD
 	URL                      string                         `yaml:"url"`
 	User                     string                         `yaml:"user"`
 	Password                 string                         `yaml:"pwd"`
@@ -45,6 +46,21 @@ type FabricAciConfig struct {
 	Hostname string `yaml:"hostname"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
+	URL                       string                          `yaml:"url"`
+	User                      string                          `yaml:"user"`
+	Password                  string                          `yaml:"pwd"`
+	Insecure                  string                          `yaml:"insecure"`
+	Fabric                    string                          `yaml:"fabric"`
+	Switches                  []string                        `yaml:"switches"`
+	SwitchIP                  []string                        `yaml:"switch_ip"`
+	FabricPrefix              string                          `yaml:"fabric_prefix"`
+	IntegrationTest           IntegratedConfig                `yaml:"integration_test"`
+	Inventory                 InventoryConfig                 `yaml:"inventory"`
+	InventorySwitchDataSource InventorySwitchDataSourceConfig `yaml:"inventory_switch_datasource"`
+	VpcPair                   *VpcPairConfig                  `yaml:"vpc_pair"`
+	LocalUser                 LocalUserConfig                 `yaml:"local_user"`
+	MultiClusterConnectivity  MultiClusterConnectivityConfig  `yaml:"multi_cluster_connectivity"`
+	RemoteStorage             RemoteStorageConfig             `yaml:"remote_storage"`
 }
 
 // MultiClusterConnectivityConfig represents the multi-cluster connectivity test configuration
@@ -68,6 +84,13 @@ type InventoryConfig struct {
 	Preserve          bool              `yaml:"preserve_config"`
 	Mode              string            `yaml:"mode"`
 	MaxHop            int               `yaml:"max_hop"`
+}
+
+// InventorySwitchDataSourceConfig contains lookup values for inventory switch
+// data source acceptance tests.
+type InventorySwitchDataSourceConfig struct {
+	Fabric       string `yaml:"fabric"`
+	SerialNumber string `yaml:"serial_number"`
 }
 
 // GetSwitchesByMode returns the switch list for a given mode.
