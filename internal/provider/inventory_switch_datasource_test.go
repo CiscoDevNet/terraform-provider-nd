@@ -19,7 +19,7 @@ import (
 
 func TestAccInventorySwitchDataSource(t *testing.T) {
 	cfg := helper.GetConfig("global")
-	datasourceConfig := cfg.ND.InventorySwitchDataSource
+	datasourceConfig := cfg.ND.SwitchDataSource
 	if datasourceConfig.Fabric == "" {
 		t.Skip("Need an inventory switch datasource fabric in the testbed config")
 	}
