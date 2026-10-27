@@ -141,6 +141,9 @@ func (r *fabricVxlanEbgpResource) ImportState(ctx context.Context, req resource.
 		resp.Diagnostics.AddError("Error Importing Fabric VXLAN eBGP", fmt.Sprintf("Fabric %q was not found", req.ID))
 		return
 	}
+	if !resource_fabric_common.RscValidateFabricType(&resp.Diagnostics, &state, "vxlanEbgp") {
+		return
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }

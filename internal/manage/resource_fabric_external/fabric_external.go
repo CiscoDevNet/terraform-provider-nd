@@ -141,6 +141,9 @@ func (r *fabricExternalResource) ImportState(ctx context.Context, req resource.I
 		resp.Diagnostics.AddError("Error Importing Fabric External", fmt.Sprintf("Fabric %q was not found", req.ID))
 		return
 	}
+	if !resource_fabric_common.RscValidateFabricType(&resp.Diagnostics, &state, "externalConnectivity") {
+		return
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }

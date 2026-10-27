@@ -95,6 +95,23 @@ func RscGetFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, 
 	return fabricHandler(model.GetFabricType()).Read(ctx, client, dg, model)
 }
 
+// RscValidateFabricType checks that a retrieved fabric belongs to one of the
+// resource types supported by an import operation.
+func RscValidateFabricType(dg *diag.Diagnostics, model FabricModel, allowedTypes ...string) bool {
+	actualType := model.GetModelData().Management.FabricType
+	for _, allowedType := range allowedTypes {
+		if actualType == allowedType {
+			return true
+		}
+	}
+
+	dg.AddError(
+		"Error Importing Fabric",
+		fmt.Sprintf("Fabric %q has type %q; expected one of %v", model.GetFabricName(), actualType, allowedTypes),
+	)
+	return false
+}
+
 // readDefault is the built-in read logic.
 // Returns true if the resource was found and read successfully, false if the
 // resource no longer exists on the remote infrastructure (HTTP 404). When false
