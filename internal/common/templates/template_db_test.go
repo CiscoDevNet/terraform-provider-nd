@@ -144,3 +144,66 @@ func TestTemplateInfoHasParamAndType(t *testing.T) {
 		t.Error("AllowedTFNames should not contain bpdu_guard")
 	}
 }
+
+func TestDecodeTemplateArrayAndWrapper(t *testing.T) {
+	arrayInfo, err := decodeTemplate("int_access_host", []byte(`[{"name":"mtu","parameterType":"string"}]`))
+	if err != nil {
+		t.Fatalf("array: %v", err)
+	}
+	if !arrayInfo.HasParam("mtu") {
+		t.Fatal("array missing mtu")
+	}
+
+	wrap := []byte(`{
+		"templateName":"feature_enable",
+		"contentType":"templateCli",
+		"supportedPlatforms":["N9K"],
+		"parameters":[
+			{"name":"featureName","parameterType":"string"},
+			{"name":"accessVlan","parameterType":"integer","defaultValue":1}
+		]
+	}`)
+	wrapInfo, err := decodeTemplate("feature_enable", wrap)
+	if err != nil {
+		t.Fatalf("wrapper: %v", err)
+	}
+	if wrapInfo.ContentType != "templateCli" {
+		t.Errorf("ContentType = %q", wrapInfo.ContentType)
+	}
+	if wrapInfo.ParamType("accessVlan") != "integer" {
+		t.Errorf("ParamType = %q", wrapInfo.ParamType("accessVlan"))
+	}
+	if !wrapInfo.paramByName["accessVlan"].HasDefault() {
+		t.Error("numeric defaultValue should count")
+	}
+}
+
+func TestUnknownAndMissingValidation(t *testing.T) {
+	info, err := decodeTemplate("feature_enable", []byte(`{
+		"parameters":[
+			{"name":"featureName","optional":false},
+			{"name":"TRACK_ID","optional":true}
+		]
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	unknown := info.UnknownParamNames(map[string]string{
+		"featureName":    "bfd",
+		"NOT_A_TEMPLATE": "x",
+	})
+	if len(unknown) != 1 || unknown[0] != "NOT_A_TEMPLATE" {
+		t.Errorf("UnknownParamNames = %#v", unknown)
+	}
+
+	missing := info.MissingRequiredNames(map[string]string{})
+	if len(missing) != 1 || missing[0] != "featureName" {
+		t.Errorf("MissingRequiredNames = %#v", missing)
+	}
+
+	tfUnknown := info.UnknownTFNames(map[string]bool{"feature_name": true, "mtu": true})
+	if len(tfUnknown) != 1 || tfUnknown[0] != "mtu" {
+		t.Errorf("UnknownTFNames = %#v", tfUnknown)
+	}
+}
