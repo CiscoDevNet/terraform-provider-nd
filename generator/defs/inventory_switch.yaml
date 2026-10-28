@@ -378,168 +378,203 @@ datasource:
     attributes:
     - model_name: fabricName
       tf_name: fabric_name
+      description: Name of the fabric that contains the switch.
       type: String
       computed: true
     - model_name: serialNumber
       tf_name: serial_number
-      description: Serial number identifying this switch.
+      description: Serial number identifying the switch.
       type: String
       computed: true
     - model_name: fabricManagementIp
       tf_name: ip_address
+      description: Management IP address of the switch.
       type: String
       computed: true
     - model_name: hostname
       tf_name: hostname
+      description: Hostname reported for the switch.
       type: String
       computed: true
     - model_name: model
       tf_name: model
+      description: Hardware model of the switch.
       type: String
       computed: true
     - model_name: softwareVersion
       tf_name: software_version
+      description: NX-OS software version running on the switch.
       type: String
       computed: true
     - model_name: softwareImage
       tf_name: software_image
+      description: Software image associated with the switch.
       type: String
       computed: true
     - model_name: switchRole
       tf_name: switch_role
+      description: Role assigned to the switch in the fabric.
       type: String
       computed: true
     - model_name: discoveryStatus
       tf_name: status
       ndfc_nested: [additionalData]
+      description: Discovery status reported for the switch.
       type: String
       computed: true
     - model_name: platformType
       tf_name: platform_type
       ndfc_nested: [additionalData]
+      description: Platform type reported for the switch.
       type: String
       computed: true
     - model_name: preserveConfig
       tf_name: preserve_config
+      description: Preservation status of the switch's existing configuration.
       type: Bool
       ndfc_type: bool
       computed: true
     - model_name: vdcId
       tf_name: vdc_id
+      description: Virtual Device Context (VDC) identifier for the switch.
       type: Int64
       computed: true
     - model_name: vdcMac
       tf_name: vdc_mac
+      description: Virtual Device Context (VDC) MAC address for the switch.
       type: String
       computed: true
     - model_name: sourceInterfaceName
       tf_name: source_interface_name
       ndfc_nested: [additionalData]
+      description: Source interface used to discover the switch.
       type: String
       computed: true
     - model_name: sourceVrfName
       tf_name: source_vrf_name
       ndfc_nested: [additionalData]
+      description: Source VRF used to discover the switch.
       type: String
       computed: true
     - model_name: inInventory
       tf_name: in_inventory
+      description: Inventory membership status of the switch.
       type: Bool
       ndfc_type: bool
       computed: true
     - model_name: switchId
       tf_name: switch_id
+      description: Nexus Dashboard identifier assigned to the switch.
       type: String
       computed: true
     - model_name: fabricType
       tf_name: fabric_type
+      description: Type of fabric containing the switch.
       type: String
       computed: true
     - model_name: systemUpTime
       tf_name: system_uptime
+      description: System uptime reported for the switch.
       type: String
       computed: true
     - model_name: advisoryLevel
       tf_name: advisory_level
+      description: Advisory level reported for the switch.
       type: String
       computed: true
     - model_name: alertSuspend
       tf_name: alert_suspend
+      description: Alert suspension status for the switch.
       type: String
       computed: true
     - model_name: anomalyLevel
       tf_name: anomaly_level
+      description: Anomaly level reported for the switch.
       type: String
       computed: true
     - model_name: vpcConfigured
       tf_name: vpc_configured
+      description: vPC configuration status of the switch.
       type: Bool
       ndfc_type: bool
       computed: true
     - model_name: configSyncStatus
       tf_name: config_sync_status
       ndfc_nested: [additionalData]
+      description: Configuration synchronization status for the switch.
       type: String
       computed: true
     - model_name: discoveredSystemMode
       tf_name: discovered_system_mode
       ndfc_nested: [additionalData]
+      description: System mode discovered on the switch.
       type: String
       computed: true
     - model_name: intendedSystemMode
       tf_name: intended_system_mode
       ndfc_nested: [additionalData]
+      description: Intended system mode configured for the switch.
       type: String
       computed: true
     - model_name: systemMode
       tf_name: system_mode
       ndfc_nested: [additionalData]
+      description: Current system mode reported for the switch.
       type: String
       computed: true
     - model_name: domainName
       tf_name: domain_name
       ndfc_nested: [additionalData]
+      description: Domain name reported for the switch.
       type: String
       computed: true
     - model_name: hypershieldConnectivityStatus
       tf_name: hypershield_connectivity_status
       ndfc_nested: [additionalData]
+      description: Hypershield connectivity status reported for the switch.
       type: String
       computed: true
     - model_name: hypershieldTenant
       tf_name: hypershield_tenant
       ndfc_nested: [additionalData]
+      description: Hypershield tenant associated with the switch.
       type: String
       computed: true
     - model_name: remoteCredentialStore
       tf_name: remote_credential_store
       ndfc_nested: [additionalData]
+      description: Remote credential store used for switch authentication.
       type: String
       computed: true
     - model_name: scalableUnit
       tf_name: scalable_unit
       ndfc_nested: [additionalData]
+      description: Scalable unit associated with the switch.
       type: String
       computed: true
     - model_name: smartSwitch
       tf_name: smart_switch
       ndfc_nested: [additionalData]
+      description: Smart switch status reported by Nexus Dashboard.
       type: Bool
       ndfc_type: bool
       computed: true
     - model_name: usage
       tf_name: usage
       ndfc_nested: [additionalData]
+      description: Usage classification reported for the switch.
       type: String
       computed: true
     - model_name: vendor
       tf_name: vendor
       ndfc_nested: [additionalData]
+      description: Hardware vendor reported for the switch.
       type: String
       computed: true
     - model_name: username
       tf_name: username
       ndfc_nested: [additionalData]
+      description: Username used for switch authentication.
       type: String
       computed: true
       sensitive: true
