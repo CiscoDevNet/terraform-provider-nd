@@ -20,6 +20,7 @@ import (
 
 	_ "terraform-provider-nd/internal/manage/resource_fabric_vxlan"
 	_ "terraform-provider-nd/internal/manage/resource_inventory_switch"
+	_ "terraform-provider-nd/internal/manage/resource_policy"
 	_ "terraform-provider-nd/internal/manage/resource_vpc_pair"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
