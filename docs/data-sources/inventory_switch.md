@@ -38,39 +38,39 @@ data "nd_inventory_switch" "test_datasource_inventory_switch_1" {
 
 Read-Only:
 
-- `advisory_level` (String)
-- `alert_suspend` (String)
-- `anomaly_level` (String)
-- `config_sync_status` (String)
-- `discovered_system_mode` (String)
-- `domain_name` (String)
-- `fabric_name` (String)
-- `fabric_type` (String)
-- `hostname` (String)
-- `hypershield_connectivity_status` (String)
-- `hypershield_tenant` (String)
-- `in_inventory` (Boolean)
-- `intended_system_mode` (String)
-- `ip_address` (String)
-- `model` (String)
-- `platform_type` (String)
-- `preserve_config` (Boolean)
-- `remote_credential_store` (String)
-- `scalable_unit` (String)
-- `serial_number` (String) Serial number identifying this switch.
-- `smart_switch` (Boolean)
-- `software_image` (String)
-- `software_version` (String)
-- `source_interface_name` (String)
-- `source_vrf_name` (String)
-- `status` (String)
-- `switch_id` (String)
-- `switch_role` (String)
-- `system_mode` (String)
-- `system_uptime` (String)
-- `usage` (String)
-- `username` (String, Sensitive)
-- `vdc_id` (Number)
-- `vdc_mac` (String)
-- `vendor` (String)
-- `vpc_configured` (Boolean)
+- `advisory_level` (String) Advisory level reported for the switch.
+- `alert_suspend` (String) Alert suspension status for the switch.
+- `anomaly_level` (String) Anomaly level reported for the switch.
+- `config_sync_status` (String) Configuration synchronization status for the switch.
+- `discovered_system_mode` (String) System mode discovered on the switch.
+- `domain_name` (String) Domain name reported for the switch.
+- `fabric_name` (String) Name of the fabric that contains the switch.
+- `fabric_type` (String) Type of fabric containing the switch.
+- `hostname` (String) Hostname reported for the switch.
+- `hypershield_connectivity_status` (String) Hypershield connectivity status reported for the switch.
+- `hypershield_tenant` (String) Hypershield tenant associated with the switch.
+- `in_inventory` (Boolean) Inventory membership status of the switch.
+- `intended_system_mode` (String) Intended system mode configured for the switch.
+- `ip_address` (String) Management IP address of the switch.
+- `model` (String) Hardware model of the switch.
+- `platform_type` (String) Platform type reported for the switch.
+- `preserve_config` (Boolean) Preservation status of the switch's existing configuration.
+- `remote_credential_store` (String) Remote credential store used for switch authentication.
+- `scalable_unit` (String) Scalable unit associated with the switch.
+- `serial_number` (String) Serial number identifying the switch.
+- `smart_switch` (Boolean) Smart switch status reported by Nexus Dashboard.
+- `software_image` (String) Software image associated with the switch.
+- `software_version` (String) NX-OS software version running on the switch.
+- `source_interface_name` (String) Source interface used to discover the switch.
+- `source_vrf_name` (String) Source VRF used to discover the switch.
+- `status` (String) Discovery status reported for the switch.
+- `switch_id` (String) Nexus Dashboard identifier assigned to the switch.
+- `switch_role` (String) Role assigned to the switch in the fabric.
+- `system_mode` (String) Current system mode reported for the switch.
+- `system_uptime` (String) System uptime reported for the switch.
+- `usage` (String) Usage classification reported for the switch.
+- `username` (String, Sensitive) Username used for switch authentication.
+- `vdc_id` (Number) Virtual Device Context (VDC) identifier for the switch.
+- `vdc_mac` (String) Virtual Device Context (VDC) MAC address for the switch.
+- `vendor` (String) Hardware vendor reported for the switch.
+- `vpc_configured` (Boolean) vPC configuration status of the switch.
