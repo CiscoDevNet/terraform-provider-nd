@@ -1,0 +1,39 @@
+{{define "ND_POLICY_RSC"}}
+resource "nd_policy" "{{.RscName}}" {
+{{- if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+{{- end}}
+{{with .Policy}}
+    is_policy_group = {{.IsPolicyGroup}}
+    deploy = {{.Deploy}}
+    entity_name = "{{.EntityName}}"
+    entity_type = "{{.EntityType}}"
+    template_name = "{{.TemplateName}}"
+    {{- if .Description}}
+    description = "{{.Description}}"
+    {{- end}}
+    {{- if .Source}}
+    source = "{{.Source}}"
+    {{- end}}
+    {{- if .Priority}}
+    priority = {{deref_int64 .Priority}}
+    {{- end}}
+    {{- if .SerialNumbers}}
+    serial_numbers = {{quote_list .SerialNumbers}}
+    {{- end}}
+    {{- if .PolicyParameters}}
+    policy_parameters = {
+        {{- range $k, $v := .PolicyParameters}}
+        {{printf "%q" $k}} = {{printf "%q" $v}}
+        {{- end}}
+    }
+    {{- end}}
+    {{- if .SecondaryEntityName}}
+    secondary_entity_name = "{{.SecondaryEntityName}}"
+    {{- end}}
+    {{- if .SecondaryEntityType}}
+    secondary_entity_type = "{{.SecondaryEntityType}}"
+    {{- end}}
+{{end}}
+}
+{{end}}

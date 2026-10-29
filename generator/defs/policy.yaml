@@ -1,0 +1,145 @@
+---
+resource:
+  name: policy
+  rest_endpoint: /manage/fabrics/{fabricName}/policies
+  doc_category: Fabric
+  generate_tf_resource: true
+  skip_equality: false
+  category: manage
+  description: "Resource to configure a switch policy or policy group on Nexus Dashboard"
+  attributes:
+    - model_name: policyId
+      tf_name: policy_id
+      type: String
+      description: "Controller-assigned policy ID (POLICY-<n> or POLICY-GROUP-<n>)"
+      computed: true
+      use_state: true
+      example: POLICY-26910
+
+    - model_name: fabricName
+      tf_name: fabric_name
+      type: String
+      description: Name of the fabric resolved from serial_numbers in the switch inventory
+      computed: true
+      payload_hide: true
+      example: my_fabric
+
+    - model_name: policyGroup
+      tf_name: is_policy_group
+      type: Bool
+      description: "When true, manage a policy group (multiple switches). When false, manage a single-switch policy"
+      default_value: false
+      payload_hide: true
+      example: false
+      ndfc_type: bool
+      tf_requires_replace: true
+
+    - model_name: deploy
+      tf_name: deploy
+      type: Bool
+      description: "When true, push the policy (pushConfig) or deploy member switches (policy group) after create/update"
+      default_value: false
+      ndfc_type: bool
+      payload_hide: true
+      example: true
+
+    - model_name: entityName
+      tf_name: entity_name
+      type: String
+      description: "Name of the entity. Use SWITCH when entity_type is switch"
+      mandatory: true
+      tf_requires_replace: true
+      string_max_length: 255
+      example: "SWITCH"
+
+    - model_name: entityType
+      tf_name: entity_type
+      type: String
+      description: "Type of the entity"
+      mandatory: true
+      tf_requires_replace: true
+      validator: 'OneOf("switch", "configProfile", "interface")'
+      example: "switch"
+
+    - model_name: description
+      tf_name: description
+      type: String
+      description: "Description of the policy"
+      optional: true
+      string_max_length: 255
+      example: "Enable LACP"
+
+    - model_name: templateName
+      tf_name: template_name
+      type: String
+      description: "Name of the configuration template. Changing this value requires replacement"
+      mandatory: true
+      tf_requires_replace: true
+      string_max_length: 255
+      example: "feature_enable"
+
+    - model_name: source
+      tf_name: source
+      type: String
+      description: "Source of the policy. Empty source means any source can update the policy"
+      optional: true
+      include_empty: true
+      string_max_length: 255
+      example: "UNDERLAY"
+
+    - model_name: priority
+      tf_name: priority
+      type: Int64
+      description: "Write priority of the policy (1–2000). Defaults to 500"
+      optional: true
+      default_value: 500
+      validator: 'Between(1, 2000)'
+      example: 500
+
+    - model_name: serialNumber
+      tf_name: serial_numbers
+      type: List:String
+      mandatory: true
+      payload_hide: true
+      description: "Switch serial numbers (or management IPs). Exactly one when is_policy_group is false. One or more when is_policy_group is true"
+      example: '["FDO245206N5", "FDO245206N6"]'
+      tf_requires_replace_if_key: is_policy_group
+      tf_requires_replace_if_value: false
+      tf_requires_replace_if_type: bool
+
+    - model_name: templateInputs
+      tf_name: policy_parameters
+      type: "Map:String"
+      description: "Name/value pairs passed to the template as templateInputs"
+      optional: true
+      example: '{"featureName":"lacp"}'
+
+    - model_name: secondaryEntityName
+      tf_name: secondary_entity_name
+      type: String
+      description: Secondary entity name, for example an overlay name when entity_type is configProfile
+      optional: true
+      string_max_length: 255
+      example: MyNetwork_30000
+
+    - model_name: secondaryEntityType
+      tf_name: secondary_entity_type
+      type: String
+      description: Secondary entity type
+      optional: true
+      validator: 'OneOf("switch", "configProfile", "interface")'
+      example: configProfile
+
+    - model_name: markDeleted
+      tf_name: deleted
+      type: Bool
+      ndfc_type: bool
+      description: "True after the controller has marked the policy for deletion"
+      computed: true
+      tf_hide: true
+
+    - model_name: generatedConfig
+      tf_name: generated_config
+      type: String
+      description: "CLI produced from the template and inputs"
+      computed: true
