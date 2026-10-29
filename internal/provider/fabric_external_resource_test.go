@@ -92,8 +92,24 @@ func TestAccFabricExternalResourceCRUD(t *testing.T) {
 					)...,
 				),
 			},
+			// Import the existing fabric by name and verify the imported state.
+			{
+				PreConfig: func() {
+					t.Logf("Importing fabric %q into nd_fabric_external.fabric_test", helper.GetConfig("global").ND.Fabric+"_external")
+				},
+				ResourceName:                         "nd_fabric_external.fabric_test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        helper.GetConfig("global").ND.Fabric + "_external",
+				ImportStateVerifyIdentifierAttribute: "fabric_name",
+			},
 		},
 	})
+}
+
+// TestAccFabricExternalResourceImportExisting verifies importing an existing external fabric.
+func TestAccFabricExternalResourceImportExisting(t *testing.T) {
+	testAccImportExistingFabric(t, "nd_fabric_external", "externalConnectivity")
 }
 
 // TestAccFabricExternalResourceDrift verifies that when a fabric is deleted

@@ -5,6 +5,10 @@ resource:
   parent_package: resource_fabric_common
   parent_model: fabric_common
   category: manage
+  import_id:
+    - "my_fabric"
+  import_desc:
+    - "fabric_name"
   attributes:
   - model_name: id
     tf_name: id

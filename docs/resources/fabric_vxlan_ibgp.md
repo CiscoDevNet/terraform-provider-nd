@@ -806,3 +806,15 @@ Optional:
 - `vrf_flow_rule_protocol` (String)
 - `vrf_flow_rule_src_ip` (String)
 - `vrf_flow_rule_src_port` (String)
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Format of ID used for import:
+# fabric_name
+terraform import nd_fabric_vxlan_ibgp.test_resource_fabric_vxlan_ibgp my_fabric
+```
