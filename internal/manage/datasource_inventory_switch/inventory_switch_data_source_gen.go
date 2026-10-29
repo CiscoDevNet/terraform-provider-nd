@@ -67,11 +67,6 @@ func InventorySwitchDataSourceSchema(ctx context.Context) schema.Schema {
 							Description:         "Domain name reported for the switch.",
 							MarkdownDescription: "Domain name reported for the switch.",
 						},
-						"fabric_name": schema.StringAttribute{
-							Computed:            true,
-							Description:         "Name of the fabric that contains the switch.",
-							MarkdownDescription: "Name of the fabric that contains the switch.",
-						},
 						"fabric_type": schema.StringAttribute{
 							Computed:            true,
 							Description:         "Type of fabric containing the switch.",
@@ -374,24 +369,6 @@ func (t SwitchesType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 			fmt.Sprintf(`domain_name expected to be basetypes.StringValue, was: %T`, domainNameAttribute))
 	}
 
-	fabricNameAttribute, ok := attributes["fabric_name"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`fabric_name is missing from object`)
-
-		return nil, diags
-	}
-
-	fabricNameVal, ok := fabricNameAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`fabric_name expected to be basetypes.StringValue, was: %T`, fabricNameAttribute))
-	}
-
 	fabricTypeAttribute, ok := attributes["fabric_type"]
 
 	if !ok {
@@ -925,7 +902,6 @@ func (t SwitchesType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 		ConfigSyncStatus:              configSyncStatusVal,
 		DiscoveredSystemMode:          discoveredSystemModeVal,
 		DomainName:                    domainNameVal,
-		FabricName:                    fabricNameVal,
 		FabricType:                    fabricTypeVal,
 		Hostname:                      hostnameVal,
 		HypershieldConnectivityStatus: hypershieldConnectivityStatusVal,
@@ -1130,24 +1106,6 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 			fmt.Sprintf(`domain_name expected to be basetypes.StringValue, was: %T`, domainNameAttribute))
 	}
 
-	fabricNameAttribute, ok := attributes["fabric_name"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`fabric_name is missing from object`)
-
-		return NewSwitchesValueUnknown(), diags
-	}
-
-	fabricNameVal, ok := fabricNameAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`fabric_name expected to be basetypes.StringValue, was: %T`, fabricNameAttribute))
-	}
-
 	fabricTypeAttribute, ok := attributes["fabric_type"]
 
 	if !ok {
@@ -1681,7 +1639,6 @@ func NewSwitchesValue(attributeTypes map[string]attr.Type, attributes map[string
 		ConfigSyncStatus:              configSyncStatusVal,
 		DiscoveredSystemMode:          discoveredSystemModeVal,
 		DomainName:                    domainNameVal,
-		FabricName:                    fabricNameVal,
 		FabricType:                    fabricTypeVal,
 		Hostname:                      hostnameVal,
 		HypershieldConnectivityStatus: hypershieldConnectivityStatusVal,
@@ -1789,7 +1746,6 @@ type SwitchesValue struct {
 	ConfigSyncStatus              basetypes.StringValue `tfsdk:"config_sync_status"`
 	DiscoveredSystemMode          basetypes.StringValue `tfsdk:"discovered_system_mode"`
 	DomainName                    basetypes.StringValue `tfsdk:"domain_name"`
-	FabricName                    basetypes.StringValue `tfsdk:"fabric_name"`
 	FabricType                    basetypes.StringValue `tfsdk:"fabric_type"`
 	Hostname                      basetypes.StringValue `tfsdk:"hostname"`
 	HypershieldConnectivityStatus basetypes.StringValue `tfsdk:"hypershield_connectivity_status"`
@@ -1823,7 +1779,7 @@ type SwitchesValue struct {
 }
 
 func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 36)
+	attrTypes := make(map[string]tftypes.Type, 35)
 
 	var val tftypes.Value
 	var err error
@@ -1834,7 +1790,6 @@ func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 	attrTypes["config_sync_status"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["discovered_system_mode"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["domain_name"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["fabric_name"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["fabric_type"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["hostname"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["hypershield_connectivity_status"] = basetypes.StringType{}.TerraformType(ctx)
@@ -1869,7 +1824,7 @@ func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 36)
+		vals := make(map[string]tftypes.Value, 35)
 
 		val, err = v.AdvisoryLevel.ToTerraformValue(ctx)
 
@@ -1918,14 +1873,6 @@ func (v SwitchesValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 		}
 
 		vals["domain_name"] = val
-
-		val, err = v.FabricName.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["fabric_name"] = val
 
 		val, err = v.FabricType.ToTerraformValue(ctx)
 
@@ -2195,7 +2142,6 @@ func (v SwitchesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue
 		"config_sync_status":              basetypes.StringType{},
 		"discovered_system_mode":          basetypes.StringType{},
 		"domain_name":                     basetypes.StringType{},
-		"fabric_name":                     basetypes.StringType{},
 		"fabric_type":                     basetypes.StringType{},
 		"hostname":                        basetypes.StringType{},
 		"hypershield_connectivity_status": basetypes.StringType{},
@@ -2244,7 +2190,6 @@ func (v SwitchesValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue
 			"config_sync_status":              v.ConfigSyncStatus,
 			"discovered_system_mode":          v.DiscoveredSystemMode,
 			"domain_name":                     v.DomainName,
-			"fabric_name":                     v.FabricName,
 			"fabric_type":                     v.FabricType,
 			"hostname":                        v.Hostname,
 			"hypershield_connectivity_status": v.HypershieldConnectivityStatus,
@@ -2315,10 +2260,6 @@ func (v SwitchesValue) Equal(o attr.Value) bool {
 	}
 
 	if !v.DomainName.Equal(other.DomainName) {
-		return false
-	}
-
-	if !v.FabricName.Equal(other.FabricName) {
 		return false
 	}
 
@@ -2457,7 +2398,6 @@ func (v SwitchesValue) AttributeTypes(ctx context.Context) map[string]attr.Type 
 		"config_sync_status":              basetypes.StringType{},
 		"discovered_system_mode":          basetypes.StringType{},
 		"domain_name":                     basetypes.StringType{},
-		"fabric_name":                     basetypes.StringType{},
 		"fabric_type":                     basetypes.StringType{},
 		"hostname":                        basetypes.StringType{},
 		"hypershield_connectivity_status": basetypes.StringType{},

@@ -115,12 +115,6 @@ func (v *SwitchesValue) SetValue(jsonData *NDFCSwitchesValue) diag.Diagnostics {
 	var err diag.Diagnostics
 	err = nil
 
-	if jsonData.FabricName != "" {
-		v.FabricName = types.StringValue(jsonData.FabricName)
-	} else {
-		v.FabricName = types.StringNull()
-	}
-
 	if jsonData.SerialNumber != "" {
 		v.SerialNumber = types.StringValue(jsonData.SerialNumber)
 	} else {

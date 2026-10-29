@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"log"
 
-	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage"
 	"terraform-provider-nd/internal/manage/api"
 	"terraform-provider-nd/internal/registry"
@@ -102,7 +101,7 @@ func (d *inventorySwitchDataSource) Read(ctx context.Context, req datasource.Rea
 	fabricName := data.FabricName.ValueString()
 	log.Printf("[DEBUG] Reading switch inventory for fabric %s", fabricName)
 
-	inventoryAPI := api.NewInventoryAPI(d.manageClient.ApiClient, ndapi.DefaultFabric)
+	inventoryAPI := api.NewInventoryAPI(d.manageClient.ApiClient, fabricName)
 	inventoryAPI.FabricName = fabricName
 	serialFilter := ""
 	if !data.SerialNumber.IsNull() && !data.SerialNumber.IsUnknown() {

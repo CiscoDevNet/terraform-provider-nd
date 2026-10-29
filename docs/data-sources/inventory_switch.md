@@ -44,7 +44,6 @@ Read-Only:
 - `config_sync_status` (String) Configuration synchronization status for the switch.
 - `discovered_system_mode` (String) System mode discovered on the switch.
 - `domain_name` (String) Domain name reported for the switch.
-- `fabric_name` (String) Name of the fabric that contains the switch.
 - `fabric_type` (String) Type of fabric containing the switch.
 - `hostname` (String) Hostname reported for the switch.
 - `hypershield_connectivity_status` (String) Hypershield connectivity status reported for the switch.
