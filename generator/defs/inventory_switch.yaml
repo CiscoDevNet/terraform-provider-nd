@@ -381,6 +381,7 @@ datasource:
       description: Name of the fabric that contains the switch.
       type: String
       computed: true
+      tf_hide: true
     - model_name: serialNumber
       tf_name: serial_number
       description: Serial number identifying the switch.
