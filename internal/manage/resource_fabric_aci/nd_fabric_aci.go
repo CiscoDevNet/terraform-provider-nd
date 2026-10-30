@@ -71,11 +71,6 @@ func (r *fabricAciResource) rscCreateFabricAci(ctx context.Context, dg *diag.Dia
 	id := fabricAciModel.Id.ValueString()
 	log.Printf("[INFO] Create nd_fabric_aci id=%s", id)
 
-	// Setting default value false to VerifyCa when it is null/unknown
-	if fabricAciModel.VerifyCa.IsNull() || fabricAciModel.VerifyCa.IsUnknown() {
-		fabricAciModel.VerifyCa = types.BoolValue(false)
-	}
-
 	inData := fabricAciModel.GetModelData()
 	inData.Spec.ClusterType = "APIC"
 	inData.Spec.Aci.Telemetry.Status = fabricAciTelemetryStatus(fabricAciModel.Telemetry)
@@ -156,13 +151,38 @@ func (r *fabricAciResource) rscGetFabricAci(ctx context.Context, dg *diag.Diagno
 		)
 		return false
 	}
+	if clusterResp.Spec.ClusterType != "APIC" {
+		dg.AddError(
+			"Invalid Fabric ACI Response",
+			fmt.Sprintf("Expected APIC cluster type for nd_fabric_aci %q, got %q.", id, clusterResp.Spec.ClusterType),
+		)
+		return false
+	}
+	returnedFabricName := clusterResp.Spec.Aci.FabricName
+	if returnedFabricName == "" {
+		returnedFabricName = clusterResp.Spec.FabricName
+	}
+	if returnedFabricName == "" || returnedFabricName != id {
+		dg.AddError(
+			"Invalid Fabric ACI Response",
+			fmt.Sprintf("Expected Fabric ACI name %q in the API response, got %q.", id, returnedFabricName),
+		)
+		return false
+	}
 
 	modelData := clusterResp.modelData()
 	dg.Append(fabricAciModel.SetModelData(&modelData)...)
 	if dg.HasError() {
 		return false
 	}
-	fabricAciModel.NormalizeTelemetryNetworkState()
+	if fabricAciModel.Telemetry.Status.ValueString() == "disabled" {
+		// The API returns telemetry.status="disabled" even when telemetry is
+		// omitted from configuration. Keep the optional-only Terraform object
+		// null so resource state remains consistent with the configuration.
+		fabricAciModel.Telemetry = NewTelemetryValueNull()
+	} else {
+		fabricAciModel.NormalizeTelemetryNetworkState()
+	}
 
 	fabricAciModel.Username = preservedUsername
 	fabricAciModel.Password = preservedPassword

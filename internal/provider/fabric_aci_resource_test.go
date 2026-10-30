@@ -49,6 +49,11 @@ func fabricAciImportStateCheck(fabricName, username, password string) resource.I
 		if got := state.Attributes["password"]; got != password {
 			return fmt.Errorf("expected imported password to match the environment variable")
 		}
+		for attribute := range state.Attributes {
+			if attribute == "telemetry" || strings.HasPrefix(attribute, "telemetry.") {
+				return fmt.Errorf("expected imported telemetry to be absent when the API reports it disabled, found %q", attribute)
+			}
+		}
 
 		return nil
 	}
@@ -94,6 +99,28 @@ func deleteFabricAciOutsideTerraform(t *testing.T, fabricName, username, passwor
 		}
 		t.Fatalf("failed to delete Fabric ACI %q outside Terraform: %v %v", fabricName, err, res)
 	}
+	waitForFabricAciDeletion(t, fabricName)
+}
+
+func waitForFabricAciDeletion(t *testing.T, fabricName string) {
+	t.Helper()
+
+	cfg := helper.GetConfig("global")
+	client, err := nd.NewClient(
+		cfg.ND.URL,
+		"/api/v1",
+		cfg.ND.User,
+		cfg.ND.Password,
+		"",
+		cfg.ND.Insecure == "true",
+		nd.MaxRetries(3),
+	)
+	if err != nil {
+		t.Fatalf("failed to create ND client while waiting for Fabric ACI deletion: %v", err)
+	}
+
+	fabricAPI := api.NewFabricAciAPI(&client, ndapi.DefaultFabric)
+	fabricAPI.ClusterName = fabricName
 
 	deadline := time.Now().Add(2 * time.Minute)
 	for {
@@ -102,10 +129,10 @@ func deleteFabricAciOutsideTerraform(t *testing.T, fabricName, username, passwor
 			if strings.Contains(err.Error(), "StatusCode 404") {
 				return
 			}
-			t.Fatalf("failed to verify out-of-band deletion of Fabric ACI %q: %v", fabricName, err)
+			t.Fatalf("failed to verify deletion of Fabric ACI %q: %v", fabricName, err)
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("timed out waiting for Fabric ACI %q to be deleted outside Terraform", fabricName)
+			t.Fatalf("timed out waiting for Fabric ACI %q to be deleted", fabricName)
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -183,13 +210,13 @@ func TestAccManageFabricAciResourceCRUD(t *testing.T) {
 	})
 
 	testCases := []string{
-		"Create Fabric ACI with only required attributes",
+		"Create Fabric ACI with only required attributes and keep disabled telemetry absent",
 		"Configure location, license, security, certificate verification, and enable orchestration",
 		"Update the license tier while keeping orchestration enabled",
-		"Reapply the unchanged configuration and require an empty plan",
+		"Reapply the unchanged configuration with telemetry omitted and require an empty plan",
 		"Verify normal destroy fails while orchestration is enabled",
 		"Disable orchestration before testing forced removal",
-		"Import the existing fabric with credentials supplied by fabric-scoped environment variables",
+		"Import the existing fabric with disabled telemetry absent and credentials supplied by fabric-scoped environment variables",
 		"Verify the fabric-scoped force environment variable permits destroy",
 		"Verify importing the removed fabric reports resource not found",
 		"Recreate the fabric with orchestration enabled",
@@ -248,6 +275,13 @@ func TestAccManageFabricAciResourceCRUD(t *testing.T) {
 				strconv.FormatFloat(*model.Spec.Location.Longitude, 'f', -1, 64),
 			))
 		}
+		telemetry := model.Spec.Aci.Telemetry
+		if telemetry.Status == "" &&
+			telemetry.Network == "" &&
+			telemetry.Epg == "" &&
+			telemetry.StreamingProtocol == "" {
+			checks = append(checks, resource.TestCheckNoResourceAttr(rscAddr, "telemetry"))
+		}
 		return resource.ComposeTestCheckFunc(checks...)
 	}
 
@@ -270,7 +304,8 @@ func TestAccManageFabricAciResourceCRUD(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t, "global") },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Step 1: Create with required attributes only.
+			// Step 1: Create with required attributes only and verify the API's
+			// disabled telemetry response remains absent from Terraform state.
 			{
 				Config: func() string {
 					*stepCount++
@@ -349,7 +384,8 @@ func TestAccManageFabricAciResourceCRUD(t *testing.T) {
 				Check:         fabricAciStateCheck(*fabricRsc),
 				PostApplyFunc: func() { stepTracker.Complete(3) },
 			},
-			// Step 4: Reapply the unchanged configuration and require an empty plan.
+			// Step 4: Reapply the unchanged configuration with telemetry omitted
+			// and require an empty plan.
 			{
 				Config: func() string {
 					*stepCount++
@@ -423,8 +459,9 @@ func TestAccManageFabricAciResourceCRUD(t *testing.T) {
 				Check:         fabricAciStateCheck(*fabricRsc),
 				PostApplyFunc: func() { stepTracker.Complete(6) },
 			},
-			// Step 7: Import the existing fabric with credentials supplied through
-			// fabric-scoped environment variables in the isolated import state.
+			// Step 7: Import the existing fabric with disabled telemetry absent and
+			// credentials supplied through fabric-scoped environment variables in
+			// the isolated import state.
 			{
 				Config: func() string {
 					*stepCount++
@@ -493,6 +530,7 @@ func TestAccManageFabricAciResourceCRUD(t *testing.T) {
 					if err := os.Unsetenv(forceEnvironmentVariable); err != nil {
 						t.Fatalf("Failed to unset %s after forced destroy: %v", forceEnvironmentVariable, err)
 					}
+					waitForFabricAciDeletion(t, fabricName)
 					stepTracker.Complete(8)
 				},
 			},
@@ -560,8 +598,6 @@ func TestAccManageFabricAciResourceCRUD(t *testing.T) {
 					if err := os.Unsetenv(forceEnvironmentVariable); err != nil {
 						t.Fatalf("Failed to unset %s before recreate: %v", forceEnvironmentVariable, err)
 					}
-					// Allow Nexus Dashboard to completely clear the previous configuration.
-					time.Sleep(10 * time.Second)
 				},
 				Check:         fabricAciStateCheck(*fabricRsc),
 				PostApplyFunc: func() { stepTracker.Complete(10) },
