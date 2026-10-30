@@ -6,6 +6,10 @@ resource:
   category: infra
   description: Manages tenant domain for Nexus Dashboard
   doc_category: Multi Tenancy
+  import_id:
+    - "tenant_domain1"
+  import_desc:
+    - "The name of the tenant domain: tenant_domain1"
   attributes:
   - model_name: id
     tf_name: id

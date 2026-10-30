@@ -51,3 +51,15 @@ Optional:
 - `allowed_vlans` (Set of String) The list of allowed VLANs for the tenant in the fabric.
 - `local_name` (String) The local name for the tenant in the fabric.
 - `tenant_prefix` (String) The tenant prefix for ACI fabrics.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Format of ID used for import:
+# The name of the tenant: tenant1
+terraform import nd_tenant.test_resource_tenant tenant1
+```

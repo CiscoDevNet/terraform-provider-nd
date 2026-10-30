@@ -26,7 +26,7 @@ import (
 
 const (
 	ModuleKey             = "infra"
-	changeControlImportID = "changeControl"
+	changeControlImportID = "change_control"
 )
 
 var (

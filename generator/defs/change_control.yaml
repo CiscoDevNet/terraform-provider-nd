@@ -5,6 +5,10 @@ resource:
   skip_equality: true
   category: infra
   doc_category: System Settings
+  import_id:
+    - "change_control"
+  import_desc:
+    - "The fixed import ID for the Change Control settings"
   description: |
     Manages change control system settings for Nexus Dashboard
 
@@ -23,7 +27,7 @@ resource:
   attributes:
   - model_name: id
     tf_name: id
-    description: The fixed Terraform identifier for the Change Control settings is changeControl.
+    description: The fixed Terraform identifier for the Change Control settings is `change_control`.
     type: String
     id: true
     computed: true
