@@ -1,0 +1,142 @@
+datasource:
+  name: deploy_history
+  generate_tf_resource: true
+  skip_equality: true
+  category: manage
+  description: Reads deployment history records for a fabric from the Nexus Dashboard API.
+  attributes:
+  - model_name: name
+    tf_name: fabric_name
+    description: Fabric name used to retrieve deployment history records.
+    type: String
+    mandatory: true
+    example: fabric1
+    validator: 'RegexMatches(regexp.MustCompile(`.*\S.*`), "must not be empty or whitespace")'
+
+  - model_name: no_of_records
+    tf_name: no_of_records
+    description: Number of deployment history records to retrieve. Defaults to 10 when not specified.
+    type: Int64
+    default_value: 10
+    example: 10
+    validator: 'AtLeast(1)'
+
+  - model_name: deploymentRecords
+    tf_name: deployment_records
+    description: Deployment history records returned for the fabric.
+    type: List
+    computed: true
+    attributes:
+    - model_name: completeTimestamp
+      tf_name: complete_timestamp
+      description: Timestamp when the deployment completed.
+      type: String
+      computed: true
+
+    - model_name: configCommandResponses
+      tf_name: config_command_responses
+      description: Execution responses for the deployment configuration commands.
+      type: List
+      computed: true
+      attributes:
+      - model_name: cliResponse
+        tf_name: cli_response
+        description: CLI response returned by the configuration command.
+        type: String
+        computed: true
+
+      - model_name: command
+        tf_name: command
+        description: Configuration command executed on the switch.
+        type: String
+        computed: true
+
+      - model_name: completeTimestamp
+        tf_name: complete_timestamp
+        description: Timestamp when the configuration command completed.
+        type: String
+        computed: true
+
+      - model_name: status
+        tf_name: status
+        description: Status returned for the configuration command.
+        type: String
+        computed: true
+
+    - model_name: entityName
+      tf_name: entity_name
+      description: Name of the deployment entity.
+      type: String
+      computed: true
+
+    - model_name: entityType
+      tf_name: entity_type
+      description: Type of the deployment entity.
+      type: String
+      computed: true
+
+    - model_name: hostname
+      tf_name: hostname
+      description: Hostname of the switch associated with the deployment.
+      type: String
+      computed: true
+
+    - model_name: secondaryEntityName
+      tf_name: secondary_entity_name
+      description: Name of the secondary entity associated with the deployment.
+      type: String
+      computed: true
+
+    - model_name: secondaryEntityType
+      tf_name: secondary_entity_type
+      description: Type of the secondary entity associated with the deployment.
+      type: String
+      computed: true
+
+    - model_name: source
+      tf_name: source
+      description: Source of the deployment record.
+      type: String
+      computed: true
+
+    - model_name: startTimestamp
+      tf_name: start_timestamp
+      description: Timestamp when the deployment started.
+      type: String
+      computed: true
+
+    - model_name: status
+      tf_name: status
+      description: Status of the deployment.
+      type: String
+      computed: true
+
+    - model_name: statusDescription
+      tf_name: status_description
+      description: Description of the deployment status.
+      type: String
+      computed: true
+
+    - model_name: switchId
+      tf_name: switch_id
+      description: Identifier of the switch associated with the deployment.
+      type: String
+      computed: true
+
+    - model_name: switchIp
+      tf_name: switch_ip
+      description: IP address of the switch associated with the deployment.
+      type: String
+      computed: true
+
+    - model_name: ticketId
+      tf_name: ticket_id
+      description: Identifier of the ticket associated with the deployment.
+      type: String
+      computed: true
+
+    - model_name: username
+      tf_name: username
+      description: Username associated with the deployment.
+      type: String
+      computed: true

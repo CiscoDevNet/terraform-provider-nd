@@ -20,4 +20,5 @@ files:
   - tenant_domain.yaml
   - interface_common.yaml
   - interface_ethernet.yaml
+  - deploy_history.yaml
   #- sample.yaml
