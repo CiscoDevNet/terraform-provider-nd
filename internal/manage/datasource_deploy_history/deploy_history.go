@@ -155,6 +155,10 @@ func (source *deployHistoryDataSource) Read(ctx context.Context, req datasource.
 		resp.Diagnostics.AddError("Invalid Record Count", "The no_of_records attribute must be at least 1.")
 		return
 	}
+	if recordCount > 50 {
+		resp.Diagnostics.AddError("Invalid Record Count", "The no_of_records attribute must be no greater than 50.")
+		return
+	}
 
 	// Configure must have supplied a usable client. || short-circuits, so the
 	// ApiClient field is accessed only when manageClient itself is non-nil.

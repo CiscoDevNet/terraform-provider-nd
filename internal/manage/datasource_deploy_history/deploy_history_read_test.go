@@ -27,12 +27,15 @@ func TestDeployHistoryReadRecordLimit(test *testing.T) {
 		returnedCount     int
 		wantCount         int
 		wantMax           int64
+		wantError         bool
 		timestamps        []string
 		wantRecordIndexes []int
 	}{
 		{name: "oversized response", recordLimit: types.Int64Value(1), returnedCount: 2, wantCount: 1, wantMax: 1},
 		{name: "exact response", recordLimit: types.Int64Value(2), returnedCount: 2, wantCount: 2, wantMax: 2},
 		{name: "short response", recordLimit: types.Int64Value(3), returnedCount: 2, wantCount: 2, wantMax: 3},
+		{name: "maximum allowed limit", recordLimit: types.Int64Value(50), returnedCount: 2, wantCount: 2, wantMax: 50},
+		{name: "reject limit over maximum", recordLimit: types.Int64Value(51), wantError: true},
 		{name: "empty response", recordLimit: types.Int64Value(1), returnedCount: 0, wantCount: 0, wantMax: 1},
 		{name: "default limit", recordLimit: types.Int64Null(), returnedCount: 12, wantCount: 10, wantMax: 10},
 		{name: "short default response", recordLimit: types.Int64Null(), returnedCount: 2, wantCount: 2, wantMax: 10},
@@ -149,6 +152,15 @@ func TestDeployHistoryReadRecordLimit(test *testing.T) {
 			}
 			response := datasource.ReadResponse{State: tfsdk.State{Schema: schema}}
 			source.Read(ctx, request, &response)
+			if testCase.wantError {
+				if !response.Diagnostics.HasError() {
+					test.Fatal("expected an error for no_of_records greater than 50")
+				}
+				if requestCount.Load() != 0 {
+					test.Errorf("expected no API request for invalid limit, got %d", requestCount.Load())
+				}
+				return
+			}
 			if response.Diagnostics.HasError() {
 				test.Fatalf("read deployment history: %v", response.Diagnostics)
 			}
