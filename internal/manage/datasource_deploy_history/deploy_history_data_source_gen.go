@@ -150,10 +150,10 @@ func DeployHistoryDataSourceSchema(ctx context.Context) schema.Schema {
 			},
 			"no_of_records": schema.Int64Attribute{
 				Optional:            true,
-				Description:         "Number of deployment history records to retrieve. Defaults to 10 when not specified.",
-				MarkdownDescription: "Number of deployment history records to retrieve. Defaults to 10 when not specified.",
+				Description:         "Number of deployment history records to retrieve (1-50). Defaults to 10 when not specified.",
+				MarkdownDescription: "Number of deployment history records to retrieve (1-50). Defaults to 10 when not specified.",
 				Validators: []validator.Int64{
-					int64validator.AtLeast(1),
+					int64validator.AtMost(50),
 				},
 			},
 		},

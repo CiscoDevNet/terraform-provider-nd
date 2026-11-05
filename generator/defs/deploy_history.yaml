@@ -15,11 +15,11 @@ datasource:
 
   - model_name: no_of_records
     tf_name: no_of_records
-    description: Number of deployment history records to retrieve. Defaults to 10 when not specified.
+    description: Number of deployment history records to retrieve (1-50). Defaults to 10 when not specified.
     type: Int64
     default_value: 10
     example: 10
-    validator: 'AtLeast(1)'
+    validator: 'AtMost(50)'
 
   - model_name: deploymentRecords
     tf_name: deployment_records

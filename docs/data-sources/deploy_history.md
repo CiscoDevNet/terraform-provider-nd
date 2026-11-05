@@ -27,7 +27,7 @@ data "nd_deploy_history" "test_datasource_deploy_history_1" {
 
 ### Optional
 
-- `no_of_records` (Number) Number of deployment history records to retrieve. Defaults to 10 when not specified.
+- `no_of_records` (Number) Number of deployment history records to retrieve (1-50). Defaults to 10 when not specified.
 
 ### Read-Only
 
