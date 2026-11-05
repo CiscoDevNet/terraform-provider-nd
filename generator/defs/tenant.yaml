@@ -5,6 +5,10 @@ resource:
   category: infra
   description: Manages tenant and its fabric associations for Nexus Dashboard
   doc_category: Multi Tenancy
+  import_id:
+    - "tenant1"
+  import_desc:
+    - "The name of the tenant: tenant1"
   attributes:
   - model_name: id
     tf_name: id

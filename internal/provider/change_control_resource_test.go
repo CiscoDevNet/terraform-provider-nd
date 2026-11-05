@@ -131,7 +131,7 @@ func changeControlStateChecks(
 	model resource_change_control.NDFCChangeControlModel,
 ) []resource.TestCheckFunc {
 	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttr(resourceName, "id", "changeControl"),
+		resource.TestCheckResourceAttr(resourceName, "id", "change_control"),
 	}
 
 	return append(checks, ChangeControlModelHelperStateCheck(resourceName, model, path.Empty())...)
@@ -248,7 +248,7 @@ func TestAccInfraChangeControlResource(t *testing.T) {
 				ResourceName:                         resourceName,
 				ImportState:                          true,
 				ImportStateVerify:                    true,
-				ImportStateId:                        "changeControl",
+				ImportStateId:                        "change_control",
 				ImportStateVerifyIdentifierAttribute: "id",
 			},
 			{
