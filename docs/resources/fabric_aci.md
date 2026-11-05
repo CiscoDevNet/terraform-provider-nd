@@ -77,7 +77,7 @@ Optional:
 
 Read-Only:
 
-- `status` (String) The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.
+- `status` (String) The status of telemetry collection for the APIC cluster.
 
 ## Import
 
