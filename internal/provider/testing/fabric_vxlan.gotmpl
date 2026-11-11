@@ -113,6 +113,18 @@ resource "nd_fabric_vxlan" "{{.RscName}}" {
     {{- if .Management.OverlayMode}}
     overlay_mode = "{{.Management.OverlayMode}}"
     {{- end}}
+    {{- if .TelemetrySettings.FlowCollection.TrafficAnalytics}}
+    traffic_analytics = "{{.TelemetrySettings.FlowCollection.TrafficAnalytics}}"
+    {{- end}}
+    {{- if .TelemetrySettings.FlowCollection.FlowCollectionModes.NetFlow}}
+    net_flow = {{deref_bool .TelemetrySettings.FlowCollection.FlowCollectionModes.NetFlow}}
+    {{- end}}
+    {{- if .TelemetrySettings.FlowCollection.FlowCollectionModes.SFlow}}
+    s_flow = {{deref_bool .TelemetrySettings.FlowCollection.FlowCollectionModes.SFlow}}
+    {{- end}}
+    {{- if .TelemetrySettings.FlowCollection.FlowCollectionModes.FlowTelemetry}}
+    flow_telemetry = {{deref_bool .TelemetrySettings.FlowCollection.FlowCollectionModes.FlowTelemetry}}
+    {{- end}}
 {{end}}
 }
 {{end}}

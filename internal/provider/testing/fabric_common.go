@@ -80,6 +80,8 @@ func applyFabricCommonValues(fabric *resource_fabric_common.NDFCFabricCommonMode
 			fabric.Management.SubInterfaceDot1qRange = val.(string)
 		case "bgp_asn_range":
 			fabric.Management.BgpAsnRange = val.(string)
+		case "traffic_analytics":
+			fabric.TelemetrySettings.FlowCollection.TrafficAnalytics = val.(string)
 
 		// Management *int64 fields
 		case "target_subnet_mask":
@@ -129,6 +131,15 @@ func applyFabricCommonValues(fabric *resource_fabric_common.NDFCFabricCommonMode
 		case "assign_ipv4_to_loopback0":
 			v := val.(bool)
 			fabric.Management.AssignIpv4ToLoopback0 = &v
+		case "net_flow":
+			v := val.(bool)
+			fabric.TelemetrySettings.FlowCollection.FlowCollectionModes.NetFlow = &v
+		case "s_flow":
+			v := val.(bool)
+			fabric.TelemetrySettings.FlowCollection.FlowCollectionModes.SFlow = &v
+		case "flow_telemetry":
+			v := val.(bool)
+			fabric.TelemetrySettings.FlowCollection.FlowCollectionModes.FlowTelemetry = &v
 		}
 	}
 }

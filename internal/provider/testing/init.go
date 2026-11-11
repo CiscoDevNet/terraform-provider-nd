@@ -34,6 +34,7 @@ type NDConfig struct {
 	FabricPrefix             string                         `yaml:"fabric_prefix"`
 	IntegrationTest          IntegratedConfig               `yaml:"integration_test"`
 	Inventory                InventoryConfig                `yaml:"inventory"`
+	SwitchDataSource         SwitchDataSourceConfig         `yaml:"switch_datasource"`
 	VpcPair                  *VpcPairConfig                 `yaml:"vpc_pair"`
 	MultiClusterConnectivity MultiClusterConnectivityConfig `yaml:"multi_cluster_connectivity"`
 	RemoteStorage            RemoteStorageConfig            `yaml:"remote_storage"`
@@ -121,11 +122,31 @@ type VpcPairTargetConfig struct {
 
 // IntegratedConfig represents the integration test configuration
 type IntegratedConfig struct {
-	Fabric           string            `yaml:"fabric"`
-	User             string            `yaml:"user"`
-	Password         string            `yaml:"pwd"`
-	Switches         []string          `yaml:"switches"`
-	InventoryDevices []InventoryDevice `yaml:"inventory_devices"`
+	Fabric           string                `yaml:"fabric"`
+	BgpAsn           string                `yaml:"bgp_asn"`
+	FabricType       string                `yaml:"fabric_type"`
+	User             string                `yaml:"user"`
+	Password         string                `yaml:"pwd"`
+	Switches         []InventorySwitch     `yaml:"switches"`
+	VpcPairs         []IntegratedVpcPair   `yaml:"vpc_pairs"`
+	Interfaces       []IntegratedInterface `yaml:"interfaces"`
+	RecoverySwitches []InventorySwitch     `yaml:"recovery_switches"`
+	InventoryDevices []InventoryDevice     `yaml:"inventory_devices"`
+}
+
+// IntegratedVpcPair identifies one pair of switches in an integrated fabric
+// acceptance test. Both switch IDs must refer to entries in Switches.
+type IntegratedVpcPair struct {
+	SwitchID1          string `yaml:"switch_id_1"`
+	SwitchID2          string `yaml:"switch_id_2"`
+	UseVirtualPeerlink bool   `yaml:"use_virtual_peerlink"`
+}
+
+// IntegratedInterface identifies one physical interface reserved for the
+// integrated fabric lifecycle test.
+type IntegratedInterface struct {
+	SwitchID      string `yaml:"switch_id"`
+	InterfaceName string `yaml:"interface_name"`
 }
 
 // InventoryDevice represents a device in the inventory

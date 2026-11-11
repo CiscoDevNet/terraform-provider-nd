@@ -51,11 +51,47 @@ nd:
   # Integration test configuration
   integration_test:
     fabric: at_int_test_vxlan
+    bgp_asn: "1234"
+    fabric_type: vxlanIbgp
     user: admin
     pwd: "password"
     switches:
-      - "SERIAL004"
-      - "SERIAL005"
+      - serial: "SERIAL004"
+        ip: "10.0.0.4"
+        role: "leaf"
+        hostname: "leaf1"
+        mode: discovery
+      - serial: "SERIAL005"
+        ip: "10.0.0.5"
+        role: "leaf"
+        hostname: "leaf2"
+        mode: discovery
+      - serial: "SERIAL006"
+        ip: "10.0.0.6"
+        role: "leaf"
+        hostname: "leaf3"
+        mode: discovery
+      - serial: "SERIAL007"
+        ip: "10.0.0.7"
+        role: "leaf"
+        hostname: "leaf4"
+        mode: discovery
+    vpc_pairs:
+      - switch_id_1: "SERIAL004"
+        switch_id_2: "SERIAL005"
+        use_virtual_peerlink: false
+      - switch_id_1: "SERIAL006"
+        switch_id_2: "SERIAL007"
+        use_virtual_peerlink: false
+    interfaces:
+      - switch_id: "SERIAL004"
+        interface_name: "Ethernet1/10"
+      - switch_id: "SERIAL005"
+        interface_name: "Ethernet1/10"
+      - switch_id: "SERIAL006"
+        interface_name: "Ethernet1/10"
+      - switch_id: "SERIAL007"
+        interface_name: "Ethernet1/10"
     inventory_devices:
       - device: "10.0.0.10"
         role: "spine"
