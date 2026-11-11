@@ -41,6 +41,27 @@ type fabricVxlanResource struct {
 	manageClient *manage.NexusDashboardManage
 }
 
+// PostUnmarshal preserves flow-collection settings that ND requires on create
+// but omits from some fabric GET responses. Without this normalization the
+// provider changes configured values to null immediately after apply.
+func (v *FabricVxlanModel) PostUnmarshal(_ context.Context, data *resource_fabric_common.NDFCFabricCommonModel) {
+	configured := v.GetModelData().TelemetrySettings.FlowCollection
+	returned := &data.TelemetrySettings.FlowCollection
+
+	if returned.TrafficAnalytics == "" {
+		returned.TrafficAnalytics = configured.TrafficAnalytics
+	}
+	if returned.FlowCollectionModes.NetFlow == nil {
+		returned.FlowCollectionModes.NetFlow = configured.FlowCollectionModes.NetFlow
+	}
+	if returned.FlowCollectionModes.SFlow == nil {
+		returned.FlowCollectionModes.SFlow = configured.FlowCollectionModes.SFlow
+	}
+	if returned.FlowCollectionModes.FlowTelemetry == nil {
+		returned.FlowCollectionModes.FlowTelemetry = configured.FlowCollectionModes.FlowTelemetry
+	}
+}
+
 // Metadata returns the resource type name.
 func (r *fabricVxlanResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_fabric_vxlan"

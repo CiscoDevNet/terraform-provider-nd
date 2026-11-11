@@ -12,7 +12,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
+	"strings"
 )
 
 // ---- Payload wrappers used by the bulk interface endpoints. --------------
@@ -184,6 +186,10 @@ func (v *NDFCNetworkOSPolicyValue) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	stripped, err = normalizePolicyBoolStrings(stripped)
+	if err != nil {
+		return err
+	}
 	var sh policyShadow
 	if err := json.Unmarshal(stripped, &sh); err != nil {
 		return fmt.Errorf("decode interface policy: %w", err)
@@ -205,6 +211,45 @@ func (v *NDFCNetworkOSPolicyValue) UnmarshalJSON(data []byte) error {
 		v.RoutingTag = s
 	}
 	return nil
+}
+
+// normalizePolicyBoolStrings accepts the inconsistent wire form returned by
+// some ND releases for boolean policy fields (for example, `"ptp":"false"`).
+// Only fields whose generated Go type is *bool are normalized, so string
+// policy fields that happen to contain "true" or "false" remain strings.
+func normalizePolicyBoolStrings(data []byte) ([]byte, error) {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return data, nil // not an object — let the normal decoder report it
+	}
+
+	t := reflect.TypeOf(policyShadow{})
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		if field.Type.Kind() != reflect.Ptr || field.Type.Elem().Kind() != reflect.Bool {
+			continue
+		}
+		name := strings.Split(field.Tag.Get("json"), ",")[0]
+		raw, ok := fields[name]
+		if !ok || len(bytes.TrimSpace(raw)) == 0 || bytes.TrimSpace(raw)[0] != '"' {
+			continue
+		}
+		var text string
+		if err := json.Unmarshal(raw, &text); err != nil {
+			continue
+		}
+		value, err := strconv.ParseBool(text)
+		if err != nil {
+			continue // preserve the original value for the normal decoder error
+		}
+		fields[name] = json.RawMessage(strconv.FormatBool(value))
+	}
+
+	normalized, err := json.Marshal(fields)
+	if err != nil {
+		return nil, fmt.Errorf("normalize interface policy booleans: %w", err)
+	}
+	return normalized, nil
 }
 
 // encodeDualForm returns the JSON bytes to emit for a collision-field value.

@@ -332,8 +332,23 @@ func (inv *InventoryFSM) onAddSwitches(ctx context.Context, e *fsm.Event) {
 	inv.invAPI.SetOperation(api.OpAddSwitches)
 	res, err := inv.invAPI.Post(payload, &ndapi.APIOptions{DisablePayloadLog: true})
 	if err != nil {
-		inv.triggerFail(ctx, e, "add switches failed: %v: %s", err, res.String())
-		return
+		combined := err.Error() + ": " + res.String()
+		if !isAlreadyPresentInFabricError(combined, inv.invAPI.FabricName) {
+			inv.triggerFail(ctx, e, "add switches failed: %v: %s", err, res.String())
+			return
+		}
+
+		// ND can complete an add request but return a retry response saying the
+		// switch is already present. Converge only after a scoped read proves
+		// every requested switch is in this exact fabric.
+		existing, readErr := inv.r.getAllSwitchesByFabric(ctx, inv.invAPI.FabricName, true)
+		if readErr != nil || !allDiscoveredSwitchesPresent(&discoveryForAdd, existing) {
+			inv.triggerFail(ctx, e, "add switches failed and same-fabric verification did not converge: %v: %s", err, res.String())
+			return
+		}
+		tflog.Info(ctx, "Switch add already converged in requested fabric", map[string]interface{}{
+			"fabric_name": inv.invAPI.FabricName,
+		})
 	}
 
 	tflog.Info(ctx, "Switch added to fabric", map[string]interface{}{
@@ -341,6 +356,32 @@ func (inv *InventoryFSM) onAddSwitches(ctx context.Context, e *fsm.Event) {
 	})
 
 	e.FSM.Event(ctx, EventSaveCreds)
+}
+
+func isAlreadyPresentInFabricError(message, fabricName string) bool {
+	return strings.Contains(strings.ToLower(message),
+		strings.ToLower("already present in fabric "+fabricName))
+}
+
+func allDiscoveredSwitchesPresent(discovery *DiscoveryStatusResponse, existing *FabricSwitchesResponse) bool {
+	if discovery == nil || existing == nil || len(discovery.Switches) == 0 {
+		return false
+	}
+	for _, sw := range discovery.Switches {
+		if sw.SerialNumber != "" {
+			if _, ok := existing.SwitchesBySerial[sw.SerialNumber]; !ok {
+				return false
+			}
+			continue
+		}
+		if sw.IpAddress == "" {
+			return false
+		}
+		if _, ok := existing.SwitchesByIP[sw.IpAddress]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 // --- Bootstrap path callbacks ---

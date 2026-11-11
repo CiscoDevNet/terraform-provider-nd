@@ -154,6 +154,26 @@ func TestDualFormUnmarshalAccepts(t *testing.T) {
 	}
 }
 
+func TestPolicyUnmarshalAcceptsStringBooleans(t *testing.T) {
+	var v NDFCNetworkOSPolicyValue
+	input := `{"policyType":"accessHost","ptp":"false","ptpRole":"true","cdp":true,"bpduGuard":"false"}`
+	if err := json.Unmarshal([]byte(input), &v); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	if v.Ptp == nil || *v.Ptp {
+		t.Fatalf("Ptp: got %v, want false", v.Ptp)
+	}
+	if v.PtpRole == nil || !*v.PtpRole {
+		t.Fatalf("PtpRole: got %v, want true", v.PtpRole)
+	}
+	if v.Cdp == nil || !*v.Cdp {
+		t.Fatalf("Cdp: got %v, want true", v.Cdp)
+	}
+	if v.BpduGuard != "false" {
+		t.Fatalf("BpduGuard: got %q, want string false", v.BpduGuard)
+	}
+}
+
 // TestDualFormRoundTrip ensures Marshal → Unmarshal is identity for the
 // collision fields across the number/string split.
 func TestDualFormRoundTrip(t *testing.T) {
