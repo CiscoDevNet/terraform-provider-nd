@@ -44,6 +44,10 @@ func defaultFabricValues() map[string]interface{} {
 		"network_vlan_range":            "2300-2999",
 		"vrf_vlan_range":                "2000-2299",
 		"greenfield_debug_flag":         "enable",
+		"traffic_analytics":             "disabled",
+		"net_flow":                      false,
+		"s_flow":                        false,
+		"flow_telemetry":                false,
 	}
 }
 
