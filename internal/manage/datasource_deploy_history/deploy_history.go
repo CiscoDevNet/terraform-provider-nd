@@ -15,7 +15,6 @@ import (
 	"log"
 	"strings"
 
-	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage"
 	"terraform-provider-nd/internal/manage/api"
 	"terraform-provider-nd/internal/registry"
@@ -167,10 +166,12 @@ func (source *deployHistoryDataSource) Read(ctx context.Context, req datasource.
 		return
 	}
 
-	// Extract the Go string and configure the existing API wrapper. No request is
-	// sent yet. DefaultFabric sets lock scope; FabricName selects the fabric in the URL.
+	// Use the fabric name for both the API URL and lock scope. The shared GET
+	// acquires a CRUD lock for this fabric, so it coordinates with deploy locks
+	// on the same fabric without serializing requests for other fabrics. This only
+	// configures the request wrapper; the GET below sends the request.
 	fabricName := data.FabricName.ValueString()
-	historyAPI := api.NewConfigAPI(source.manageClient.ApiClient, ndapi.DefaultFabric)
+	historyAPI := api.NewConfigAPI(source.manageClient.ApiClient, fabricName)
 	historyAPI.FabricName = fabricName
 	historyAPI.SetOperation(api.OpDeployHistory)
 
