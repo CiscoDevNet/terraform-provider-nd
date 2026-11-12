@@ -18,6 +18,9 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "The name of the ND cluster.",
 				MarkdownDescription: "The name of the ND cluster.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"hostname": schema.StringAttribute{
 				Required:            true,
@@ -29,8 +32,11 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
-				Description:         "The unique identifier of the terraform resource.",
-				MarkdownDescription: "The unique identifier of the terraform resource.",
+				Description:         "The unique identifier for the resource, it is the cluster_name of the ND cluster (for example, nd4x).",
+				MarkdownDescription: "The unique identifier for the resource, it is the cluster_name of the ND cluster (for example, nd4x).",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"login_domain": schema.StringAttribute{
 				Optional:            true,
@@ -65,8 +71,8 @@ func MultiClusterConnectivityResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "The username of the ND cluster.",
 			},
 		},
-		Description:         "Manages multi-cluster connectivity for Nexus Dashboard clusters.",
-		MarkdownDescription: "Manages multi-cluster connectivity for Nexus Dashboard clusters.",
+		Description:         "Manages an ND cluster for Multi-Cluster Connectivity in Nexus Dashboard",
+		MarkdownDescription: "Manages an ND cluster for Multi-Cluster Connectivity in Nexus Dashboard",
 	}
 }
 
