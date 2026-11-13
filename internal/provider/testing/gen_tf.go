@@ -41,6 +41,20 @@ type FabricTestResource struct {
 	Model        *resource_fabric_common.NDFCFabricCommonModel
 }
 
+// DependentTestResource attaches explicit Terraform dependencies to a model
+// rendered by GetTFConfigWithSingleResource. It is useful for models whose
+// attributes contain literal identifiers and therefore do not create implicit
+// Terraform graph edges.
+type DependentTestResource struct {
+	Model     interface{}
+	DependsOn []string
+}
+
+// WithDependsOn wraps a test model with explicit Terraform resource addresses.
+func WithDependsOn(model interface{}, dependencies ...string) *DependentTestResource {
+	return &DependentTestResource{Model: model, DependsOn: dependencies}
+}
+
 // VxlanResource wraps a fabric model for VXLAN template dispatch.
 func VxlanResource(m *resource_fabric_common.NDFCFabricCommonModel) *FabricTestResource {
 	return &FabricTestResource{TemplateName: "ND_FABRIC_VXLAN_RSC", TemplateKey: "FabricVxlan", Model: m}
@@ -169,6 +183,29 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 		}
 
 		switch v := rsc.(type) {
+		case *DependentTestResource:
+			args["RscName"] = rscName
+			args["DependsOn"] = strings.Join(v.DependsOn, ", ")
+			switch model := v.Model.(type) {
+			case *resource_inventory_switch.NDFCInventorySwitchModel:
+				args["InventorySwitch"] = model
+				err = t.ExecuteTemplate(&output, "ND_INVENTORY_SWITCH_RSC", args)
+			case *resource_vpc_pair.NDFCVpcPairModel:
+				args["VpcPair"] = model
+				err = t.ExecuteTemplate(&output, "ND_VPC_PAIR_RSC", args)
+			case *resource_config_deploy.NDFCConfigDeployModel:
+				args["ConfigDeploy"] = model
+				err = t.ExecuteTemplate(&output, "ND_CONFIG_DEPLOY_RSC", args)
+			case *resource_interface_common.NDFCInterfaceCommonModel:
+				args["InterfaceEthernet"] = model
+				err = t.ExecuteTemplate(&output, "ND_INTERFACE_ETHERNET_RSC", args)
+			default:
+				panic(fmt.Sprintf("Unsupported dependent resource type: %T", v.Model))
+			}
+			if err != nil {
+				panic(fmt.Sprintf("Failed to render dependent resource %T: %v", v.Model, err))
+			}
+
 		case *FabricTestResource:
 			args[v.TemplateKey] = v.Model
 			args["RscName"] = rscName
