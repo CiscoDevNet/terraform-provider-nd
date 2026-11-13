@@ -21,11 +21,8 @@ import (
 func PolicyModelHelperStateCheck(RscName string, c resource_policy.NDFCPolicyModel, attrPath path.Path) []resource.TestCheckFunc {
 	ret := []resource.TestCheckFunc{}
 
-	if c.PolicyId != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("policy_id").String(), c.PolicyId))
-	}
-	if c.FabricName != "" {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("fabric_name").String(), c.FabricName))
+	if c.Id != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("id").String(), c.Id))
 	}
 	if c.IsPolicyGroup {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("is_policy_group").String(), "true"))
@@ -54,9 +51,8 @@ func PolicyModelHelperStateCheck(RscName string, c resource_policy.NDFCPolicyMod
 	}
 	if c.Priority != nil {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("priority").String(), strconv.Itoa(int(*c.Priority))))
-	} else {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("priority").String(), "500"))
 	}
+
 	if c.SecondaryEntityName != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("secondary_entity_name").String(), c.SecondaryEntityName))
 	}

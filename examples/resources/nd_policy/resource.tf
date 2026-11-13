@@ -1,6 +1,6 @@
 
 resource "nd_policy" "test_resource_policy_1" {
-  is_policy_group       = false
+  is_policy_group       = true
   deploy                = true
   entity_name           = "SWITCH"
   entity_type           = "switch"
@@ -8,7 +8,7 @@ resource "nd_policy" "test_resource_policy_1" {
   template_name         = "feature_enable"
   source                = "UNDERLAY"
   priority              = 500
-  serial_numbers        = ["FDO245206N5", "FDO245206N6"]
+  switch_ids            = ["FDO245206N5", "FDO245206N6"]
   policy_parameters     = { "featureName" : "lacp" }
   secondary_entity_name = "MyNetwork_30000"
   secondary_entity_type = "configProfile"

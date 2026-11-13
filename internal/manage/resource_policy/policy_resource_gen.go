@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -33,6 +32,9 @@ func PolicyResourceSchema(ctx context.Context) schema.Schema {
 				Optional:            true,
 				Description:         "Description of the policy",
 				MarkdownDescription: "Description of the policy",
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(255),
+				},
 			},
 			"entity_name": schema.StringAttribute{
 				Required:            true,
@@ -40,6 +42,9 @@ func PolicyResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "Name of the entity. Use SWITCH when entity_type is switch",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(255),
 				},
 			},
 			"entity_type": schema.StringAttribute{
@@ -53,15 +58,18 @@ func PolicyResourceSchema(ctx context.Context) schema.Schema {
 					stringvalidator.OneOf("switch", "configProfile", "interface"),
 				},
 			},
-			"fabric_name": schema.StringAttribute{
-				Computed:            true,
-				Description:         "Name of the fabric resolved from serial_numbers in the switch inventory",
-				MarkdownDescription: "Name of the fabric resolved from serial_numbers in the switch inventory",
-			},
 			"generated_config": schema.StringAttribute{
 				Computed:            true,
 				Description:         "CLI produced from the template and inputs",
 				MarkdownDescription: "CLI produced from the template and inputs",
+			},
+			"id": schema.StringAttribute{
+				Computed:            true,
+				Description:         "Controller-assigned policy ID (POLICY-<n> or POLICY-GROUP-<n>)",
+				MarkdownDescription: "Controller-assigned policy ID (POLICY-<n> or POLICY-GROUP-<n>)",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"is_policy_group": schema.BoolAttribute{
 				Optional:            true,
@@ -73,14 +81,6 @@ func PolicyResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Default: booldefault.StaticBool(false),
 			},
-			"policy_id": schema.StringAttribute{
-				Computed:            true,
-				Description:         "Controller-assigned policy ID (POLICY-<n> or POLICY-GROUP-<n>)",
-				MarkdownDescription: "Controller-assigned policy ID (POLICY-<n> or POLICY-GROUP-<n>)",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
 			"policy_parameters": schema.MapAttribute{
 				ElementType:         types.StringType,
 				Optional:            true,
@@ -89,18 +89,19 @@ func PolicyResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"priority": schema.Int64Attribute{
 				Optional:            true,
-				Computed:            true,
-				Description:         "Write priority of the policy (1–2000). Defaults to 500",
-				MarkdownDescription: "Write priority of the policy (1–2000). Defaults to 500",
+				Description:         "Write priority of the policy (1–2000). Nexus Dashboard defaults to 500",
+				MarkdownDescription: "Write priority of the policy (1–2000). Nexus Dashboard defaults to 500",
 				Validators: []validator.Int64{
 					int64validator.Between(1, 2000),
 				},
-				Default: int64default.StaticInt64(500),
 			},
 			"secondary_entity_name": schema.StringAttribute{
 				Optional:            true,
 				Description:         "Secondary entity name, for example an overlay name when entity_type is configProfile",
 				MarkdownDescription: "Secondary entity name, for example an overlay name when entity_type is configProfile",
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(255),
+				},
 			},
 			"secondary_entity_type": schema.StringAttribute{
 				Optional:            true,
@@ -110,11 +111,19 @@ func PolicyResourceSchema(ctx context.Context) schema.Schema {
 					stringvalidator.OneOf("switch", "configProfile", "interface"),
 				},
 			},
-			"serial_numbers": schema.SetAttribute{
+			"source": schema.StringAttribute{
+				Optional:            true,
+				Description:         "Source of the policy. Empty source means any source can update the policy",
+				MarkdownDescription: "Source of the policy. Empty source means any source can update the policy",
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(255),
+				},
+			},
+			"switch_ids": schema.SetAttribute{
 				ElementType:         types.StringType,
 				Required:            true,
-				Description:         "Switch serial numbers (or management IPs). Exactly one when is_policy_group is false. One or more when is_policy_group is true",
-				MarkdownDescription: "Switch serial numbers (or management IPs). Exactly one when is_policy_group is false. One or more when is_policy_group is true",
+				Description:         "Switch identifiers (serial number, management IP, or UUID). Exactly one when is_policy_group is false; one or more when true",
+				MarkdownDescription: "Switch identifiers (serial number, management IP, or UUID). Exactly one when is_policy_group is false; one or more when true",
 				PlanModifiers: []planmodifier.Set{
 					setplanmodifier.RequiresReplaceIf(func(ctx context.Context, req planmodifier.SetRequest, resp *setplanmodifier.RequiresReplaceIfFuncResponse) {
 
@@ -133,17 +142,15 @@ func PolicyResourceSchema(ctx context.Context) schema.Schema {
 					}, "Needs replacement", ""),
 				},
 			},
-			"source": schema.StringAttribute{
-				Optional:            true,
-				Description:         "Source of the policy. Empty source means any source can update the policy",
-				MarkdownDescription: "Source of the policy. Empty source means any source can update the policy",
-			},
 			"template_name": schema.StringAttribute{
 				Required:            true,
 				Description:         "Name of the configuration template. Changing this value requires replacement",
 				MarkdownDescription: "Name of the configuration template. Changing this value requires replacement",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(255),
 				},
 			},
 		},
@@ -157,15 +164,14 @@ type PolicyModel struct {
 	Description         types.String `tfsdk:"description"`
 	EntityName          types.String `tfsdk:"entity_name"`
 	EntityType          types.String `tfsdk:"entity_type"`
-	FabricName          types.String `tfsdk:"fabric_name"`
 	GeneratedConfig     types.String `tfsdk:"generated_config"`
+	Id                  types.String `tfsdk:"id"`
 	IsPolicyGroup       types.Bool   `tfsdk:"is_policy_group"`
-	PolicyId            types.String `tfsdk:"policy_id"`
 	PolicyParameters    types.Map    `tfsdk:"policy_parameters"`
 	Priority            types.Int64  `tfsdk:"priority"`
 	SecondaryEntityName types.String `tfsdk:"secondary_entity_name"`
 	SecondaryEntityType types.String `tfsdk:"secondary_entity_type"`
-	SerialNumbers       types.Set    `tfsdk:"serial_numbers"`
 	Source              types.String `tfsdk:"source"`
+	SwitchIds           types.Set    `tfsdk:"switch_ids"`
 	TemplateName        types.String `tfsdk:"template_name"`
 }

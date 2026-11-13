@@ -87,13 +87,13 @@ func (r *policyResource) ValidateConfig(ctx context.Context, req resource.Valida
 		return
 	}
 
-	if config.SerialNumbers.IsNull() || config.SerialNumbers.IsUnknown() ||
+	if config.SwitchIds.IsNull() || config.SwitchIds.IsUnknown() ||
 		config.IsPolicyGroup.IsUnknown() {
 		return
 	}
 
 	var serials []string
-	resp.Diagnostics.Append(config.SerialNumbers.ElementsAs(ctx, &serials, false)...)
+	resp.Diagnostics.Append(config.SwitchIds.ElementsAs(ctx, &serials, false)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -101,16 +101,16 @@ func (r *policyResource) ValidateConfig(ctx context.Context, req resource.Valida
 	if config.IsPolicyGroup.ValueBool() {
 		if len(serials) == 0 {
 			resp.Diagnostics.AddAttributeError(
-				path.Root("serial_numbers"),
+				path.Root("switch_ids"),
 				"Invalid Configuration",
-				"serial_numbers must contain at least one switch when is_policy_group is true.",
+				"switch_ids must contain at least one switch when is_policy_group is true.",
 			)
 		}
 	} else if len(serials) != 1 {
 		resp.Diagnostics.AddAttributeError(
-			path.Root("serial_numbers"),
+			path.Root("switch_ids"),
 			"Invalid Configuration",
-			"serial_numbers must contain exactly one switch when is_policy_group is false.",
+			"switch_ids must contain exactly one switch when is_policy_group is false.",
 		)
 	}
 
@@ -135,7 +135,6 @@ func (r *policyResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	tflog.Debug(ctx, "Creating policy", map[string]interface{}{
-		"fabric_name":     plan.FabricName.ValueString(),
 		"template_name":   plan.TemplateName.ValueString(),
 		"is_policy_group": plan.IsPolicyGroup.ValueBool(),
 	})
@@ -157,8 +156,7 @@ func (r *policyResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	tflog.Debug(ctx, "Reading policy", map[string]interface{}{
-		"fabric_name": state.FabricName.ValueString(),
-		"policy_id":   state.PolicyId.ValueString(),
+		"policy_id": state.Id.ValueString(),
 	})
 
 	found := r.rscReadPolicy(ctx, &resp.Diagnostics, &state)
@@ -167,8 +165,7 @@ func (r *policyResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 	if !found {
 		tflog.Warn(ctx, "Policy no longer exists in ND, removing from Terraform state", map[string]interface{}{
-			"fabric_name": state.FabricName.ValueString(),
-			"policy_id":   state.PolicyId.ValueString(),
+			"policy_id": state.Id.ValueString(),
 		})
 		resp.State.RemoveResource(ctx)
 		return
@@ -186,8 +183,7 @@ func (r *policyResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	tflog.Debug(ctx, "Updating policy", map[string]interface{}{
-		"fabric_name": plan.FabricName.ValueString(),
-		"policy_id":   plan.PolicyId.ValueString(),
+		"policy_id": plan.Id.ValueString(),
 	})
 
 	r.rscUpdatePolicy(ctx, &resp.Diagnostics, &plan)
@@ -207,8 +203,7 @@ func (r *policyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 
 	tflog.Debug(ctx, "Deleting policy", map[string]interface{}{
-		"fabric_name": state.FabricName.ValueString(),
-		"policy_id":   state.PolicyId.ValueString(),
+		"policy_id": state.Id.ValueString(),
 	})
 
 	r.rscDeletePolicy(ctx, &resp.Diagnostics, &state)
@@ -236,21 +231,25 @@ func (r *policyResource) ImportState(ctx context.Context, req resource.ImportSta
 	}
 
 	state := PolicyModel{
-		FabricName:    types.StringValue(resolvedFabric),
-		PolicyId:      types.StringValue(policyID),
+		Id:            types.StringValue(policyID),
 		IsPolicyGroup: types.BoolValue(isGroup),
 		Deploy:        types.BoolValue(false),
 	}
-
-	found := r.rscReadPolicy(ctx, &resp.Diagnostics, &state)
-	if resp.Diagnostics.HasError() {
-		return
+	inData := &NDFCPolicyModel{
+		FabricName:    resolvedFabric,
+		Id:            policyID,
+		IsPolicyGroup: isGroup,
 	}
-	if !found {
+	outData, err := r.fetchPolicy(ctx, inData)
+	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Importing Policy",
-			fmt.Sprintf("Policy %s was not found in fabric %s", policyID, resolvedFabric),
+			fmt.Sprintf("Could not read policy %s from fabric %s: %v", policyID, resolvedFabric, err),
 		)
+		return
+	}
+	applyPolicyState(&resp.Diagnostics, &state, outData)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 

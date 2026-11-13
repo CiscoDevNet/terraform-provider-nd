@@ -13,7 +13,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 
 	"terraform-provider-nd/internal/common/templates"
@@ -27,54 +26,10 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-type policyAPIObject struct {
-	PolicyId            string          `json:"policyId,omitempty"`
-	TemplateName        string          `json:"templateName,omitempty"`
-	EntityType          string          `json:"entityType,omitempty"`
-	EntityName          string          `json:"entityName,omitempty"`
-	Description         string          `json:"description,omitempty"`
-	Source              string          `json:"source"`
-	Priority            *int64          `json:"priority,omitempty"`
-	SwitchId            json.RawMessage `json:"switchId,omitempty"`
-	SwitchIds           []string        `json:"switchIds,omitempty"`
-	TemplateInputs      map[string]any  `json:"templateInputs,omitempty"`
-	SecondaryEntityName string          `json:"secondaryEntityName,omitempty"`
-	SecondaryEntityType string          `json:"secondaryEntityType,omitempty"`
-	GeneratedConfig     string          `json:"generatedConfig,omitempty"`
-	MarkDeleted         *bool           `json:"markDeleted,omitempty"`
-	Status              string          `json:"status,omitempty"`
-	Message             string          `json:"message,omitempty"`
-}
-
-type inventorySwitchesResponse struct {
-	Switches []inventorySwitchEntry `json:"switches,omitempty"`
-}
-
-type inventorySwitchEntry struct {
-	SerialNumber       string `json:"serialNumber,omitempty"`
-	FabricName         string `json:"fabricName,omitempty"`
-	Fabric             string `json:"fabric,omitempty"`
-	IPAddress          string `json:"ip,omitempty"`
-	FabricManagementIp string `json:"fabricManagementIp,omitempty"`
-}
-
-const urlInventorySwitches = "/manage/inventory/switches"
-
-func (s inventorySwitchEntry) resolvedFabricName() string {
-	if strings.TrimSpace(s.FabricName) != "" {
-		return s.FabricName
-	}
-	return strings.TrimSpace(s.Fabric)
-}
-
-func (s inventorySwitchEntry) matches(id string) bool {
-	return s.SerialNumber == id || s.FabricManagementIp == id || s.IPAddress == id
-}
-
 func (r *policyResource) newPolicyAPI(in *NDFCPolicyModel) *api.PolicyAPI {
 	policyAPI := api.NewPolicyAPI(r.manageClient.ApiClient, in.FabricName)
 	policyAPI.FabricName = in.FabricName
-	policyAPI.PolicyID = in.PolicyId
+	policyAPI.PolicyID = in.Id
 	policyAPI.PolicyGroup = in.IsPolicyGroup
 	return policyAPI
 }
@@ -119,7 +74,7 @@ func (r *policyResource) rscCreatePolicy(ctx context.Context, dg *diag.Diagnosti
 		dg.AddError("Error Creating Policy", err.Error())
 		return
 	}
-	inData.PolicyId = policyID
+	inData.Id = policyID
 
 	if inData.Deploy {
 		if err := r.deployPolicy(ctx, inData); err != nil {
@@ -152,7 +107,7 @@ func (r *policyResource) rscReadPolicy(ctx context.Context, dg *diag.Diagnostics
 		if isNotFoundError(err) {
 			return false
 		}
-		dg.AddError("Error Reading Policy", fmt.Sprintf("Could not read policy %s: %v", inData.PolicyId, err))
+		dg.AddError("Error Reading Policy", fmt.Sprintf("Could not read policy %s: %v", inData.Id, err))
 		return false
 	}
 
@@ -175,7 +130,7 @@ func (r *policyResource) rscUpdatePolicy(ctx context.Context, dg *diag.Diagnosti
 	policyAPI := r.newPolicyAPI(inData)
 	tflog.Debug(ctx, "Updating policy", map[string]interface{}{
 		"fabric_name": inData.FabricName,
-		"policy_id":   inData.PolicyId,
+		"policy_id":   inData.Id,
 		"url":         policyAPI.PutUrl(),
 	})
 
@@ -209,7 +164,7 @@ func (r *policyResource) rscDeletePolicy(ctx context.Context, dg *diag.Diagnosti
 	}
 
 	inData := policyModelData(state)
-	if strings.TrimSpace(inData.PolicyId) == "" {
+	if strings.TrimSpace(inData.Id) == "" {
 		dg.AddError("Error Deleting Policy", "Policy ID is missing from state.")
 		return
 	}
@@ -218,21 +173,21 @@ func (r *policyResource) rscDeletePolicy(ctx context.Context, dg *diag.Diagnosti
 		return
 	}
 
-	serials := r.resolveSerialNumbers(ctx, dg, inData.FabricName, inData.SerialNumbers)
+	serials := r.resolveSwitchIds(ctx, dg, inData.FabricName, inData.SwitchIds)
 	if dg.HasError() {
 		return
 	}
-	inData.SerialNumbers = serials
+	inData.SwitchIds = serials
 
 	policyAPI := r.newPolicyAPI(inData)
-	markErr := r.markDeletePolicy(ctx, policyAPI, inData.PolicyId)
+	markErr := r.markDeletePolicy(ctx, policyAPI, inData.Id)
 	if markErr != nil {
 		tflog.Warn(ctx, "Mark-delete failed; falling back to direct delete then switch deploy", map[string]interface{}{
-			"policy_id": inData.PolicyId,
+			"policy_id": inData.Id,
 			"error":     markErr.Error(),
 		})
 		if err := r.deletePolicyRecord(ctx, policyAPI); err != nil && !isNotFoundError(err) {
-			dg.AddError("Error Deleting Policy", fmt.Sprintf("Could not delete policy %s: %v", inData.PolicyId, err))
+			dg.AddError("Error Deleting Policy", fmt.Sprintf("Could not delete policy %s: %v", inData.Id, err))
 			return
 		}
 		r.cleanupSwitchDeploy(ctx, dg, inData)
@@ -249,7 +204,7 @@ func (r *policyResource) rscDeletePolicy(ctx context.Context, dg *diag.Diagnosti
 		if isNotFoundError(err) {
 			return
 		}
-		dg.AddError("Error Deleting Policy", fmt.Sprintf("Could not verify policy %s after cleanup: %v", inData.PolicyId, err))
+		dg.AddError("Error Deleting Policy", fmt.Sprintf("Could not verify policy %s after cleanup: %v", inData.Id, err))
 		return
 	}
 	if outData == nil {
@@ -257,7 +212,7 @@ func (r *policyResource) rscDeletePolicy(ctx context.Context, dg *diag.Diagnosti
 	}
 
 	if err := r.deletePolicyRecord(ctx, policyAPI); err != nil && !isNotFoundError(err) {
-		dg.AddError("Error Deleting Policy", fmt.Sprintf("Could not delete remaining policy %s: %v", inData.PolicyId, err))
+		dg.AddError("Error Deleting Policy", fmt.Sprintf("Could not delete remaining policy %s: %v", inData.Id, err))
 	}
 }
 
@@ -267,19 +222,19 @@ func (r *policyResource) preparePolicyWrite(ctx context.Context, dg *diag.Diagno
 	}
 
 	if inData.IsPolicyGroup {
-		if len(inData.SerialNumbers) == 0 {
+		if len(inData.SwitchIds) == 0 {
 			dg.AddAttributeError(
-				path.Root("serial_numbers"),
+				path.Root("switch_ids"),
 				"Invalid Configuration",
-				"serial_numbers must contain at least one switch when is_policy_group is true.",
+				"switch_ids must contain at least one switch when is_policy_group is true.",
 			)
 			return false
 		}
-	} else if len(inData.SerialNumbers) != 1 {
+	} else if len(inData.SwitchIds) != 1 {
 		dg.AddAttributeError(
-			path.Root("serial_numbers"),
+			path.Root("switch_ids"),
 			"Invalid Configuration",
-			"serial_numbers must contain exactly one switch when is_policy_group is false.",
+			"switch_ids must contain exactly one switch when is_policy_group is false.",
 		)
 		return false
 	}
@@ -298,68 +253,21 @@ func (r *policyResource) resolveSwitchesAndFabric(ctx context.Context, dg *diag.
 		return false
 	}
 
-	inventory, err := r.loadInventorySwitches(ctx)
+	fabric, resolved, err := r.resolvePolicySwitches(ctx, inData.SwitchIds)
 	if err != nil {
-		dg.AddError("Error Reading Switch Inventory", err.Error())
+		dg.AddError("Unable to Resolve Fabric", err.Error())
 		return false
 	}
-
-	expectedFabric := strings.TrimSpace(inData.FabricName)
-	resolved := make([]string, 0, len(inData.SerialNumbers))
-	seen := make(map[string]bool, len(inData.SerialNumbers))
-	fabric := expectedFabric
-
-	for _, id := range inData.SerialNumbers {
-		entry, ok := findInventorySwitch(inventory, id)
-		if !ok {
-			dg.AddAttributeError(
-				path.Root("serial_numbers"),
-				"Switch Not Found",
-				fmt.Sprintf("Switch %q was not found in inventory. Verify the serial or management IP.", id),
-			)
-			return false
-		}
-
-		serial := entry.SerialNumber
-		if serial == "" {
-			serial = id
-		}
-		switchFabric := entry.resolvedFabricName()
-		if switchFabric == "" {
-			dg.AddError(
-				"Unable to Resolve Fabric",
-				fmt.Sprintf("Switch %q does not have a fabric association in inventory.", serial),
-			)
-			return false
-		}
-		if fabric == "" {
-			fabric = switchFabric
-		} else if switchFabric != fabric {
-			dg.AddError(
-				"Invalid Configuration",
-				fmt.Sprintf("Switches belong to different fabrics: %s is in %s, expected %s.", serial, switchFabric, fabric),
-			)
-			return false
-		}
-		if !seen[serial] {
-			seen[serial] = true
-			resolved = append(resolved, serial)
-		}
+	inData.SwitchIds = resolved
+	if inData.IsPolicyGroup {
+		inData.SwitchId = ""
+	} else {
+		inData.SwitchId = resolved[0]
 	}
-
-	if fabric == "" {
-		dg.AddError(
-			"Unable to Resolve Fabric",
-			"Could not determine fabric_name from serial_numbers. Verify the switches are associated with a fabric in inventory.",
-		)
-		return false
-	}
-
-	inData.SerialNumbers = resolved
 	inData.FabricName = fabric
 	tflog.Debug(ctx, "Resolved policy fabric from switch inventory", map[string]interface{}{
 		"fabric_name":     fabric,
-		"serial_numbers":  resolved,
+		"switch_ids":      resolved,
 		"is_policy_group": inData.IsPolicyGroup,
 	})
 	return true
@@ -374,12 +282,8 @@ func policyModelData(model *PolicyModel) *NDFCPolicyModel {
 	if inData == nil {
 		inData = new(NDFCPolicyModel)
 	}
-	// Generated GetModelData omits computed fabric_name; copy it from the TF model.
-	if strings.TrimSpace(inData.FabricName) == "" && !model.FabricName.IsNull() && !model.FabricName.IsUnknown() {
-		inData.FabricName = model.FabricName.ValueString()
-	}
-	if strings.TrimSpace(inData.PolicyId) == "" && !model.PolicyId.IsNull() && !model.PolicyId.IsUnknown() {
-		inData.PolicyId = model.PolicyId.ValueString()
+	if strings.TrimSpace(inData.Id) == "" && !model.Id.IsNull() && !model.Id.IsUnknown() {
+		inData.Id = model.Id.ValueString()
 	}
 	return inData
 }
@@ -392,7 +296,7 @@ func (r *policyResource) ensurePolicyFabricName(ctx context.Context, inData *NDF
 		return nil
 	}
 
-	fabric, err := r.resolvePolicyFabricName(ctx, inData.SerialNumbers)
+	fabric, err := r.resolvePolicyFabricName(ctx, inData.SwitchIds)
 	if err != nil {
 		return err
 	}
@@ -401,68 +305,49 @@ func (r *policyResource) ensurePolicyFabricName(ctx context.Context, inData *NDF
 }
 
 func (r *policyResource) resolvePolicyFabricName(ctx context.Context, switchIDs []string) (string, error) {
+	fabricName, _, err := r.resolvePolicySwitches(ctx, switchIDs)
+	return fabricName, err
+}
+
+func (r *policyResource) resolvePolicySwitches(ctx context.Context, switchIDs []string) (string, []string, error) {
 	if len(switchIDs) == 0 {
-		return "", fmt.Errorf("serial_numbers is empty; cannot resolve fabric_name")
+		return "", nil, fmt.Errorf("switch_ids is empty; cannot resolve fabric_name")
 	}
-
-	inventory, err := r.loadInventorySwitches(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	var fabric string
+	var fabricName string
+	resolved := make([]string, 0, len(switchIDs))
+	seen := make(map[string]bool, len(switchIDs))
 	for _, id := range switchIDs {
-		entry, ok := findInventorySwitch(inventory, id)
+		entry, ok := r.manageClient.SwitchDB.GetSwitchByID(ctx, id)
 		if !ok {
-			return "", fmt.Errorf("switch %s not found in inventory switches response", id)
+			return "", nil, fmt.Errorf("switch %s not found in global inventory", id)
 		}
-		switchFabric := entry.resolvedFabricName()
+		switchFabric := strings.TrimSpace(entry.FabricName)
 		if switchFabric == "" {
-			return "", fmt.Errorf("switch %s does not have a fabric association in inventory", id)
+			return "", nil, fmt.Errorf("switch %s has no fabric association in global inventory", id)
 		}
-		if fabric == "" {
-			fabric = switchFabric
-			continue
+		if fabricName == "" {
+			fabricName = switchFabric
+		} else if fabricName != switchFabric {
+			return "", nil, fmt.Errorf("switches belong to different fabrics: expected %s, %s=%s", fabricName, id, switchFabric)
 		}
-		if fabric != switchFabric {
-			return "", fmt.Errorf("switches belong to different fabrics: %s=%s, %s=%s", switchIDs[0], fabric, id, switchFabric)
+		if entry.SerialNumber == "" {
+			return "", nil, fmt.Errorf("global inventory entry for switch %s has no serial number", id)
+		}
+		if !seen[entry.SerialNumber] {
+			seen[entry.SerialNumber] = true
+			resolved = append(resolved, entry.SerialNumber)
 		}
 	}
 
 	tflog.Debug(ctx, "Resolved policy fabric from inventory switches", map[string]interface{}{
-		"serial_numbers": switchIDs,
-		"fabric_name":    fabric,
+		"switch_ids":     switchIDs,
+		"serial_numbers": resolved,
+		"fabric_name":    fabricName,
 	})
-	return fabric, nil
+	return fabricName, resolved, nil
 }
 
-func (r *policyResource) loadInventorySwitches(ctx context.Context) ([]inventorySwitchEntry, error) {
-	tflog.Debug(ctx, "Reading inventory switches to resolve policy fabric", map[string]interface{}{
-		"url": urlInventorySwitches,
-	})
-
-	respData, err := r.manageClient.ApiClient.GetRawJson(urlInventorySwitches)
-	if err != nil {
-		return nil, fmt.Errorf("GET %s: %w", urlInventorySwitches, err)
-	}
-
-	var resp inventorySwitchesResponse
-	if err := json.Unmarshal(respData, &resp); err != nil {
-		return nil, fmt.Errorf("decode inventory switches response: %w", err)
-	}
-	return resp.Switches, nil
-}
-
-func findInventorySwitch(switches []inventorySwitchEntry, id string) (inventorySwitchEntry, bool) {
-	for _, sw := range switches {
-		if sw.matches(id) {
-			return sw, true
-		}
-	}
-	return inventorySwitchEntry{}, false
-}
-
-func (r *policyResource) resolveSerialNumbers(ctx context.Context, dg *diag.Diagnostics, fabricName string, ids []string) []string {
+func (r *policyResource) resolveSwitchIds(ctx context.Context, dg *diag.Diagnostics, fabricName string, ids []string) []string {
 	if len(ids) == 0 {
 		return ids
 	}
@@ -475,7 +360,7 @@ func (r *policyResource) resolveSerialNumbers(ctx context.Context, dg *diag.Diag
 			s, ok := r.manageClient.SwitchDB.GetSerialByIP(ctx, fabricName, id)
 			if !ok {
 				dg.AddAttributeError(
-					path.Root("serial_numbers"),
+					path.Root("switch_ids"),
 					"Switch Not Found",
 					fmt.Sprintf("Could not resolve IP address %q to a serial number in fabric %q. Verify the switch is in the fabric inventory.", id, fabricName),
 				)
@@ -521,7 +406,7 @@ func (r *policyResource) validateTemplateInputs(ctx context.Context, inData *NDF
 func (r *policyResource) refreshPolicyState(ctx context.Context, dg *diag.Diagnostics, model *PolicyModel, inData *NDFCPolicyModel) bool {
 	outData, err := r.fetchPolicy(ctx, inData)
 	if err != nil {
-		dg.AddError("Error Reading Policy", fmt.Sprintf("Could not read policy %s after apply: %v", inData.PolicyId, err))
+		dg.AddError("Error Reading Policy", fmt.Sprintf("Could not read policy %s after apply: %v", inData.Id, err))
 		return false
 	}
 	applyPolicyState(dg, model, outData)
@@ -532,7 +417,7 @@ func (r *policyResource) fetchPolicy(ctx context.Context, inData *NDFCPolicyMode
 	policyAPI := r.newPolicyAPI(inData)
 	tflog.Debug(ctx, "Fetching policy from ND", map[string]interface{}{
 		"fabric_name":     inData.FabricName,
-		"policy_id":       inData.PolicyId,
+		"policy_id":       inData.Id,
 		"is_policy_group": inData.IsPolicyGroup,
 		"url":             policyAPI.GetUrl(),
 	})
@@ -550,18 +435,18 @@ func (r *policyResource) fetchPolicy(ctx context.Context, inData *NDFCPolicyMode
 	return policyObjectToModel(obj, inData), nil
 }
 
-func decodePolicyObject(resp []byte) (*policyAPIObject, error) {
-	var obj policyAPIObject
+func decodePolicyObject(resp []byte) (*NDFCPolicyModel, error) {
+	var obj NDFCPolicyModel
 	if err := json.Unmarshal(resp, &obj); err != nil {
 		return nil, fmt.Errorf("decode policy response: %w", err)
 	}
-	if obj.PolicyId != "" || obj.TemplateName != "" {
+	if obj.Id != "" || obj.TemplateName != "" {
 		return &obj, nil
 	}
 
 	var wrapped struct {
-		Policies     []policyAPIObject `json:"policies"`
-		PolicyGroups []policyAPIObject `json:"policyGroups"`
+		Policies     []NDFCPolicyModel `json:"policies"`
+		PolicyGroups []NDFCPolicyModel `json:"policyGroups"`
 	}
 	if err := json.Unmarshal(resp, &wrapped); err == nil {
 		if len(wrapped.Policies) > 0 {
@@ -599,7 +484,7 @@ func (r *policyResource) findPolicyFabric(ctx context.Context, policyID string, 
 	for _, fabric := range names {
 		inData := &NDFCPolicyModel{
 			FabricName:    fabric,
-			PolicyId:      policyID,
+			Id:            policyID,
 			IsPolicyGroup: isGroup,
 		}
 		if _, err := r.fetchPolicy(ctx, inData); err == nil {
@@ -623,22 +508,22 @@ func (r *policyResource) deployPolicy(ctx context.Context, inData *NDFCPolicyMod
 
 	policyAPI := r.newPolicyAPI(inData)
 	policyAPI.SetOperation(api.OpPushConfig)
-	payload, err := json.Marshal(map[string][]string{"policyIds": {inData.PolicyId}})
+	payload, err := json.Marshal(map[string][]string{"policyIds": {inData.Id}})
 	if err != nil {
 		return fmt.Errorf("marshal pushConfig payload: %w", err)
 	}
 
 	tflog.Debug(ctx, "Pushing policy config", map[string]interface{}{
 		"fabric_name": inData.FabricName,
-		"policy_id":   inData.PolicyId,
+		"policy_id":   inData.Id,
 		"url":         policyAPI.PostUrl(),
 	})
 
 	res, err := policyAPI.Post(payload, nil)
 	if err != nil {
-		return fmt.Errorf("pushConfig failed for %s: %w: %s", inData.PolicyId, err, res.Raw)
+		return fmt.Errorf("pushConfig failed for %s: %w: %s", inData.Id, err, res.Raw)
 	}
-	if err := checkBulkStatus(res, inData.PolicyId); err != nil {
+	if err := checkBulkStatus(res, inData.Id); err != nil {
 		return err
 	}
 	return nil
@@ -676,7 +561,7 @@ func (r *policyResource) deletePolicyRecord(ctx context.Context, policyAPI *api.
 }
 
 func (r *policyResource) cleanupSwitchDeploy(ctx context.Context, dg *diag.Diagnostics, inData *NDFCPolicyModel) {
-	if len(inData.SerialNumbers) == 0 {
+	if len(inData.SwitchIds) == 0 {
 		return
 	}
 	if err := r.switchDeploy(ctx, inData, true); err != nil {
@@ -686,7 +571,7 @@ func (r *policyResource) cleanupSwitchDeploy(ctx context.Context, dg *diag.Diagn
 
 func (r *policyResource) switchDeploy(ctx context.Context, inData *NDFCPolicyModel, recalculate bool) error {
 	opts := &deployment.DeployOptions{
-		SerialNumbers: inData.SerialNumbers,
+		SerialNumbers: inData.SwitchIds,
 	}
 	localDg := diag.Diagnostics{}
 	result := deployment.ConfigSaveAndDeployWithOpts(
@@ -702,47 +587,41 @@ func (r *policyResource) switchDeploy(ctx context.Context, inData *NDFCPolicyMod
 	}
 	tflog.Debug(ctx, "Switch deploy completed", map[string]interface{}{
 		"fabric_name": inData.FabricName,
-		"serials":     inData.SerialNumbers,
+		"serials":     inData.SwitchIds,
 		"status":      result.Status,
 	})
 	return nil
 }
 
 func buildPolicyWritePayload(in *NDFCPolicyModel, wrap bool) ([]byte, error) {
-	obj := map[string]any{
-		"templateName": in.TemplateName,
-		"entityType":   in.EntityType,
-		"entityName":   in.EntityName,
-		"source":       in.Source,
+	if in == nil {
+		return nil, fmt.Errorf("policy model is nil")
 	}
+	apiModel := *in
+	apiModel.Id = ""
 	if in.IsPolicyGroup {
-		obj["switchIds"] = in.SerialNumbers
+		apiModel.SwitchId = ""
+		apiModel.SwitchIds = append([]string(nil), in.SwitchIds...)
 	} else {
-		obj["switchId"] = in.SerialNumbers[0]
+		if len(in.SwitchIds) != 1 {
+			return nil, fmt.Errorf("single-switch policy requires exactly one switch ID; got %d", len(in.SwitchIds))
+		}
+		apiModel.SwitchId = in.SwitchIds[0]
+		apiModel.SwitchIds = nil
 	}
-	if in.Description != "" {
-		obj["description"] = in.Description
-	}
-	if in.Priority != nil {
-		obj["priority"] = *in.Priority
-	}
-	if len(in.PolicyParameters) > 0 {
-		obj["templateInputs"] = in.PolicyParameters
-	}
-	if in.SecondaryEntityName != "" {
-		obj["secondaryEntityName"] = in.SecondaryEntityName
-	}
-	if in.SecondaryEntityType != "" {
-		obj["secondaryEntityType"] = in.SecondaryEntityType
-	}
-
 	if !wrap {
-		return json.Marshal(obj)
+		return json.Marshal(apiModel)
 	}
+	envelope := struct {
+		Policies     []NDFCPolicyModel `json:"policies,omitempty"`
+		PolicyGroups []NDFCPolicyModel `json:"policyGroups,omitempty"`
+	}{}
 	if in.IsPolicyGroup {
-		return json.Marshal(map[string]any{"policyGroups": []any{obj}})
+		envelope.PolicyGroups = []NDFCPolicyModel{apiModel}
+	} else {
+		envelope.Policies = []NDFCPolicyModel{apiModel}
 	}
-	return json.Marshal(map[string]any{"policies": []any{obj}})
+	return json.Marshal(envelope)
 }
 
 func parseCreateResponse(res gjson.Result, isGroup bool) (string, error) {
@@ -815,31 +694,20 @@ func checkBulkStatus(res gjson.Result, policyID string) error {
 	return nil
 }
 
-func policyObjectToModel(obj *policyAPIObject, inData *NDFCPolicyModel) *NDFCPolicyModel {
-	out := &NDFCPolicyModel{
-		PolicyId:            obj.PolicyId,
-		FabricName:          inData.FabricName,
-		IsPolicyGroup:       inData.IsPolicyGroup,
-		Deploy:              inData.Deploy,
-		EntityName:          obj.EntityName,
-		EntityType:          obj.EntityType,
-		Description:         obj.Description,
-		TemplateName:        obj.TemplateName,
-		Source:              obj.Source,
-		Priority:            obj.Priority,
-		SecondaryEntityName: obj.SecondaryEntityName,
-		SecondaryEntityType: obj.SecondaryEntityType,
-		GeneratedConfig:     obj.GeneratedConfig,
-		Deleted:             obj.MarkDeleted,
+func policyObjectToModel(obj *NDFCPolicyModel, inData *NDFCPolicyModel) *NDFCPolicyModel {
+	model := *obj
+	model.IsPolicyGroup = inData.IsPolicyGroup
+	model.Deploy = inData.Deploy
+	model.FabricName = inData.FabricName
+	out := &model
+	if out.Id == "" {
+		out.Id = inData.Id
 	}
-	if out.PolicyId == "" {
-		out.PolicyId = inData.PolicyId
+	out.SwitchIds = serialsFromPolicyObject(obj)
+	if len(out.SwitchIds) == 0 {
+		out.SwitchIds = inData.SwitchIds
 	}
-	out.SerialNumbers = serialsFromPolicyObject(obj)
-	if len(out.SerialNumbers) == 0 {
-		out.SerialNumbers = inData.SerialNumbers
-	}
-	splitTemplateInputs(inData.PolicyParameters, stringifyTemplateInputs(obj.TemplateInputs), out)
+	splitTemplateInputs(inData.PolicyParameters, obj.PolicyParameters, out)
 	if out.Source == "" {
 		out.Source = inData.Source
 	}
@@ -858,57 +726,14 @@ func policyObjectToModel(obj *policyAPIObject, inData *NDFCPolicyModel) *NDFCPol
 	return out
 }
 
-func serialsFromPolicyObject(obj *policyAPIObject) []string {
+func serialsFromPolicyObject(obj *NDFCPolicyModel) []string {
 	if len(obj.SwitchIds) > 0 {
 		return obj.SwitchIds
 	}
-	if len(obj.SwitchId) == 0 || string(obj.SwitchId) == "null" {
-		return nil
-	}
-	var serial string
-	if err := json.Unmarshal(obj.SwitchId, &serial); err == nil && serial != "" {
-		return []string{serial}
-	}
-	var serials []string
-	if err := json.Unmarshal(obj.SwitchId, &serials); err == nil {
-		return serials
+	if obj.SwitchId != "" {
+		return []string{obj.SwitchId}
 	}
 	return nil
-}
-
-func stringifyTemplateInputs(in map[string]any) map[string]string {
-	if len(in) == 0 {
-		return nil
-	}
-	out := make(map[string]string, len(in))
-	for k, v := range in {
-		out[k] = anyToString(v)
-	}
-	return out
-}
-
-func anyToString(v any) string {
-	switch t := v.(type) {
-	case nil:
-		return ""
-	case string:
-		return t
-	case bool:
-		return strconv.FormatBool(t)
-	case float64:
-		if t == float64(int64(t)) {
-			return strconv.FormatInt(int64(t), 10)
-		}
-		return strconv.FormatFloat(t, 'f', -1, 64)
-	case json.Number:
-		return t.String()
-	default:
-		b, err := json.Marshal(t)
-		if err != nil {
-			return fmt.Sprint(t)
-		}
-		return string(b)
-	}
 }
 
 var controllerTemplateInputKeys = map[string]bool{
@@ -948,7 +773,7 @@ func applyPolicyState(dg *diag.Diagnostics, model *PolicyModel, outData *NDFCPol
 		dg.Append(modelDiags...)
 		return
 	}
-	setPolicyIDs(model, outData.PolicyId)
+	setPolicyIDs(model, outData.Id)
 	if !keepSource.IsNull() && !keepSource.IsUnknown() && keepSource.ValueString() == "" &&
 		(model.Source.IsNull() || model.Source.ValueString() == "") {
 		model.Source = types.StringValue("")
@@ -959,7 +784,7 @@ func setPolicyIDs(model *PolicyModel, policyID string) {
 	if model == nil || strings.TrimSpace(policyID) == "" {
 		return
 	}
-	model.PolicyId = types.StringValue(policyID)
+	model.Id = types.StringValue(policyID)
 }
 
 func isNotFoundError(err error) bool {

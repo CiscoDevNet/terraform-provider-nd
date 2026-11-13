@@ -20,8 +20,8 @@ import (
 )
 
 type NDFCPolicyModel struct {
-	PolicyId            string            `json:"policyId,omitempty"`
 	FabricName          string            `json:"-"`
+	Id                  string            `json:"policyId,omitempty"`
 	IsPolicyGroup       bool              `json:"-"`
 	Deploy              bool              `json:"-"`
 	EntityName          string            `json:"entityName,omitempty"`
@@ -30,7 +30,8 @@ type NDFCPolicyModel struct {
 	TemplateName        string            `json:"templateName,omitempty"`
 	Source              string            `json:"source"`
 	Priority            *int64            `json:"priority,omitempty"`
-	SerialNumbers       []string          `json:"-"`
+	SwitchId            string            `json:"switchId,omitempty"`
+	SwitchIds           []string          `json:"switchIds,omitempty"`
 	PolicyParameters    map[string]string `json:"templateInputs,omitempty"`
 	SecondaryEntityName string            `json:"secondaryEntityName,omitempty"`
 	SecondaryEntityType string            `json:"secondaryEntityType,omitempty"`
@@ -42,16 +43,10 @@ func (v *PolicyModel) SetModelData(jsonData *NDFCPolicyModel) diag.Diagnostics {
 	var err diag.Diagnostics
 	err = nil
 
-	if jsonData.PolicyId != "" {
-		v.PolicyId = types.StringValue(jsonData.PolicyId)
+	if jsonData.Id != "" {
+		v.Id = types.StringValue(jsonData.Id)
 	} else {
-		v.PolicyId = types.StringNull()
-	}
-
-	if jsonData.FabricName != "" {
-		v.FabricName = types.StringValue(jsonData.FabricName)
-	} else {
-		v.FabricName = types.StringNull()
+		v.Id = types.StringNull()
 	}
 
 	v.IsPolicyGroup = types.BoolValue(jsonData.IsPolicyGroup)
@@ -93,19 +88,19 @@ func (v *PolicyModel) SetModelData(jsonData *NDFCPolicyModel) diag.Diagnostics {
 		v.Priority = types.Int64Null()
 	}
 
-	if len(jsonData.SerialNumbers) == 0 {
-		log.Printf("v.SerialNumbers is empty")
-		v.SerialNumbers = types.SetNull(types.StringType)
+	if len(jsonData.SwitchIds) == 0 {
+		log.Printf("v.SwitchIds is empty")
+		v.SwitchIds = types.SetNull(types.StringType)
 		if err != nil {
 			log.Printf("Error in converting []string to  List %v", err)
 			return err
 		}
 	} else {
-		listData := make([]attr.Value, len(jsonData.SerialNumbers))
-		for i, item := range jsonData.SerialNumbers {
+		listData := make([]attr.Value, len(jsonData.SwitchIds))
+		for i, item := range jsonData.SwitchIds {
 			listData[i] = types.StringValue(item)
 		}
-		v.SerialNumbers, err = types.SetValue(types.StringType, listData)
+		v.SwitchIds, err = types.SetValue(types.StringType, listData)
 		if err != nil {
 			log.Printf("Error in converting []string to  List")
 			return err
@@ -152,10 +147,10 @@ func (v PolicyModel) GetModelData() *NDFCPolicyModel {
 
 	//MARSHAL_BODY
 
-	if !v.PolicyId.IsNull() && !v.PolicyId.IsUnknown() {
-		data.PolicyId = v.PolicyId.ValueString()
+	if !v.Id.IsNull() && !v.Id.IsUnknown() {
+		data.Id = v.Id.ValueString()
 	} else {
-		data.PolicyId = ""
+		data.Id = ""
 	}
 
 	if !v.IsPolicyGroup.IsNull() && !v.IsPolicyGroup.IsUnknown() {
@@ -204,14 +199,14 @@ func (v PolicyModel) GetModelData() *NDFCPolicyModel {
 		data.Priority = nil
 	}
 
-	if !v.SerialNumbers.IsNull() && !v.SerialNumbers.IsUnknown() {
-		listStringData := make([]string, len(v.SerialNumbers.Elements()))
-		dg := v.SerialNumbers.ElementsAs(context.Background(), &listStringData, false)
+	if !v.SwitchIds.IsNull() && !v.SwitchIds.IsUnknown() {
+		listStringData := make([]string, len(v.SwitchIds.Elements()))
+		dg := v.SwitchIds.ElementsAs(context.Background(), &listStringData, false)
 		if dg.HasError() {
 			panic(dg.Errors())
 		}
-		data.SerialNumbers = make([]string, len(listStringData))
-		copy(data.SerialNumbers, listStringData)
+		data.SwitchIds = make([]string, len(listStringData))
+		copy(data.SwitchIds, listStringData)
 	}
 
 	if !v.PolicyParameters.IsNull() && !v.PolicyParameters.IsUnknown() {

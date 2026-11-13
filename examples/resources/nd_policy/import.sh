@@ -1,4 +1,5 @@
 
-# Import by policyId (POLICY-<n> or POLICY-GROUP-<n>)
+# Format of ID used for import:
+# id
 terraform import nd_policy.test_resource_policy POLICY-26910
-terraform import nd_policy.test_resource_policy POLICY-GROUP-143310
+

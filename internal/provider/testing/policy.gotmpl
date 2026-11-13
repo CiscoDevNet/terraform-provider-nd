@@ -18,8 +18,8 @@ resource "nd_policy" "{{.RscName}}" {
     {{- if .Priority}}
     priority = {{deref_int64 .Priority}}
     {{- end}}
-    {{- if .SerialNumbers}}
-    serial_numbers = {{quote_list .SerialNumbers}}
+    {{- if .SwitchIds}}
+    switch_ids = {{quote_list .SwitchIds}}
     {{- end}}
     {{- if .PolicyParameters}}
     policy_parameters = {

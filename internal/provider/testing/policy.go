@@ -23,8 +23,8 @@ func GeneratePolicyObject(
 	deploy bool,
 ) {
 	policy := new(resource_policy.NDFCPolicyModel)
-	policy.FabricName = fabricName
-	policy.SerialNumbers = append([]string{}, serialNumbers...)
+	_ = fabricName // Fabric is resolved internally from the switch identifiers.
+	policy.SwitchIds = append([]string{}, serialNumbers...)
 	policy.TemplateName = templateName
 	policy.EntityType = "switch"
 	policy.EntityName = "SWITCH"
@@ -52,10 +52,8 @@ func ModifyPolicyObject(
 
 	for key, val := range values {
 		switch key {
-		case "fabric_name":
-			policy.FabricName = val.(string)
-		case "serial_numbers":
-			policy.SerialNumbers = append([]string{}, val.([]string)...)
+		case "switch_ids":
+			policy.SwitchIds = append([]string{}, val.([]string)...)
 		case "template_name":
 			policy.TemplateName = val.(string)
 		case "entity_type":

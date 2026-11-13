@@ -120,12 +120,11 @@ func policyConfigForResources(
 func policyStateChecks(rscName string, model resource_policy.NDFCPolicyModel) []resource.TestCheckFunc {
 	checks := PolicyModelHelperStateCheck(rscName, model, path.Empty())
 	checks = append(checks,
-		resource.TestCheckResourceAttrSet(rscName, "policy_id"),
-		resource.TestCheckResourceAttrSet(rscName, "fabric_name"),
-		resource.TestCheckResourceAttr(rscName, "serial_numbers.#", strconv.Itoa(len(model.SerialNumbers))),
+		resource.TestCheckResourceAttrSet(rscName, "id"),
+		resource.TestCheckResourceAttr(rscName, "switch_ids.#", strconv.Itoa(len(model.SwitchIds))),
 	)
-	for _, serial := range model.SerialNumbers {
-		checks = append(checks, resource.TestCheckTypeSetElemAttr(rscName, "serial_numbers.*", serial))
+	for _, serial := range model.SwitchIds {
+		checks = append(checks, resource.TestCheckTypeSetElemAttr(rscName, "switch_ids.*", serial))
 	}
 	for key, value := range model.PolicyParameters {
 		checks = append(checks, resource.TestCheckResourceAttr(rscName, "policy_parameters."+key, value))
@@ -139,9 +138,9 @@ func policyImportIDFromState(rscName string) resource.ImportStateIdFunc {
 		if !ok {
 			return "", fmt.Errorf("resource %s not found in state", rscName)
 		}
-		policyID := rs.Primary.Attributes["policy_id"]
+		policyID := rs.Primary.Attributes["id"]
 		if policyID == "" {
-			return "", fmt.Errorf("policy_id missing from resource %s", rscName)
+			return "", fmt.Errorf("id missing from resource %s", rscName)
 		}
 		return policyID, nil
 	}
@@ -250,8 +249,8 @@ func TestAccPolicyResourceGroupCreateRead(t *testing.T) {
 			{
 				Config: func() string {
 					helper.ModifyPolicyObject(&policyRsc, map[string]interface{}{
-						"serial_numbers": []string{ctx.serials[0]},
-						"description":    "Updated policy group membership",
+						"switch_ids":  []string{ctx.serials[0]},
+						"description": "Updated policy group membership",
 					})
 					return policyConfigForStep(t, t.Name(), &stepCount, ctx.configMap, policyRsc)
 				}(),
@@ -292,7 +291,7 @@ func TestAccPolicyResourceImport(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateIdFunc:                    policyImportIDFromState(policyResourceName),
-				ImportStateVerifyIdentifierAttribute: "policy_id",
+				ImportStateVerifyIdentifierAttribute: "id",
 				ImportStateVerifyIgnore:              []string{"generated_config"},
 			},
 		},
@@ -330,7 +329,7 @@ func TestAccPolicyResourceImportDeploy(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateIdFunc:                    policyImportIDFromState(policyResourceName),
-				ImportStateVerifyIdentifierAttribute: "policy_id",
+				ImportStateVerifyIdentifierAttribute: "id",
 				ImportStateVerifyIgnore:              []string{"generated_config", "deploy"},
 			},
 		},
@@ -361,7 +360,7 @@ func TestAccPolicyResourceInvalidSerialCount(t *testing.T) {
 					)
 					return policyConfigForStep(t, t.Name(), &stepCount, ctx.configMap, policyRsc)
 				}(),
-				ExpectError: regexp.MustCompile(`serial_numbers must contain exactly one switch`),
+				ExpectError: regexp.MustCompile(`switch_ids must contain exactly one switch`),
 			},
 		},
 	})

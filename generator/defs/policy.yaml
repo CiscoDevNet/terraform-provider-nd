@@ -2,27 +2,30 @@
 resource:
   name: policy
   rest_endpoint: /manage/fabrics/{fabricName}/policies
-  doc_category: Fabric
+  doc_category: Fabrics
   generate_tf_resource: true
   skip_equality: false
   category: manage
   description: "Resource to configure a switch policy or policy group on Nexus Dashboard"
+  import_id:
+    - "POLICY-26910"
+  import_desc:
+    - "id"
   attributes:
+    - model_name: fabricName
+      tf_name: fabric_name
+      type: String
+      computed: true
+      tf_hide: true
+      payload_hide: true
+
     - model_name: policyId
-      tf_name: policy_id
+      tf_name: id
       type: String
       description: "Controller-assigned policy ID (POLICY-<n> or POLICY-GROUP-<n>)"
       computed: true
       use_state: true
       example: POLICY-26910
-
-    - model_name: fabricName
-      tf_name: fabric_name
-      type: String
-      description: Name of the fabric resolved from serial_numbers in the switch inventory
-      computed: true
-      payload_hide: true
-      example: my_fabric
 
     - model_name: policyGroup
       tf_name: is_policy_group
@@ -30,7 +33,7 @@ resource:
       description: "When true, manage a policy group (multiple switches). When false, manage a single-switch policy"
       default_value: false
       payload_hide: true
-      example: false
+      example: true
       ndfc_type: bool
       tf_requires_replace: true
 
@@ -49,7 +52,7 @@ resource:
       description: "Name of the entity. Use SWITCH when entity_type is switch"
       mandatory: true
       tf_requires_replace: true
-      string_max_length: 255
+      validator: 'LengthAtMost(255)'
       example: "SWITCH"
 
     - model_name: entityType
@@ -66,7 +69,7 @@ resource:
       type: String
       description: "Description of the policy"
       optional: true
-      string_max_length: 255
+      validator: 'LengthAtMost(255)'
       example: "Enable LACP"
 
     - model_name: templateName
@@ -75,7 +78,7 @@ resource:
       description: "Name of the configuration template. Changing this value requires replacement"
       mandatory: true
       tf_requires_replace: true
-      string_max_length: 255
+      validator: 'LengthAtMost(255)'
       example: "feature_enable"
 
     - model_name: source
@@ -84,24 +87,27 @@ resource:
       description: "Source of the policy. Empty source means any source can update the policy"
       optional: true
       include_empty: true
-      string_max_length: 255
+      validator: 'LengthAtMost(255)'
       example: "UNDERLAY"
 
     - model_name: priority
       tf_name: priority
       type: Int64
-      description: "Write priority of the policy (1–2000). Defaults to 500"
+      description: "Write priority of the policy (1–2000). Nexus Dashboard defaults to 500"
       optional: true
-      default_value: 500
       validator: 'Between(1, 2000)'
       example: 500
 
-    - model_name: serialNumber
-      tf_name: serial_numbers
+    - model_name: switchId
+      tf_name: switch_id
+      type: String
+      tf_hide: true
+
+    - model_name: switchIds
+      tf_name: switch_ids
       type: List:String
       mandatory: true
-      payload_hide: true
-      description: "Switch serial numbers (or management IPs). Exactly one when is_policy_group is false. One or more when is_policy_group is true"
+      description: "Switch identifiers (serial number, management IP, or UUID). Exactly one when is_policy_group is false; one or more when true"
       example: '["FDO245206N5", "FDO245206N6"]'
       tf_requires_replace_if_key: is_policy_group
       tf_requires_replace_if_value: false
@@ -119,7 +125,7 @@ resource:
       type: String
       description: Secondary entity name, for example an overlay name when entity_type is configProfile
       optional: true
-      string_max_length: 255
+      validator: 'LengthAtMost(255)'
       example: MyNetwork_30000
 
     - model_name: secondaryEntityType
