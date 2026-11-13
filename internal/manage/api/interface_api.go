@@ -10,6 +10,7 @@ package api
 
 import (
 	"fmt"
+	"net/url"
 
 	"terraform-provider-nd/internal/common/ndapi"
 
@@ -75,7 +76,7 @@ func NewInterfaceAPI(client *nd.Client, fabric string) *InterfaceAPI {
 func (c *InterfaceAPI) GetUrl() string {
 	switch c.Operation {
 	case OpInterfaceGetOne:
-		return fmt.Sprintf(UrlFabricSwitchInterface, c.FabricName, c.SwitchId, c.InterfaceName)
+		return fmt.Sprintf(UrlFabricSwitchInterface, c.FabricName, c.SwitchId, url.PathEscape(c.InterfaceName))
 	case OpInterfaceListPerSwitch:
 		return fmt.Sprintf(UrlFabricSwitchInterfaces, c.FabricName, c.SwitchId)
 	case OpInterfaceSummary:
@@ -99,11 +100,11 @@ func (c *InterfaceAPI) PostUrl() string {
 }
 
 func (c *InterfaceAPI) PutUrl() string {
-	return fmt.Sprintf(UrlFabricSwitchInterface, c.FabricName, c.SwitchId, c.InterfaceName)
+	return fmt.Sprintf(UrlFabricSwitchInterface, c.FabricName, c.SwitchId, url.PathEscape(c.InterfaceName))
 }
 
 func (c *InterfaceAPI) DeleteUrl() string {
-	return fmt.Sprintf(UrlFabricSwitchInterface, c.FabricName, c.SwitchId, c.InterfaceName)
+	return fmt.Sprintf(UrlFabricSwitchInterface, c.FabricName, c.SwitchId, url.PathEscape(c.InterfaceName))
 }
 
 func (c *InterfaceAPI) GetQueryParams() []string {
