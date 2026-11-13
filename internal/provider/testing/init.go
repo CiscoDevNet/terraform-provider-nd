@@ -29,6 +29,8 @@ type NDConfig struct {
 	Password                 string                         `yaml:"pwd"`
 	Insecure                 string                         `yaml:"insecure"`
 	Fabric                   string                         `yaml:"fabric"`
+	DeployHistoryDataSource  DeployHistoryDataSourceConfig  `yaml:"deploy_history_datasource"`
+	SwitchDataSource         SwitchDataSourceConfig         `yaml:"switch_datasource"`
 	Switches                 []string                       `yaml:"switches"`
 	SwitchIP                 []string                       `yaml:"switch_ip"`
 	FabricPrefix             string                         `yaml:"fabric_prefix"`
@@ -75,6 +77,10 @@ type InventoryConfig struct {
 type SwitchDataSourceConfig struct {
 	Fabric       string `yaml:"fabric"`
 	SerialNumber string `yaml:"serial_number"`
+}
+
+type DeployHistoryDataSourceConfig struct {
+	Fabric string `yaml:"fabric"`
 }
 
 // GetSwitchesByMode returns the switch list for a given mode.
