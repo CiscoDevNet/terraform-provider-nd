@@ -6,6 +6,9 @@ nd:
   insecure: true
   fabric: test_fabric_vxlan
 
+  deploy_history_datasource:
+    fabric: test_fabric_vxlan
+
   switches:
     - "SERIAL001"
     - "SERIAL002"
