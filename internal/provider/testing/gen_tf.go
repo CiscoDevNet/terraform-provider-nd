@@ -30,6 +30,7 @@ import (
 	"terraform-provider-nd/internal/manage/resource_fabric_common"
 	"terraform-provider-nd/internal/manage/resource_interface_common"
 	"terraform-provider-nd/internal/manage/resource_inventory_switch"
+	"terraform-provider-nd/internal/manage/resource_policy"
 	"terraform-provider-nd/internal/manage/resource_vpc_pair"
 )
 
@@ -202,6 +203,17 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 			err = t.ExecuteTemplate(&output, "ND_VPC_PAIR_RSC", args)
 			if err != nil {
 				panic(fmt.Sprintf("Failed to execute ND_VPC_PAIR_RSC template: %v", err))
+			}
+
+		case *resource_policy.NDFCPolicyModel:
+			args["Policy"] = v
+			args["RscName"] = rscName
+			if i < len(dependsOnList) && dependsOnList[i] != "" {
+				args["DependsOn"] = dependsOnList[i]
+			}
+			err = t.ExecuteTemplate(&output, "ND_POLICY_RSC", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_POLICY_RSC template: %v", err))
 			}
 
 		case *resource_local_user.NDFCLocalUserModel:

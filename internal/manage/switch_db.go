@@ -26,12 +26,14 @@ type SwitchEntry struct {
 	SerialNumber       string
 	IPAddress          string
 	FabricManagementIp string
+	FabricName         string
 	Hostname           string
 	SwitchRole         string
 	Model              string
 }
 
-// switchInventoryResponse matches the GET /manage/fabrics/{fabric}/switches response.
+// switchInventoryResponse is shared by the global and fabric-scoped switch
+// inventory endpoints.
 type switchInventoryResponse struct {
 	Switches []switchInventoryItem `json:"switches,omitempty"`
 }
@@ -41,6 +43,7 @@ type switchInventoryItem struct {
 	SerialNumber       string `json:"serialNumber,omitempty"`
 	IPAddress          string `json:"ip,omitempty"`
 	FabricManagementIp string `json:"fabricManagementIp,omitempty"`
+	FabricName         string `json:"fabricName,omitempty"`
 	Hostname           string `json:"hostname,omitempty"`
 	SwitchRole         string `json:"switchRole,omitempty"`
 	Model              string `json:"model,omitempty"`
@@ -56,9 +59,12 @@ type switchInventoryItem struct {
 // Invalidation: callers must call ClearFabric after inventory mutations
 // (switch add/remove/update) so subsequent lookups see fresh data.
 type SwitchDB struct {
-	mu     sync.RWMutex
-	byIP   map[string]map[string]*SwitchEntry // fabric → IP → entry
-	client *nd.Client
+	mu             sync.RWMutex
+	byIP           map[string]map[string]*SwitchEntry // fabric → IP → entry
+	globalBySerial map[string]*SwitchEntry
+	globalByIP     map[string]*SwitchEntry
+	globalLoaded   bool
+	client         *nd.Client
 }
 
 // switchDBInstance is the process-wide singleton, initialised once in
@@ -93,9 +99,52 @@ func ResetSwitchDBForTest() {
 // NewSwitchDB creates a new SwitchDB backed by the given API client.
 func NewSwitchDB(client *nd.Client) *SwitchDB {
 	return &SwitchDB{
-		byIP:   make(map[string]map[string]*SwitchEntry),
-		client: client,
+		byIP:           make(map[string]map[string]*SwitchEntry),
+		globalBySerial: make(map[string]*SwitchEntry),
+		globalByIP:     make(map[string]*SwitchEntry),
+		client:         client,
 	}
+}
+
+// GetSwitchByID returns a switch from the global inventory using its serial
+// number or IP address. It loads GET /manage/inventory/switches on first use.
+func (db *SwitchDB) GetSwitchByID(ctx context.Context, switchID string) (*SwitchEntry, bool) {
+	db.mu.RLock()
+	if db.globalLoaded {
+		entry := db.globalBySerial[switchID]
+		if entry == nil {
+			entry = db.globalByIP[switchID]
+		}
+		db.mu.RUnlock()
+		return entry, entry != nil
+	}
+	db.mu.RUnlock()
+
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	if !db.globalLoaded {
+		if err := db.loadGlobalInventoryLocked(ctx); err != nil {
+			tflog.Warn(ctx, "SwitchDB: failed to load global switch inventory", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return nil, false
+		}
+	}
+	entry := db.globalBySerial[switchID]
+	if entry == nil {
+		entry = db.globalByIP[switchID]
+	}
+	return entry, entry != nil
+}
+
+// GetFabricName returns the fabric associated with a switch identified by
+// serial number or IP address in the global inventory.
+func (db *SwitchDB) GetFabricName(ctx context.Context, switchID string) (string, bool) {
+	entry, ok := db.GetSwitchByID(ctx, switchID)
+	if !ok || entry.FabricName == "" {
+		return "", false
+	}
+	return entry.FabricName, true
 }
 
 // GetSerialByIP returns the serial number for a switch identified by IP address.
@@ -189,6 +238,63 @@ func (db *SwitchDB) ClearFabric(fabricName string) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 	delete(db.byIP, fabricName)
+	// Global inventory includes fabric membership, so any per-fabric mutation
+	// can make that cache stale as well.
+	db.globalBySerial = make(map[string]*SwitchEntry)
+	db.globalByIP = make(map[string]*SwitchEntry)
+	db.globalLoaded = false
+}
+
+// loadGlobalInventoryLocked fetches GET /manage/inventory/switches and builds
+// serial and IP indexes. MUST be called with db.mu held in write mode.
+func (db *SwitchDB) loadGlobalInventoryLocked(ctx context.Context) error {
+	if db.client == nil {
+		return fmt.Errorf("SwitchDB: no API client configured")
+	}
+
+	const url = "/manage/inventory/switches"
+	tflog.Debug(ctx, "SwitchDB: loading global switch inventory", map[string]interface{}{
+		"url": url,
+	})
+	jsonData, err := db.client.GetRawJson(url)
+	if err != nil {
+		return fmt.Errorf("GET %s: %w", url, err)
+	}
+	var resp switchInventoryResponse
+	if err := json.Unmarshal(jsonData, &resp); err != nil {
+		return fmt.Errorf("decode global switch inventory response: %w", err)
+	}
+
+	bySerial := make(map[string]*SwitchEntry, len(resp.Switches))
+	byIP := make(map[string]*SwitchEntry, len(resp.Switches)*2)
+	for _, sw := range resp.Switches {
+		entry := &SwitchEntry{
+			SerialNumber:       sw.SerialNumber,
+			IPAddress:          sw.IPAddress,
+			FabricManagementIp: sw.FabricManagementIp,
+			FabricName:         sw.FabricName,
+			Hostname:           sw.Hostname,
+			SwitchRole:         sw.SwitchRole,
+			Model:              sw.Model,
+		}
+		if sw.SerialNumber != "" {
+			bySerial[sw.SerialNumber] = entry
+		}
+		if sw.FabricManagementIp != "" {
+			byIP[sw.FabricManagementIp] = entry
+		}
+		if sw.IPAddress != "" && sw.IPAddress != sw.FabricManagementIp {
+			byIP[sw.IPAddress] = entry
+		}
+	}
+
+	db.globalBySerial = bySerial
+	db.globalByIP = byIP
+	db.globalLoaded = true
+	tflog.Debug(ctx, "SwitchDB: loaded global switch inventory", map[string]interface{}{
+		"switches": len(bySerial),
+	})
+	return nil
 }
 
 // IsFabricLoaded returns true if the fabric's switch data has been loaded.

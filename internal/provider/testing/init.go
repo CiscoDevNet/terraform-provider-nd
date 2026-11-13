@@ -34,6 +34,7 @@ type NDConfig struct {
 	FabricPrefix             string                         `yaml:"fabric_prefix"`
 	IntegrationTest          IntegratedConfig               `yaml:"integration_test"`
 	Inventory                InventoryConfig                `yaml:"inventory"`
+	SwitchDataSource         SwitchDataSourceConfig         `yaml:"switch_data_source"`
 	VpcPair                  *VpcPairConfig                 `yaml:"vpc_pair"`
 	MultiClusterConnectivity MultiClusterConnectivityConfig `yaml:"multi_cluster_connectivity"`
 	RemoteStorage            RemoteStorageConfig            `yaml:"remote_storage"`
