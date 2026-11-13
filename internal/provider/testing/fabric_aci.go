@@ -10,6 +10,14 @@ package testing
 
 import "terraform-provider-nd/internal/manage/resource_fabric_aci"
 
+// FabricAciDataSourceTestData contains the values rendered by the Fabric ACI
+// datasource acceptance-test template.
+type FabricAciDataSourceTestData struct {
+	RscName    string
+	FabricName string
+	DependsOn  string
+}
+
 // GenerateFabricAciObject creates a Fabric ACI model for testing.
 func GenerateFabricAciObject(
 	obj **resource_fabric_aci.NDFCFabricAciModel,

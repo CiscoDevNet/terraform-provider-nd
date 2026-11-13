@@ -20,9 +20,31 @@ resource "nd_fabric_aci" "{{.RscName}}" {
     {{- if .Spec.Aci.LicenseTier}}
     license_tier = "{{.Spec.Aci.LicenseTier}}"
     {{- end}}
+    {{- if .Spec.Aci.Telemetry.Network}}
+    telemetry = {
+        network = "{{.Spec.Aci.Telemetry.Network}}"
+        {{- if .Spec.Aci.Telemetry.Epg}}
+        epg = "{{.Spec.Aci.Telemetry.Epg}}"
+        {{- end}}
+        {{- if .Spec.Aci.Telemetry.StreamingProtocol}}
+        streaming_protocol = "{{.Spec.Aci.Telemetry.StreamingProtocol}}"
+        {{- end}}
+    }
+    {{- end}}
     {{- if .Spec.Aci.Orchestration.OrchestrationStatus}}
     orchestration_status = "{{.Spec.Aci.Orchestration.OrchestrationStatus}}"
     {{- end}}
 {{end}}
 }
+{{end}}
+
+{{define "ND_FABRIC_ACI_DS"}}
+{{with .FabricAciDataSource}}
+data "nd_fabric_aci" "{{.RscName}}" {
+    fabric_name = "{{.FabricName}}"
+    {{if .DependsOn}}
+    depends_on = [{{.DependsOn}}]
+    {{end}}
+}
+{{end}}
 {{end}}

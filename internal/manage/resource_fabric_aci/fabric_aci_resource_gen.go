@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -136,8 +137,8 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 					},
 					"status": schema.StringAttribute{
 						Computed:            true,
-						Description:         "The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.",
-						MarkdownDescription: "The status of telemetry collection for the APIC cluster. Allowed values are `enabled` or `disabled`. Defaults to `disabled` when not specified in the configuration.",
+						Description:         "The status of telemetry collection for the APIC cluster.",
+						MarkdownDescription: "The status of telemetry collection for the APIC cluster.",
 					},
 					"streaming_protocol": schema.StringAttribute{
 						Optional:            true,
@@ -170,6 +171,7 @@ func FabricAciResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "This validates that connected host certificates are signed by a trusted Certificate Authority (CA). Defaults to `false` when not specified in the configuration.",
 				MarkdownDescription: "This validates that connected host certificates are signed by a trusted Certificate Authority (CA). Defaults to `false` when not specified in the configuration.",
+				Default:             booldefault.StaticBool(false),
 			},
 		},
 		Description:         "Manages Fabric ACI for Nexus Dashboard.\n\n`<FABRIC_PREFIX>_FORCE` controls forced fabric removal during `terraform destroy` and defaults to `false`. Set it to `true` only when the APIC cluster is unhealthy or unreachable and normal removal cannot complete. Before using forced removal, remove the fabric from deployed templates and ensure that it is no longer used by Nexus Dashboard services.\n\nEnvironment variable names use the uppercase `fabric_name` with hyphens replaced by underscores. For example, `fabric_name = \"tf-apic1\"` uses `TF_APIC1_FORCE`. To request forced removal, run `TF_APIC1_FORCE=true terraform destroy`.\n",
