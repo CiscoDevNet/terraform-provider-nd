@@ -338,3 +338,193 @@ resource:
       ndfc_type: bool
       payload_hide: true
       example: true
+
+datasource:
+  name: vpc_pair
+  generate_tf_resource: true
+  skip_equality: true
+  category: manage
+  doc_category: Fabrics
+  description: Reads a configured vPC pair from a fabric.
+  attributes:
+  - model_name: fabricName
+    tf_name: fabric_name
+    description: Name of the fabric containing the vPC pair.
+    type: String
+    mandatory: true
+    example: FABRIC_VXLAN
+
+  - model_name: switchId
+    tf_name: switch_id
+    description: Serial number of either switch in the vPC pair, used to look up the pair.
+    type: String
+    mandatory: true
+    example: 9U1QYJ2PUAU
+
+  - model_name: peerSwitchId
+    tf_name: peer_switch_id
+    description: Serial number of the other switch in the vPC pair.
+    type: String
+    computed: true
+
+  - model_name: useVirtualPeerLink
+    tf_name: use_virtual_peerlink
+    description: Whether the vPC pair uses a virtual peer link.
+    type: Bool
+    ndfc_type: bool
+    computed: true
+
+  - model_name: vpcPairDetails
+    tf_name: vpc_pair_details
+    description: Default-template and peer-link attributes returned for the vPC pair, including keepalive IP addresses. Free-form configuration fields are omitted.
+    type: Struct
+    computed: true
+    payload_hide: true
+    attributes:
+    - model_name: type
+      tf_name: template_type
+      description: Template type used for the vPC pair.
+      type: String
+      computed: true
+
+    - model_name: adminState
+      tf_name: admin_state
+      description: Administrative state of the peer-link port channel.
+      type: Bool
+      ndfc_type: bool
+      computed: true
+
+    - model_name: allowedVlans
+      tf_name: allowed_vlans
+      description: VLANs allowed on the peer-link port channel.
+      type: String
+      computed: true
+
+    - model_name: domainId
+      tf_name: domain_id
+      description: vPC domain identifier shared by the peer switches.
+      type: Int64
+      computed: true
+
+    - model_name: enableMirrorConfig
+      tf_name: enable_mirror_config
+      description: Whether mirrored configuration generation is enabled for the pair.
+      type: Bool
+      ndfc_type: bool
+      computed: true
+
+    - model_name: fabricPathSwitchId
+      tf_name: fabric_path_switch_id
+      description: FabricPath switch identifier used by the vPC pair template.
+      type: Int64
+      computed: true
+
+    - model_name: isVpcPlus
+      tf_name: is_vpc_plus
+      description: Whether vPC+ mode is enabled for the pair.
+      type: Bool
+      ndfc_type: bool
+      computed: true
+
+    - model_name: isVteps
+      tf_name: is_vteps
+      description: Whether the paired switches operate as VTEPs.
+      type: Bool
+      ndfc_type: bool
+      computed: true
+
+    - model_name: keepAliveHoldTimeout
+      tf_name: keep_alive_hold_timeout
+      description: Hold timeout for the vPC peer keepalive session.
+      type: Int64
+      computed: true
+
+    - model_name: keepAliveVrf
+      tf_name: keep_alive_vrf
+      description: VRF used for the vPC peer keepalive session.
+      type: String
+      computed: true
+
+    - model_name: nveInterface
+      tf_name: nve_interface
+      description: NVE interface identifier associated with the pair.
+      type: Int64
+      computed: true
+
+    - model_name: peerSwitchMemberInterfaces
+      tf_name: peer_switch_member_interfaces
+      description: Interfaces on the peer switch that form the peer-link port channel.
+      type: List:String
+      computed: true
+
+    - model_name: peerSwitchKeepAliveLocalIp
+      tf_name: peer_switch_keep_alive_local_ip
+      description: Local keepalive source IP address used on the peer switch.
+      type: String
+      computed: true
+
+    - model_name: peerSwitchNativeVlan
+      tf_name: peer_switch_native_vlan
+      description: Native VLAN on the peer switch peer-link interfaces.
+      type: Int64
+      computed: true
+
+    - model_name: peerSwitchPoDescription
+      tf_name: peer_switch_po_description
+      description: Description of the peer switch peer-link port channel.
+      type: String
+      computed: true
+
+    - model_name: peerSwitchPoId
+      tf_name: peer_switch_po_id
+      description: Port-channel identifier for the peer switch peer link.
+      type: Int64
+      computed: true
+
+    - model_name: peerSwitchSourceLoopback
+      tf_name: peer_switch_source_loopback
+      description: Source loopback interface number used by the peer switch for keepalive traffic.
+      type: Int64
+      computed: true
+
+    - model_name: poMode
+      tf_name: po_mode
+      description: Port-channel mode configured for the peer link.
+      type: String
+      computed: true
+
+    - model_name: switchMemberInterfaces
+      tf_name: switch_member_interfaces
+      description: Interfaces on the switch that form the peer-link port channel.
+      type: List:String
+      computed: true
+
+    - model_name: switchKeepAliveLocalIp
+      tf_name: switch_keep_alive_local_ip
+      description: Local keepalive source IP address used on the switch.
+      type: String
+      computed: true
+
+    - model_name: switchNativeVlan
+      tf_name: switch_native_vlan
+      description: Native VLAN on the switch peer-link interfaces.
+      type: Int64
+      computed: true
+
+    - model_name: switchPoDescription
+      tf_name: switch_po_description
+      description: Description of the switch peer-link port channel.
+      type: String
+      computed: true
+
+    - model_name: switchPoId
+      tf_name: switch_po_id
+      description: Port-channel identifier for the switch peer link.
+      type: Int64
+      computed: true
+
+    - model_name: switchSourceLoopback
+      tf_name: switch_source_loopback
+      description: Source loopback interface number used by the switch for keepalive traffic.
+      type: Int64
+      computed: true
