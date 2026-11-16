@@ -83,8 +83,8 @@ func RscUpdateInterfaces(ctx context.Context, client *nd.Client, dg *diag.Diagno
 	interfaceHandler(plan.GetInterfaceType()).Update(ctx, client, dg, state, plan)
 }
 
-// RscDeleteInterfaces removes all interfaces in the model via a single bulk
-// action call.
+// RscDeleteInterfaces removes every interface tracked by the model through
+// the per-interface DELETE endpoint.
 func RscDeleteInterfaces(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model InterfaceModel) {
 	interfaceHandler(model.GetInterfaceType()).Delete(ctx, client, dg, model)
 }
@@ -391,11 +391,13 @@ func createDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics,
 				rollbackEntries = append(rollbackEntries, NDFCInterfaceAction{
 					InterfaceName: name,
 					SwitchId:      v.SwitchId,
+					NetworkOsType: v.ConfigData.NetworkOS.NetworkOsType,
 				})
 			}
-			if rbErr := bulkRemove(ctx, client, fabricName, rollbackEntries); rbErr != nil {
+			if rbErr := removeInterfaces(ctx, client, fabricName, model.GetInterfaceType(), rollbackEntries); rbErr != nil {
 				dg.AddError("Error Rolling Back Interfaces After Deploy Failure",
-					fmt.Sprintf("rollback (bulk remove) failed for fabric %q: %v", fabricName, rbErr))
+					fmt.Sprintf("rollback delete failed for fabric %q: %v", fabricName, rbErr))
+				return
 			}
 			// Clear model interfaces to signal deploy-rollback to the caller.
 			// The caller uses this to distinguish deploy-failure (infra clean,
@@ -669,7 +671,11 @@ func updateDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics,
 	// 1. Detect deletions: entries in prior state but absent from plan.
 	for name, v := range stateData.Interfaces {
 		if _, ok := plan.Interfaces[name]; !ok {
-			toDelete = append(toDelete, NDFCInterfaceAction{InterfaceName: name, SwitchId: v.SwitchId})
+			toDelete = append(toDelete, NDFCInterfaceAction{
+				InterfaceName: name,
+				SwitchId:      v.SwitchId,
+				NetworkOsType: v.ConfigData.NetworkOS.NetworkOsType,
+			})
 		}
 	}
 
@@ -695,7 +701,11 @@ func updateDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics,
 		case action == commontypes.RequiresReplace:
 			// Identity field changed (mode, network_os_type, or switch_id).
 			// Delete the old entry and create the new one.
-			toDelete = append(toDelete, NDFCInterfaceAction{InterfaceName: name, SwitchId: sv.SwitchId})
+			toDelete = append(toDelete, NDFCInterfaceAction{
+				InterfaceName: name,
+				SwitchId:      sv.SwitchId,
+				NetworkOsType: sv.ConfigData.NetworkOS.NetworkOsType,
+			})
 			entry := pvCopy
 			entry.InterfaceName = name
 			toAdd[pvCopy.SwitchId] = append(toAdd[pvCopy.SwitchId], entry)
@@ -717,7 +727,7 @@ func updateDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics,
 	// Order: delete → deploy → add → update → deploy. The two deploys are
 	// gated on plan.Deploy to match create-time behaviour.
 	if len(toDelete) > 0 {
-		if err := bulkRemove(ctx, client, fabricName, toDelete); err != nil {
+		if err := removeInterfaces(ctx, client, fabricName, planModel.GetInterfaceType(), toDelete); err != nil {
 			dg.AddError("Error Updating Interfaces", err.Error())
 			return
 		}
@@ -874,28 +884,91 @@ func singleUpdate(ctx context.Context, client *nd.Client, fabricName string,
 	return nil
 }
 
-// bulkRemove calls /interfaceActions/remove with the given selectors.
-func bulkRemove(ctx context.Context, client *nd.Client, fabricName string,
+// removeInterfaces removes logical interfaces through the per-interface
+// DELETE endpoint. Physical Ethernet ports cannot be deleted from ND, so an
+// ethernet resource removal restores the established neutral leaf policy.
+func removeInterfaces(ctx context.Context, client *nd.Client, fabricName, interfaceType string,
 	entries []NDFCInterfaceAction) error {
-	payload := NDFCInterfaceActionPayload{Interfaces: entries}
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("marshal failed for fabric %q: %w", fabricName, err)
-	}
-	ifAPI := api.NewInterfaceAPI(client, fabricName)
-	ifAPI.FabricName = fabricName
-	ifAPI.Operation = api.OpInterfaceRemoveBulk
-	tflog.Debug(ctx, "update: bulk remove", map[string]interface{}{
-		"fabric_name": fabricName,
-		"count":       len(entries),
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].SwitchId != entries[j].SwitchId {
+			return entries[i].SwitchId < entries[j].SwitchId
+		}
+		return entries[i].InterfaceName < entries[j].InterfaceName
 	})
-	res, err := ifAPI.Post(body, nil)
-	if err != nil {
-		return fmt.Errorf("bulk remove failed for fabric %q: %v: %s", fabricName, err, res.String())
+	if interfaceType == "ethernet" {
+		return resetEthernetInterfaces(ctx, client, fabricName, entries)
 	}
-	// Parse HTTP 207 response and surface per-entry errors.
-	if err := bulkResponseErrs("(remove)", res.Raw); err != nil {
-		return err
+	for _, entry := range entries {
+		ifAPI := api.NewInterfaceAPI(client, fabricName)
+		ifAPI.FabricName = fabricName
+		ifAPI.SwitchId = entry.SwitchId
+		ifAPI.InterfaceName = entry.InterfaceName
+		ifAPI.Operation = api.OpInterfaceDeleteOne
+		tflog.Debug(ctx, "deleting interface", map[string]interface{}{
+			"fabric_name":    fabricName,
+			"switch_id":      entry.SwitchId,
+			"interface_name": entry.InterfaceName,
+		})
+		res, err := ifAPI.Delete()
+		if err != nil && !strings.Contains(err.Error(), "StatusCode 404") {
+			return fmt.Errorf("DELETE failed for %s/%s/%s: %v: %s",
+				fabricName, entry.SwitchId, entry.InterfaceName, err, res.String())
+		}
+	}
+	return nil
+}
+
+// resetEthernetInterfaces restores physical ports to the same neutral
+// trunk-host policy used by the established NDFC provider: enabled, jumbo
+// MTU, automatic speed, no allowed VLANs, and no user description. ND treats
+// POST on an existing physical port as policy assignment/update.
+func resetEthernetInterfaces(ctx context.Context, client *nd.Client, fabricName string,
+	entries []NDFCInterfaceAction) error {
+	bySwitch := make(map[string][]NDFCInterfacesValue)
+	for _, entry := range entries {
+		networkOsType := strings.ToLower(strings.TrimSpace(entry.NetworkOsType))
+		if networkOsType != "nx-os" {
+			if networkOsType == "" {
+				networkOsType = "unknown"
+			}
+			return fmt.Errorf(
+				"cannot reset physical ethernet interface %q on switch %q: network_os_type %q is not supported for removal; only nx-os is currently supported",
+				entry.InterfaceName, entry.SwitchId, networkOsType,
+			)
+		}
+		adminState := true
+		portTypeEdgeTrunk := true
+		bySwitch[entry.SwitchId] = append(bySwitch[entry.SwitchId], NDFCInterfacesValue{
+			InterfaceName: entry.InterfaceName,
+			InterfaceType: "ethernet",
+			SwitchId:      entry.SwitchId,
+			ConfigData: NDFCConfigDataValue{
+				Mode: "trunk",
+				NetworkOS: NDFCConfigDataNetworkOSValue{
+					NetworkOsType: "nx-os",
+					Policy: NDFCNetworkOSPolicyValue{
+						PolicyType:        "trunkHost",
+						AdminState:        &adminState,
+						Description:       "###",
+						Mtu:               "jumbo",
+						ExtraConfig:       "no shutdown",
+						AllowedVlans:      "none",
+						Speed:             "auto",
+						PortTypeEdgeTrunk: &portTypeEdgeTrunk,
+					},
+				},
+			},
+		})
+	}
+	for switchID, resetEntries := range bySwitch {
+		tflog.Debug(ctx, "resetting physical ethernet interfaces", map[string]interface{}{
+			"fabric_name": fabricName,
+			"switch_id":   switchID,
+			"count":       len(resetEntries),
+		})
+		if err := bulkCreatePerSwitch(ctx, client, fabricName, switchID, resetEntries); err != nil {
+			return fmt.Errorf("reset physical ethernet interfaces on switch %q: %w", switchID, err)
+		}
 	}
 	return nil
 }
@@ -1017,8 +1090,9 @@ func isDeployedStatus(status string) bool {
 	return s == "insync" || s == "deployed"
 }
 
-// deleteDefault removes all interfaces in the model with a single bulk
-// /interfaceActions/remove call. Interfaces not in the model are untouched.
+// deleteDefault removes every logical interface tracked by the model. For
+// physical Ethernet it restores a neutral policy because the port itself is
+// inventory and cannot be deleted. Interfaces not in the model are untouched.
 func deleteDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model InterfaceModel) {
 	inData := model.GetModelData()
 	if pm, ok := model.(InterfacePreMarshal); ok {
@@ -1033,34 +1107,38 @@ func deleteDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics,
 		return
 	}
 
-	payload := NDFCInterfaceActionPayload{Interfaces: make([]NDFCInterfaceAction, 0, len(inData.Interfaces))}
+	entries := make([]NDFCInterfaceAction, 0, len(inData.Interfaces))
 	for name, v := range inData.Interfaces {
-		payload.Interfaces = append(payload.Interfaces, NDFCInterfaceAction{
+		entries = append(entries, NDFCInterfaceAction{
 			InterfaceName: name,
 			SwitchId:      v.SwitchId,
+			NetworkOsType: v.ConfigData.NetworkOS.NetworkOsType,
 		})
 	}
-	body, err := json.Marshal(payload)
-	if err != nil {
-		dg.AddError("Error Deleting Interfaces",
-			fmt.Sprintf("marshal failed for fabric %q: %v", fabricName, err))
+	if err := removeInterfaces(ctx, client, fabricName, model.GetInterfaceType(), entries); err != nil {
+		dg.AddError("Error Deleting Interfaces", err.Error())
 		return
 	}
-	ifAPI := api.NewInterfaceAPI(client, fabricName)
-	ifAPI.FabricName = fabricName
-	ifAPI.Operation = api.OpInterfaceRemoveBulk
-	tflog.Debug(ctx, "Deleting interfaces (bulk)", map[string]interface{}{
-		"fabric_name": fabricName,
-		"count":       len(payload.Interfaces),
-	})
-	res, err := ifAPI.Post(body, nil)
-	if err != nil {
-		dg.AddError("Error Deleting Interfaces",
-			fmt.Sprintf("bulk remove failed for fabric %q: %v: %s", fabricName, err, res.String()))
+
+	// A delete with deploy=true must push the removal/reset to the switch.
+	// With deploy=false the change remains staged for a separate
+	// nd_config_deploy resource.
+	if !inData.Deploy {
 		return
 	}
-	// Parse HTTP 207 response and surface per-entry errors.
-	if err := bulkResponseErrs("(delete)", res.Raw); err != nil {
-		dg.AddError("Partial Delete Failure", err.Error())
+	deployInterfaces(ctx, client, dg, fabricName, entries)
+	if dg.HasError() {
+		return
+	}
+
+	// Physical Ethernet ports remain present after removal with a neutral
+	// policy, so wait until that reset is in sync. Logical interfaces are
+	// actually deleted and therefore cannot be observed in the summary.
+	if model.GetInterfaceType() == "ethernet" {
+		resetInterfaces := make(map[string]NDFCInterfacesValue, len(entries))
+		for _, entry := range entries {
+			resetInterfaces[entry.InterfaceName] = NDFCInterfacesValue{SwitchId: entry.SwitchId}
+		}
+		waitForDeploySync(ctx, client, dg, fabricName, resetInterfaces)
 	}
 }

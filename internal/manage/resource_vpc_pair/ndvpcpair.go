@@ -59,9 +59,11 @@ type fabricVpcPairSwitchVPC struct {
 }
 
 const (
-	urlInventorySwitches    = "/manage/inventory/switches"
-	vpcPairReadPollInterval = 1 * time.Second
-	vpcPairReadPollTimeout  = 30 * time.Second
+	urlInventorySwitches                       = "/manage/inventory/switches"
+	vpcPairReadPollInterval                    = 1 * time.Second
+	vpcPairReadPollTimeout                     = 30 * time.Second
+	vpcPairConnectedRecommendationReason       = "Switches are connected and have same role"
+	vpcPairTransientDisconnectedRecommendation = "Switches are not connected"
 )
 
 func buildVpcPairPayload(inData *NDFCVpcPairModel) ([]byte, error) {
@@ -563,8 +565,6 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 		return fmt.Errorf("input model is nil")
 	}
 
-	const expectedRecommendationReason = "Switches are connected and have same role"
-
 	useVirtualPeerLink := false
 	if inData.UseVirtualPeerlink != nil {
 		useVirtualPeerLink = *inData.UseVirtualPeerlink
@@ -623,7 +623,7 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 			continue
 		}
 
-		if recommendation.RecommendationReason == expectedRecommendationReason {
+		if isAcceptableVpcPairRecommendation(recommendation.RecommendationReason) {
 			tflog.Debug(ctx, "vPC pair recommendation check passed", map[string]interface{}{
 				"fabric_name": inData.FabricName,
 				"switch_id_1": inData.SwitchId1,
@@ -647,6 +647,11 @@ func (r *vpcPairResource) checkVpcPairRecommendations(ctx context.Context, inDat
 	}
 
 	return fmt.Errorf("no matching recommendation entry for switch %s in response for switch %s", inData.SwitchId1, inData.SwitchId2)
+}
+
+func isAcceptableVpcPairRecommendation(reason string) bool {
+	return reason == vpcPairConnectedRecommendationReason ||
+		reason == vpcPairTransientDisconnectedRecommendation
 }
 
 func (s inventorySwitchEntry) resolvedFabricName() string {
