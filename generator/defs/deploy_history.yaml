@@ -21,7 +21,7 @@ datasource:
     type: Int64
     default_value: 10
     example: 10
-    validator: 'AtMost(50)'
+    validator: 'Between(1, 50)'
 
   - model_name: deploymentRecords
     tf_name: deployment_records

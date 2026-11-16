@@ -153,7 +153,7 @@ func DeployHistoryDataSourceSchema(ctx context.Context) schema.Schema {
 				Description:         "Number of deployment history records to retrieve (1-50). Defaults to 10 when not specified.",
 				MarkdownDescription: "Number of deployment history records to retrieve (1-50). Defaults to 10 when not specified.",
 				Validators: []validator.Int64{
-					int64validator.AtMost(50),
+					int64validator.Between(1, 50),
 				},
 			},
 		},
