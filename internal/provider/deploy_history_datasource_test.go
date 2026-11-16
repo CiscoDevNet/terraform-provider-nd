@@ -47,7 +47,7 @@ func TestAccDeployHistoryDataSource(test *testing.T) {
 	}{
 		{name: "valid fabric", fabricName: fabricName},
 		{name: "invalid fabric", fabricName: missingFabric, wantError: regexp.MustCompile(`Error Reading Deployment History`)},
-		{name: "zero record count", fabricName: fabricName, recordLimit: &zeroLimit, wantError: regexp.MustCompile(`(?s)Invalid Record Count.*at least 1`)},
+		{name: "zero record count", fabricName: fabricName, recordLimit: &zeroLimit, wantError: regexp.MustCompile(`(?is)(no_of_records.*(between|at least|greater than or equal to).*1|Invalid Record Count.*at least 1)`)},
 		{name: "valid record count", fabricName: fabricName, recordLimit: &validLimit},
 		{name: "record count over 50", fabricName: fabricName, recordLimit: &overLimit, wantError: regexp.MustCompile(`(?is)(no_of_records|invalid record count).*50`)},
 	}
