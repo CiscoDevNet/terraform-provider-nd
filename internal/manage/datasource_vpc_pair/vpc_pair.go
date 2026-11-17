@@ -81,14 +81,6 @@ func (d *vpcPairDataSource) Configure(_ context.Context, req datasource.Configur
 	d.manageClient = manageClient
 }
 
-// vpcPairResponse embeds the generated API model. The generated model hides
-// vpcPairDetails from JSON, so the response field is declared explicitly and
-// copied into that model after decoding.
-type vpcPairResponse struct {
-	NDFCVpcPairModel
-	VpcPairDetails NDFCVpcPairDetailsValue `json:"vpcPairDetails"`
-}
-
 func (d *vpcPairDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data VpcPairModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
@@ -142,7 +134,7 @@ func (d *vpcPairDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	var response vpcPairResponse
+	var response NDFCVpcPairModel
 	if err := json.Unmarshal(responseData, &response); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Decoding vPC Pair",
@@ -151,13 +143,12 @@ func (d *vpcPairDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	response.NDFCVpcPairModel.FabricName = fabricName
-	if response.NDFCVpcPairModel.SwitchId == "" {
-		response.NDFCVpcPairModel.SwitchId = switchID
+	response.FabricName = fabricName
+	if response.SwitchId == "" {
+		response.SwitchId = switchID
 	}
-	response.NDFCVpcPairModel.VpcPairDetails = response.VpcPairDetails
 
-	if strings.TrimSpace(response.NDFCVpcPairModel.PeerSwitchId) == "" {
+	if strings.TrimSpace(response.PeerSwitchId) == "" {
 		resp.Diagnostics.AddError(
 			"Error Decoding vPC Pair",
 			fmt.Sprintf("The vPC pair response for switch %q in fabric %q did not include peerSwitchId.", switchID, fabricName),
@@ -165,7 +156,7 @@ func (d *vpcPairDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	resp.Diagnostics.Append(data.SetModelData(&response.NDFCVpcPairModel)...)
+	resp.Diagnostics.Append(data.SetModelData(&response)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

@@ -23,7 +23,7 @@ type NDFCVpcPairModel struct {
 	SwitchId           string                  `json:"switchId,omitempty"`
 	PeerSwitchId       string                  `json:"peerSwitchId,omitempty"`
 	UseVirtualPeerlink *bool                   `json:"useVirtualPeerLink,omitempty"`
-	VpcPairDetails     NDFCVpcPairDetailsValue `json:"-"`
+	VpcPairDetails     NDFCVpcPairDetailsValue `json:"vpcPairDetails,omitempty"`
 }
 
 type NDFCVpcPairDetailsValue struct {

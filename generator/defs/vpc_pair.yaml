@@ -379,7 +379,6 @@ datasource:
     description: Default-template and peer-link attributes returned for the vPC pair, including keepalive IP addresses. Free-form configuration fields are omitted.
     type: Struct
     computed: true
-    payload_hide: true
     attributes:
     - model_name: type
       tf_name: template_type
