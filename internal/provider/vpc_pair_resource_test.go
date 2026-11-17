@@ -56,8 +56,9 @@ func loadVpcPairTestctx(t *testing.T) *vpcPairTestctx {
 		return vpcPairTestctx
 	}
 
-	inventoryBySerial := make(map[string]string, len(cfg.ND.Inventory.Switches))
-	for _, sw := range cfg.ND.Inventory.Switches {
+	inventorySwitches := cfg.ND.Inventory.GetSwitchesByMode(cfg.ND.Inventory.Mode)
+	inventoryBySerial := make(map[string]string, len(inventorySwitches))
+	for _, sw := range inventorySwitches {
 		inventoryBySerial[sw.Serial] = sw.Role
 		if strings.EqualFold(sw.Role, "spine") && vpcPairTestctx.spineSwitch == "" {
 			vpcPairTestctx.spineSwitch = sw.Serial
