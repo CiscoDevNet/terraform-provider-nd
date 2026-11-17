@@ -27,12 +27,9 @@ func TestAccDeployHistoryDataSource(test *testing.T) {
 		test.Skip("Set TF_ACC to run acceptance tests")
 	}
 	config := helper.GetConfig("global")
-	fabricName := config.ND.DeployHistoryDataSource.Fabric
+	fabricName := config.ND.Fabric
 	if fabricName == "" {
-		fabricName = config.ND.Fabric
-	}
-	if fabricName == "" {
-		test.Skip("Need nd.deploy_history_datasource.fabric or nd.fabric in the testbed config")
+		test.Skip("Need nd.fabric in the testbed config")
 	}
 	const sourceName = "data.nd_deploy_history.test"
 	validLimit := 5
