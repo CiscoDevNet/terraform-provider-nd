@@ -1,0 +1,67 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+//
+// SPDX-License-Identifier: MPL-2.0
+
+// Code generated;  DO NOT EDIT.
+
+package provider
+
+import (
+	"strconv"
+	"terraform-provider-nd/internal/manage/resource_policy"
+
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+)
+
+func PolicyModelHelperStateCheck(RscName string, c resource_policy.NDFCPolicyModel, attrPath path.Path) []resource.TestCheckFunc {
+	ret := []resource.TestCheckFunc{}
+
+	if c.Id != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("id").String(), c.Id))
+	}
+	if c.IsPolicyGroup {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("is_policy_group").String(), "true"))
+	} else {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("is_policy_group").String(), "false"))
+	}
+	if c.Deploy {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("deploy").String(), "true"))
+	} else {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("deploy").String(), "false"))
+	}
+	if c.EntityName != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("entity_name").String(), c.EntityName))
+	}
+	if c.EntityType != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("entity_type").String(), c.EntityType))
+	}
+	if c.Description != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("description").String(), c.Description))
+	}
+	if c.TemplateName != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("template_name").String(), c.TemplateName))
+	}
+	if c.Source != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("source").String(), c.Source))
+	}
+	if c.Priority != nil {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("priority").String(), strconv.Itoa(int(*c.Priority))))
+	}
+
+	if c.SecondaryEntityName != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("secondary_entity_name").String(), c.SecondaryEntityName))
+	}
+	if c.SecondaryEntityType != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("secondary_entity_type").String(), c.SecondaryEntityType))
+	}
+
+	if c.GeneratedConfig != "" {
+		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("generated_config").String(), c.GeneratedConfig))
+	}
+	return ret
+}

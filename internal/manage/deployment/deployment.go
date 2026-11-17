@@ -57,9 +57,10 @@ func checkDeployResponse(resp string, fabricName string) (string, error) {
 
 	var failed []string
 	for _, sw := range dr.SwitchIds {
-		if !strings.EqualFold(sw.Status, "success") {
-			failed = append(failed, fmt.Sprintf("%s(%s): %s", sw.SwitchName, sw.SwitchId, sw.Message))
+		if isSuccessfulSwitchDeploy(sw.Status, sw.Message) {
+			continue
 		}
+		failed = append(failed, fmt.Sprintf("%s(%s): %s", sw.SwitchName, sw.SwitchId, sw.Message))
 	}
 
 	if len(failed) > 0 {
@@ -75,6 +76,15 @@ func checkDeployResponse(resp string, fabricName string) (string, error) {
 		msgs = append(msgs, fmt.Sprintf("%s(%s): %s", sw.SwitchName, sw.SwitchId, sw.Message))
 	}
 	return strings.Join(msgs, "; "), nil
+}
+
+func isSuccessfulSwitchDeploy(status, message string) bool {
+	if strings.EqualFold(status, "success") {
+		return true
+	}
+	// A switch with nothing pending reports notExecuted / "No Commands to execute".
+	return strings.EqualFold(status, "notExecuted") &&
+		strings.Contains(strings.ToLower(message), "no commands to execute")
 }
 
 // fetchDeploymentFailures fetches the most recent deployment history records

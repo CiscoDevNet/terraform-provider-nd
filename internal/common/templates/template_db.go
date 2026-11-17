@@ -14,9 +14,12 @@
 package templates
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -29,7 +32,7 @@ type TemplateParam struct {
 	Name           string            `json:"name"`
 	ParamType      string            `json:"parameterType"`
 	Description    string            `json:"description,omitempty"`
-	DefaultValue   string            `json:"defaultValue,omitempty"`
+	DefaultValue   json.RawMessage   `json:"defaultValue,omitempty"`
 	Optional       bool              `json:"optional"`
 	Annotations    map[string]string `json:"annotations,omitempty"`
 	MetaProperties map[string]string `json:"metaProperties,omitempty"`
@@ -37,8 +40,10 @@ type TemplateParam struct {
 
 // TemplateInfo holds the cached metadata for a single template.
 type TemplateInfo struct {
-	TemplateName string
-	Params       []TemplateParam
+	TemplateName       string
+	ContentType        string
+	SupportedPlatforms json.RawMessage
+	Params             []TemplateParam
 	// Derived indexes — built once at load time.
 	paramByName map[string]*TemplateParam // camelCase name → param
 	tfNames     map[string]bool           // snake_case tf_name set
@@ -47,6 +52,9 @@ type TemplateInfo struct {
 // HasParam returns true if the template declares a parameter with the
 // given camelCase model name.
 func (t *TemplateInfo) HasParam(modelName string) bool {
+	if t == nil || t.paramByName == nil {
+		return false
+	}
 	_, ok := t.paramByName[modelName]
 	return ok
 }
@@ -112,26 +120,9 @@ func ResetForTest() {
 
 // GetTemplate returns the cached TemplateInfo for the given template
 // name, fetching it from ND on first access. Returns nil if the
-// template cannot be loaded.
+// template cannot be loaded (interface_rsc fail-open).
 func (db *TemplateDB) GetTemplate(ctx context.Context, templateName string) *TemplateInfo {
-	// Fast path: read lock
-	db.mu.RLock()
-	if info, ok := db.templates[templateName]; ok {
-		db.mu.RUnlock()
-		return info
-	}
-	db.mu.RUnlock()
-
-	// Slow path: write lock — fetch and cache
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	// Double-check under write lock
-	if info, ok := db.templates[templateName]; ok {
-		return info
-	}
-
-	info, err := db.fetchTemplate(ctx, templateName)
+	info, err := db.LoadTemplate(ctx, templateName)
 	if err != nil {
 		tflog.Warn(ctx, "TemplateDB: failed to load template", map[string]interface{}{
 			"template": templateName,
@@ -139,13 +130,41 @@ func (db *TemplateDB) GetTemplate(ctx context.Context, templateName string) *Tem
 		})
 		return nil
 	}
+	return info
+}
+
+// LoadTemplate is GetTemplate with the fetch error. nd_policy uses this
+// so a missing template fails apply instead of being skipped.
+func (db *TemplateDB) LoadTemplate(ctx context.Context, templateName string) (*TemplateInfo, error) {
+	if db == nil {
+		return nil, fmt.Errorf("TemplateDB: not initialised")
+	}
+
+	db.mu.RLock()
+	if info, ok := db.templates[templateName]; ok {
+		db.mu.RUnlock()
+		return info, nil
+	}
+	db.mu.RUnlock()
+
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if info, ok := db.templates[templateName]; ok {
+		return info, nil
+	}
+
+	info, err := db.fetchTemplate(ctx, templateName)
+	if err != nil {
+		return nil, err
+	}
 	db.templates[templateName] = info
 
 	tflog.Debug(ctx, "TemplateDB: loaded template", map[string]interface{}{
 		"template": templateName,
 		"params":   len(info.Params),
 	})
-	return info
+	return info, nil
 }
 
 // GetTemplateForPolicy resolves a policyType to its templateName, then
@@ -192,25 +211,68 @@ func (db *TemplateDB) fetchTemplate(ctx context.Context, templateName string) (*
 		return nil, fmt.Errorf("TemplateDB: no API client configured")
 	}
 
-	url := fmt.Sprintf(templateParamsURL, templateName)
-	raw, err := db.client.GetRawJson(url)
+	path := fmt.Sprintf(templateParamsURL, url.PathEscape(templateName))
+	raw, err := db.client.GetRawJson(path)
 	if err != nil {
-		return nil, fmt.Errorf("TemplateDB: GET %s: %w", url, err)
+		return nil, fmt.Errorf("TemplateDB: GET %s: %w", path, err)
+	}
+
+	info, err := decodeTemplate(templateName, raw)
+	if err != nil {
+		return nil, fmt.Errorf("TemplateDB: unmarshal %s: %w", templateName, err)
+	}
+	return info, nil
+}
+
+// parametersEnvelope is the wrapper object ND returns for some templates.
+type parametersEnvelope struct {
+	Name               string          `json:"name,omitempty"`
+	TemplateName       string          `json:"templateName,omitempty"`
+	ContentType        string          `json:"contentType,omitempty"`
+	SupportedPlatforms json.RawMessage `json:"supportedPlatforms,omitempty"`
+	Parameters         []TemplateParam `json:"parameters,omitempty"`
+}
+
+// decodeTemplate accepts either a bare parameter array (interface_rsc)
+// or a {parameters, contentType, supportedPlatforms} object (nd_policy / ND 4.2).
+func decodeTemplate(templateName string, raw []byte) (*TemplateInfo, error) {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 {
+		return nil, fmt.Errorf("empty parameters payload")
 	}
 
 	var params []TemplateParam
-	if err := json.Unmarshal(raw, &params); err != nil {
-		return nil, fmt.Errorf("TemplateDB: unmarshal %s: %w", templateName, err)
+	info := &TemplateInfo{TemplateName: templateName}
+
+	if trimmed[0] == '[' {
+		if err := json.Unmarshal(raw, &params); err != nil {
+			return nil, err
+		}
+	} else {
+		var env parametersEnvelope
+		if err := json.Unmarshal(raw, &env); err != nil {
+			return nil, err
+		}
+		params = env.Parameters
+		info.ContentType = env.ContentType
+		info.SupportedPlatforms = env.SupportedPlatforms
+		if info.TemplateName == "" {
+			info.TemplateName = env.TemplateName
+			if info.TemplateName == "" {
+				info.TemplateName = env.Name
+			}
+		}
 	}
 
-	info := &TemplateInfo{
-		TemplateName: templateName,
-		Params:       params,
-		paramByName:  make(map[string]*TemplateParam, len(params)),
-		tfNames:      make(map[string]bool, len(params)),
-	}
+	info.Params = params
+	info.paramByName = make(map[string]*TemplateParam, len(params))
+	info.tfNames = make(map[string]bool, len(params))
 	for i := range params {
 		p := &params[i]
+		p.Name = strings.TrimSpace(p.Name)
+		if p.Name == "" {
+			continue
+		}
 		info.paramByName[p.Name] = p
 		info.tfNames[CamelToSnake(p.Name)] = true
 	}
