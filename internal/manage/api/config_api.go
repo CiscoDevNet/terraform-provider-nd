@@ -25,6 +25,7 @@ const (
 	UrlFabricPreview       = "/manage/fabrics/%s/actions/preview"
 	UrlSwitchPreview       = "/manage/fabrics/%s/switchActions/preview"
 	UrlFabricDeployHistory = "/manage/fabrics/%s/deploymentHistory"
+	UrlSwitchConfigDiff    = "/manage/fabrics/%s/switches/%s/diff"
 )
 
 const RscNameConfig = "config"
@@ -33,6 +34,7 @@ const RscNameConfig = "config"
 type ConfigAPI struct {
 	ndapi.NexusDashboardAPICommon
 	FabricName  string
+	SwitchId    string
 	Operation   ConfigOperation
 	QueryParams []string
 }
@@ -47,6 +49,7 @@ const (
 	OpFabricPreview
 	OpSwitchPreview
 	OpDeployHistory
+	OpSwitchConfigDiff
 )
 
 // NewConfigAPI creates a new ConfigAPI instance
@@ -72,6 +75,8 @@ func (c *ConfigAPI) urlForOp() string {
 		return fmt.Sprintf(UrlSwitchPreview, c.FabricName)
 	case OpDeployHistory:
 		return fmt.Sprintf(UrlFabricDeployHistory, c.FabricName)
+	case OpSwitchConfigDiff:
+		return fmt.Sprintf(UrlSwitchConfigDiff, c.FabricName, c.SwitchId)
 	default:
 		return fmt.Sprintf(UrlFabricConfigSave, c.FabricName)
 	}
