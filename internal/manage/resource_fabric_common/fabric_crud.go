@@ -113,10 +113,9 @@ func RscValidateFabricType(dg *diag.Diagnostics, model FabricModel, allowedTypes
 }
 
 // readDefault is the built-in read logic.
-// Returns true if the resource was found and read successfully, false if the
-// resource no longer exists on the remote infrastructure (HTTP 404). When false
-// is returned, no error diagnostic is added — the caller should remove the
-// resource from state so Terraform can plan a re-create.
+// Returns true if the resource was found and read successfully. Callers must
+// check error diagnostics before treating false as a missing resource (HTTP 404)
+// and removing it from state.
 func readDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) bool {
 	fabricName := model.GetFabricName()
 	tflog.Debug(ctx, "Read fabric", map[string]interface{}{
@@ -152,8 +151,8 @@ func readDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, m
 	if pu, ok := model.(FabricPostUnmarshal); ok {
 		pu.PostUnmarshal(ctx, &outData)
 	}
-	model.SetModelData(&outData)
-	return true
+	dg.Append(model.SetModelData(&outData)...)
+	return !dg.HasError()
 }
 
 // RscUpdateFabric updates a fabric resource via the NDFC API.
