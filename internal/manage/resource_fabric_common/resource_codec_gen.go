@@ -23,72 +23,16 @@ type NDFCFabricCommonModel struct {
 	Category                   string                             `json:"category,omitempty"`
 	Location                   NDFCLocationValue                  `json:"location,omitempty"`
 	AlertSuspend               string                             `json:"alertSuspend,omitempty"`
-	ExternalStreamingSettings  NDFCExternalStreamingSettingsValue `json:"externalStreamingSettings,omitempty"`
-	Meta                       NDFCMetaValue                      `json:"meta,omitempty"`
 	TelemetrySettings          NDFCTelemetrySettingsValue         `json:"telemetrySettings,omitempty"`
+	ExternalStreamingSettings  NDFCExternalStreamingSettingsValue `json:"externalStreamingSettings,omitempty"`
 	FeatureStatus              NDFCFeatureStatusValue             `json:"featureStatus,omitempty"`
 	Management                 NDFCManagementValue                `json:"management,omitempty"`
+	Meta                       NDFCMetaValue                      `json:"meta,omitempty"`
 }
 
 type NDFCLocationValue struct {
 	Latitude  *float64 `json:"latitude,omitempty"`
 	Longitude *float64 `json:"longitude,omitempty"`
-}
-
-type NDFCExternalStreamingSettingsValue struct {
-	Email      NDFCEmailValues                          `json:"email,omitempty"`
-	MessageBus NDFCMessageBusValues                     `json:"messageBus,omitempty"`
-	Syslog     NDFCExternalStreamingSettingsSyslogValue `json:"syslog,omitempty"`
-}
-
-type NDFCEmailValues []NDFCEmailValue
-
-type NDFCEmailValue struct {
-	Name                      string                      `json:"name,omitempty"`
-	ReceiverEmail             string                      `json:"receiverEmail,omitempty"`
-	Format                    string                      `json:"format,omitempty"`
-	StartDate                 string                      `json:"startDate,omitempty"`
-	CollectionFrequencyInDays *int64                      `json:"collectionFrequencyInDays,omitempty"`
-	OnlyIncludeActiveAlerts   *bool                       `json:"onlyIncludeActiveAlerts,omitempty"`
-	CollectionSettings        NDFCCollectionSettingsValue `json:"collectionSettings,omitempty"`
-}
-
-type NDFCCollectionSettingsValue struct {
-	CollectionType            string   `json:"collectionType,omitempty"`
-	Anomalies                 []string `json:"anomalies,omitempty"`
-	Advisories                []string `json:"advisories,omitempty"`
-	RiskAndConformanceReports []string `json:"riskAndConformanceReports,omitempty"`
-}
-
-type NDFCMessageBusValues []NDFCMessageBusValue
-
-type NDFCMessageBusValue struct {
-	Server             string                                `json:"server,omitempty"`
-	CollectionType     string                                `json:"collectionType,omitempty"`
-	CollectionSettings NDFCMessageBusCollectionSettingsValue `json:"collectionSettings,omitempty"`
-}
-
-type NDFCMessageBusCollectionSettingsValue struct {
-	CollectionSettingsCollectionType string   `json:"collectionType,omitempty"`
-	Anomalies                        []string `json:"anomalies,omitempty"`
-	Advisories                       []string `json:"advisories,omitempty"`
-	Statistics                       []string `json:"statistics,omitempty"`
-	Faults                           []string `json:"faults,omitempty"`
-	AuditLogs                        []string `json:"auditLogs,omitempty"`
-}
-
-type NDFCExternalStreamingSettingsSyslogValue struct {
-	SyslogServers      []string                          `json:"servers,omitempty"`
-	SyslogFacility     string                            `json:"facility,omitempty"`
-	CollectionSettings NDFCSyslogCollectionSettingsValue `json:"collectionSettings,omitempty"`
-}
-
-type NDFCSyslogCollectionSettingsValue struct {
-	SyslogAnomalies []string `json:"anomalies,omitempty"`
-}
-
-type NDFCMetaValue struct {
-	AllowedActions []string `json:"allowedActions,omitempty"`
 }
 
 type NDFCTelemetrySettingsValue struct {
@@ -261,6 +205,58 @@ type NDFCNasExportSettingsValue struct {
 
 type NDFCTelemetrySettingsEnergyManagementValue struct {
 	Cost *float64 `json:"cost,omitempty"`
+}
+
+type NDFCExternalStreamingSettingsValue struct {
+	Email      NDFCEmailValues                          `json:"email,omitempty"`
+	MessageBus NDFCMessageBusValues                     `json:"messageBus,omitempty"`
+	Syslog     NDFCExternalStreamingSettingsSyslogValue `json:"syslog,omitempty"`
+}
+
+type NDFCEmailValues []NDFCEmailValue
+
+type NDFCEmailValue struct {
+	Name                      string                      `json:"name,omitempty"`
+	ReceiverEmail             string                      `json:"receiverEmail,omitempty"`
+	Format                    string                      `json:"format,omitempty"`
+	StartDate                 string                      `json:"startDate,omitempty"`
+	CollectionFrequencyInDays *int64                      `json:"collectionFrequencyInDays,omitempty"`
+	OnlyIncludeActiveAlerts   *bool                       `json:"onlyIncludeActiveAlerts,omitempty"`
+	CollectionSettings        NDFCCollectionSettingsValue `json:"collectionSettings,omitempty"`
+}
+
+type NDFCCollectionSettingsValue struct {
+	CollectionType            string   `json:"collectionType,omitempty"`
+	Anomalies                 []string `json:"anomalies,omitempty"`
+	Advisories                []string `json:"advisories,omitempty"`
+	RiskAndConformanceReports []string `json:"riskAndConformanceReports,omitempty"`
+}
+
+type NDFCMessageBusValues []NDFCMessageBusValue
+
+type NDFCMessageBusValue struct {
+	Server             string                                `json:"server,omitempty"`
+	CollectionType     string                                `json:"collectionType,omitempty"`
+	CollectionSettings NDFCMessageBusCollectionSettingsValue `json:"collectionSettings,omitempty"`
+}
+
+type NDFCMessageBusCollectionSettingsValue struct {
+	CollectionSettingsCollectionType string   `json:"collectionType,omitempty"`
+	Anomalies                        []string `json:"anomalies,omitempty"`
+	Advisories                       []string `json:"advisories,omitempty"`
+	Statistics                       []string `json:"statistics,omitempty"`
+	Faults                           []string `json:"faults,omitempty"`
+	AuditLogs                        []string `json:"auditLogs,omitempty"`
+}
+
+type NDFCExternalStreamingSettingsSyslogValue struct {
+	SyslogServers      []string                          `json:"servers,omitempty"`
+	SyslogFacility     string                            `json:"facility,omitempty"`
+	CollectionSettings NDFCSyslogCollectionSettingsValue `json:"collectionSettings,omitempty"`
+}
+
+type NDFCSyslogCollectionSettingsValue struct {
+	SyslogAnomalies []string `json:"anomalies,omitempty"`
 }
 
 type NDFCFeatureStatusValue struct {
@@ -476,7 +472,7 @@ type NDFCManagementValue struct {
 	AutoBgpNeighborDescription                 *bool                               `json:"autoBgpNeighborDescription,omitempty"`
 	IbgpPeerTemplate                           string                              `json:"ibgpPeerTemplate,omitempty"`
 	LeafibgpPeerTemplate                       string                              `json:"leafibgpPeerTemplate,omitempty"`
-	SecurityGroupTag                           *bool                               `json:"securityGroupTag,omitempty"`
+	SecurityGroupTag                           any                                 `json:"securityGroupTag,omitempty"`
 	SecurityGroupTagPrefix                     string                              `json:"securityGroupTagPrefix,omitempty"`
 	SecurityGroupTagIdRange                    string                              `json:"securityGroupTagIdRange,omitempty"`
 	SecurityGroupTagPreprovision               *bool                               `json:"securityGroupTagPreprovision,omitempty"`
@@ -546,6 +542,21 @@ type NDFCManagementValue struct {
 	SyslogServerCollection                     []string                            `json:"syslogServerCollection,omitempty"`
 	SyslogSeverityCollection                   []int64                             `json:"syslogSeverityCollection,omitempty"`
 	SyslogServerVrfCollection                  []string                            `json:"syslogServerVrfCollection,omitempty"`
+	MultisiteOverlayInterConnectType           string                              `json:"multisiteOverlayInterConnectType,omitempty"`
+	RouteServerCollection                      NDFCRouteServerCollectionValues     `json:"routeServerCollection,omitempty"`
+	RouteServerRedistributeDirectRouteMap      *bool                               `json:"routeServerRedistributeDirectRouteMap,omitempty"`
+	RouteServerRoutingTag                      *int64                              `json:"routeServerRoutingTag,omitempty"`
+	EnableMsOverlayIfcBgpDesc                  *bool                               `json:"enableMsOverlayIfcBgpDesc,omitempty"`
+	AutoMultisiteUnderlayInterConnect          *bool                               `json:"autoMultisiteUnderlayInterConnect,omitempty"`
+	MultisiteDelayRestore                      *int64                              `json:"multisiteDelayRestore,omitempty"`
+	MultisiteInterConnectBgpAuthentication     *bool                               `json:"multisiteInterConnectBgpAuthentication,omitempty"`
+	MultisiteInterConnectBgpAuthKeyType        string                              `json:"multisiteInterConnectBgpAuthKeyType,omitempty"`
+	MultisiteInterConnectBgpKey                string                              `json:"multisiteInterConnectBgpKey,omitempty"`
+	MultisiteLoopbackId                        *int64                              `json:"multisiteLoopbackId,omitempty"`
+	BorderGatewayRoutingTag                    *int64                              `json:"borderGatewayRoutingTag,omitempty"`
+	MultisiteLoopbackIpRange                   string                              `json:"multisiteLoopbackIpRange,omitempty"`
+	MultisiteUnderlaySubnetRange               string                              `json:"multisiteUnderlaySubnetRange,omitempty"`
+	MultisiteUnderlaySubnetTargetMask          *int64                              `json:"multisiteUnderlaySubnetTargetMask,omitempty"`
 	NetflowSettings                            NDFCManagementNetflowSettingsValue  `json:"netflowSettings,omitempty"`
 }
 
@@ -556,6 +567,13 @@ type NDFCBootstrapSubnetCollectionValue struct {
 	EndIp          string `json:"endIp,omitempty"`
 	DefaultGateway string `json:"defaultGateway,omitempty"`
 	SubnetPrefix   *int64 `json:"subnetPrefix,omitempty"`
+}
+
+type NDFCRouteServerCollectionValues []NDFCRouteServerCollectionValue
+
+type NDFCRouteServerCollectionValue struct {
+	RouteServerIp  string `json:"routeServerIp,omitempty"`
+	RouteServerAsn string `json:"routeServerAsn,omitempty"`
 }
 
 type NDFCManagementNetflowSettingsValue struct {
@@ -599,4 +617,8 @@ type NDFCNetflowSamplerCollectionValue struct {
 	SamplerName  string `json:"samplerName,omitempty"`
 	NumSamples   *int64 `json:"numSamples,omitempty"`
 	SamplingRate *int64 `json:"samplingRate,omitempty"`
+}
+
+type NDFCMetaValue struct {
+	AllowedActions []string `json:"allowedActions,omitempty"`
 }

@@ -17,8 +17,17 @@ import (
 )
 
 type NDFCFabricAciModel struct {
-	Spec   NDFCSpecValue   `json:"spec,omitempty"`
 	Status NDFCStatusValue `json:"status,omitempty"`
+	Spec   NDFCSpecValue   `json:"spec,omitempty"`
+}
+
+type NDFCStatusValue struct {
+	State      string                    `json:"-"`
+	LastUpdate NDFCStatusLastUpdateValue `json:"lastUpdate,omitempty"`
+}
+
+type NDFCStatusLastUpdateValue struct {
+	LastUpdateMessage string `json:"-"`
 }
 
 type NDFCSpecValue struct {
@@ -58,15 +67,6 @@ type NDFCTelemetryValue struct {
 
 type NDFCAciOrchestrationValue struct {
 	OrchestrationStatus string `json:"status,omitempty"`
-}
-
-type NDFCStatusValue struct {
-	State      string                    `json:"-"`
-	LastUpdate NDFCStatusLastUpdateValue `json:"lastUpdate,omitempty"`
-}
-
-type NDFCStatusLastUpdateValue struct {
-	LastUpdateMessage string `json:"-"`
 }
 
 func (v *FabricAciModel) SetModelData(jsonData *NDFCFabricAciModel) diag.Diagnostics {
