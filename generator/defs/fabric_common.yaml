@@ -3201,3 +3201,180 @@ resource:
       - collectionSettings
       example: '["creation"]'
     description: List of message bus settings
+
+  # Fabric Group-only fields retained in the shared NDFC transport model.
+  # Child resources expose only the fields declared in their own YAML schemas.
+  - model_name: multisiteOverlayInterConnectType
+    tf_name: multisite_overlay_inter_connect_type
+    description: >-
+      The multi-site overlay interconnect method. Allowed values are `manual`,
+      `routeServer`, or `directPeering`.
+    type: String
+    validator: 'OneOf("manual", "routeServer", "directPeering")'
+    ndfc_nested:
+      - management
+    example: directPeering
+
+  - model_name: routeServerCollection
+    tf_name: route_server_collection
+    description: >-
+      The multi-site route servers used when `multisite_overlay_inter_connect_type` is
+      `routeServer`.
+    type: List
+    optional: true
+    ndfc_nested:
+      - management
+    attributes:
+      # Examples are omitted here so the default directPeering example does not
+      # also configure route servers. Both children are required for each configured entry.
+      - model_name: routeServerIp
+        tf_name: route_server_ip
+        description: The IPv4 or IPv6 address of the route server.
+        type: String
+        mandatory: true
+
+      - model_name: routeServerAsn
+        tf_name: route_server_asn
+        description: >-
+          The route-server autonomous system number. Use an integer from 1 to
+          4294967295 or dotted notation with a first component from 1 to 65535 and a
+          second component from 0 to 65535.
+        type: String
+        mandatory: true
+        # The schema validator uses strconv.ParseUint for numeric bounds.
+        validator: 'All(routeServerASNValidator{})'
+
+  - model_name: routeServerRedistributeDirectRouteMap
+    tf_name: route_server_redistribute_direct_route_map
+    description: >-
+      Enables automatic creation of multi-site overlay inter-fabric links on route
+      servers. This setting applies only when `multisite_overlay_inter_connect_type`
+      is `routeServer`. Defaults to `false` when not specified in the configuration.
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    ndfc_nested:
+      - management
+
+  - model_name: routeServerRoutingTag
+    tf_name: route_server_routing_tag
+    description: >-
+      The routing tag associated with the route-server IP for redistribute-direct eBGP
+      EVPN peering. Valid values are 0 through 4294967295.
+    type: Int64
+    validator: 'Between(0, 4294967295)'
+    ndfc_nested:
+      - management
+
+  - model_name: enableMsOverlayIfcBgpDesc
+    tf_name: enable_ms_overlay_ifc_bgp_desc
+    description: >-
+      Generates BGP neighbor descriptions for automatically created multi-site overlay
+      inter-fabric links.
+    type: Bool
+    ndfc_type: bool
+    ndfc_nested:
+      - management
+
+  - model_name: autoMultisiteUnderlayInterConnect
+    tf_name: auto_multisite_underlay_inter_connect
+    description: >-
+      Controls automatic multi-site underlay interconnect configuration. Defaults to
+      `false` when not specified in the configuration.
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    ndfc_nested:
+      - management
+
+  - model_name: multisiteDelayRestore
+    tf_name: multisite_delay_restore
+    description: >-
+      The multi-site underlay and overlay control-plane convergence delay in seconds.
+      Valid values are 30 through 1000.
+    type: Int64
+    validator: 'Between(30, 1000)'
+    ndfc_nested:
+      - management
+
+  - model_name: multisiteInterConnectBgpAuthentication
+    tf_name: multisite_inter_connect_bgp_authentication
+    description: >-
+      Enables BGP authentication for the multi-site interconnect. Defaults to `false`
+      when not specified in the configuration.
+    type: Bool
+    ndfc_type: bool
+    default_value: false
+    ndfc_nested:
+      - management
+
+  - model_name: multisiteInterConnectBgpAuthKeyType
+    tf_name: multisite_inter_connect_bgp_auth_key_type
+    description: >-
+      The BGP authentication key encryption type used when
+      `multisite_inter_connect_bgp_authentication` is `true`. Allowed values are
+      `3des`, `type6`, or `type7`.
+    type: String
+    validator: 'OneOf("3des", "type6", "type7")'
+    ndfc_nested:
+      - management
+
+  - model_name: multisiteInterConnectBgpKey
+    tf_name: multisite_inter_connect_bgp_key
+    description: >-
+      The encrypted BGP authentication key used when
+      `multisite_inter_connect_bgp_authentication` is `true`. Its encryption type is
+      selected by `multisite_inter_connect_bgp_auth_key_type`. It must contain 1
+      through 256 characters without whitespace.
+    type: String
+    optional: true
+    sensitive: true
+    validator: 'LengthBetween(1, 256), stringvalidator.RegexMatches(regexp.MustCompile(`^\S+$`), "must not contain whitespace")'
+    ndfc_nested:
+      - management
+
+  - model_name: multisiteLoopbackId
+    tf_name: multisite_loopback_id
+    description: >-
+      The multi-site loopback identifier for NX fabrics. Valid values are 0 through
+      1023.
+    type: Int64
+    validator: 'Between(0, 1023)'
+    ndfc_nested:
+      - management
+
+  - model_name: borderGatewayRoutingTag
+    tf_name: border_gateway_routing_tag
+    description: >-
+      The routing tag associated with loopback and DCI interface IP addresses for NX
+      fabrics. Valid values are 0 through 4294967295.
+    type: Int64
+    validator: 'Between(0, 4294967295)'
+    ndfc_nested:
+      - management
+
+  - model_name: multisiteLoopbackIpRange
+    tf_name: multisite_loopback_ip_range
+    description: >-
+      The IPv4 CIDR range typically used for Loopback100.
+    type: String
+    ndfc_nested:
+      - management
+
+  - model_name: multisiteUnderlaySubnetRange
+    tf_name: multisite_underlay_subnet_range
+    description: >-
+      The IPv4 CIDR range used for point-to-point DCI links.
+    type: String
+    ndfc_nested:
+      - management
+
+  - model_name: multisiteUnderlaySubnetTargetMask
+    tf_name: multisite_underlay_subnet_target_mask
+    description: >-
+      The target prefix length for subnets allocated from
+      `multisite_underlay_subnet_range`. Valid values are 8 through 31.
+    type: Int64
+    validator: 'Between(8, 31)'
+    ndfc_nested:
+      - management

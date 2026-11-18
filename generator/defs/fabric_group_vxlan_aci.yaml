@@ -1,0 +1,385 @@
+resource:
+  name: fabric_group_vxlan_aci
+  generate_tf_resource: true
+  skip_equality: true
+  parent_package: resource_fabric_common
+  parent_model: fabric_common
+  category: manage
+  doc_category: Fabrics
+  description: |
+    Manages the configuration of a fabric group VXLAN-ACI in Nexus Dashboard.
+
+    Fabric-group membership is managed separately. Remove member fabrics before
+    deleting the group. VXLAN-ACI fabric groups are limited to one Nexus Dashboard cluster;
+    the ACI fabric requires border gateways, telemetry enabled during onboarding,
+    and Orchestration disabled.
+
+  import_id:
+    - my_fabric_group
+  import_desc:
+    - name
+  attributes:
+    - model_name: id
+      tf_name: id
+      description: >-
+        The unique identifier for the resource, it is the `name` of the fabric group
+        VXLAN-ACI (for example, tf-fabric-group-vxlan-aci).
+      type: String
+      computed: true
+      use_state: true
+      id: true
+      payload_hide: true
+
+    - model_name: name
+      tf_name: fabric_name
+      description: >-
+        The name of the fabric group VXLAN-ACI. Changing the name replaces the resource.
+      type: String
+      mandatory: true
+      validator: 'RegexMatches(regexp.MustCompile(`\S`), "must contain at least one non-whitespace character")'
+      tf_requires_replace: true
+      example: tf-fabric-group-vxlan-aci
+
+    # Hidden defaults document fixed values; tf_hide prevents schema defaults
+    # from initializing these fields. Handwritten PreMarshal must inject both.
+    - model_name: category
+      tf_name: category
+      description: The fixed API category for the fabric group.
+      type: String
+      default_value: fabricGroup
+      tf_hide: true
+
+    - model_name: type
+      tf_name: fabric_type
+      description: The fixed VXLAN-ACI fabric-group type.
+      type: String
+      default_value: vxlanAci
+      tf_hide: true
+      ndfc_nested:
+        - management
+
+    - model_name: l2VniRange
+      tf_name: l2_vni_range
+      description: >-
+        The overlay network identifier range. Identifiers must be between 1 and
+        16777214.
+      type: String
+      # The schema validator checks numeric bounds and range ordering.
+      # validator: 'All(vniRangeValidator{})'
+      ndfc_nested:
+        - management
+      example: '30000-49000'
+
+    - model_name: l3VniRange
+      tf_name: l3_vni_range
+      description: >-
+        The overlay VRF identifier range. Identifiers must be between 1 and 16777214.
+      type: String
+      # The schema validator checks numeric bounds and range ordering.
+      # validator: 'All(vniRangeValidator{})'
+      ndfc_nested:
+        - management
+      example: '50000-59000'
+
+    - model_name: anycastGatewayMac
+      tf_name: anycast_gateway_mac
+      description: >-
+        The shared anycast gateway MAC address for all VTEPs, in `xxxx.xxxx.xxxx`
+        format. It must match the APIC bridge-domain MAC.
+      type: String
+      mandatory: true
+      # validator: 'RegexMatches(regexp.MustCompile(`^[0-9A-Fa-f]{4}(\.[0-9A-Fa-f]{4}){2}$`), "must be a MAC address in xxxx.xxxx.xxxx format")'
+      ndfc_nested:
+        - management
+      example: 0022.bdf8.19ff
+
+    - model_name: multisiteOverlayInterConnectType
+      tf_name: multisite_overlay_inter_connect_type
+      description: >-
+        The multi-site overlay interconnect method. Allowed values are `manual`,
+        `routeServer`, or `directPeering`. The `routeServer` option is supported for
+        VXLAN-ACI fabric groups beginning with Nexus Dashboard release 4.3.1.
+      type: String
+      # validator: 'OneOf("manual", "routeServer", "directPeering")'
+      ndfc_nested:
+        - management
+      example: directPeering
+
+    - model_name: routeServerCollection
+      tf_name: route_server_collection
+      description: >-
+        The multi-site route servers. At least one route server is required when
+        `multisite_overlay_inter_connect_type` is `routeServer`.
+      type: List
+      optional: true
+      ndfc_nested:
+        - management
+      attributes:
+        # Examples are omitted here so the default directPeering example does not
+        # also configure route servers. Both children are required for each configured entry.
+        - model_name: routeServerIp
+          tf_name: route_server_ip
+          description: The IPv4 or IPv6 address of the route server.
+          type: String
+          mandatory: true
+
+        - model_name: routeServerAsn
+          tf_name: route_server_asn
+          description: >-
+            The route-server autonomous system number. Use an integer from 1 to
+            4294967295 or dotted notation with a first component from 1 to 65535 and a
+            second component from 0 to 65535.
+          type: String
+          mandatory: true
+          # The schema validator uses strconv.ParseUint for numeric bounds.
+          # validator: 'All(routeServerASNValidator{})'
+
+    - model_name: routeServerRedistributeDirectRouteMap
+      tf_name: route_server_redistribute_direct_route_map
+      description: >-
+        Enables automatic creation of multi-site overlay inter-fabric links on route
+        servers. This setting applies only when `multisite_overlay_inter_connect_type`
+        is `routeServer`. Defaults to `false` when not specified in the configuration.
+      type: Bool
+      ndfc_type: bool
+      default_value: false
+      ndfc_nested:
+        - management
+
+    - model_name: routeServerRoutingTag
+      tf_name: route_server_routing_tag
+      description: >-
+        The routing tag associated with the route-server IP for redistribute-direct eBGP
+        EVPN peering. Valid values are 0 through 4294967295.
+      type: Int64
+      # validator: 'Between(0, 4294967295)'
+      ndfc_nested:
+        - management
+
+    - model_name: enableMsOverlayIfcBgpDesc
+      tf_name: enable_ms_overlay_ifc_bgp_desc
+      description: >-
+        Generates BGP neighbor descriptions for automatically created multi-site overlay
+        inter-fabric links.
+      type: Bool
+      ndfc_type: bool
+      ndfc_nested:
+        - management
+
+    - model_name: autoMultisiteUnderlayInterConnect
+      tf_name: auto_multisite_underlay_inter_connect
+      description: >-
+        Controls automatic multi-site underlay interconnect configuration. Defaults to
+        `false` when not specified in the configuration.
+      type: Bool
+      ndfc_type: bool
+      default_value: false
+      ndfc_nested:
+        - management
+
+    - model_name: multisiteDelayRestore
+      tf_name: multisite_delay_restore
+      description: >-
+        The multi-site underlay and overlay control-plane convergence delay in seconds.
+        Valid values are 30 through 1000.
+      type: Int64
+      # validator: 'Between(30, 1000)'
+      ndfc_nested:
+        - management
+
+    - model_name: multisiteInterConnectBgpAuthentication
+      tf_name: multisite_inter_connect_bgp_authentication
+      description: >-
+        Enables BGP authentication for the multi-site interconnect. Defaults to `false`
+        when not specified in the configuration.
+      type: Bool
+      ndfc_type: bool
+      default_value: false
+      ndfc_nested:
+        - management
+
+    - model_name: multisiteInterConnectBgpAuthKeyType
+      tf_name: multisite_inter_connect_bgp_auth_key_type
+      description: >-
+        The BGP authentication key encryption type used when
+        `multisite_inter_connect_bgp_authentication` is `true`. Allowed values are
+        `3des`, `type6`, or `type7`.
+      type: String
+      # validator: 'OneOf("3des", "type6", "type7")'
+      ndfc_nested:
+        - management
+
+    - model_name: multisiteInterConnectBgpKey
+      tf_name: multisite_inter_connect_bgp_key
+      description: >-
+        The encrypted BGP authentication key used when
+        `multisite_inter_connect_bgp_authentication` is `true`. Its encryption type is
+        selected by `multisite_inter_connect_bgp_auth_key_type`. It must contain 1
+        through 256 characters without whitespace.
+      type: String
+      optional: true
+      sensitive: true
+      # validator: 'LengthBetween(1, 256), stringvalidator.RegexMatches(regexp.MustCompile(`^\S+$`), "must not contain whitespace")'
+      ndfc_nested:
+        - management
+
+    - model_name: multisiteLoopbackId
+      tf_name: multisite_loopback_id
+      description: >-
+        The multi-site loopback identifier for NX fabrics. Valid values are 0 through
+        1023.
+      type: Int64
+      # validator: 'Between(0, 1023)'
+      ndfc_nested:
+        - management
+
+    - model_name: borderGatewayRoutingTag
+      tf_name: border_gateway_routing_tag
+      description: >-
+        The routing tag associated with loopback and DCI interface IP addresses for NX
+        fabrics. Valid values are 0 through 4294967295.
+      type: Int64
+      # validator: 'Between(0, 4294967295)'
+      ndfc_nested:
+        - management
+
+    - model_name: securityGroupTag
+      tf_name: security_group_tag
+      description: >-
+        The security-group mode. In `strict` mode, only child fabrics with security
+        groups enabled are allowed. Allowed values are `loose` or `strict`.
+      type: String
+      ndfc_type: string
+      # validator: 'OneOf("loose", "strict")'
+      ndfc_nested:
+        - management
+
+    - model_name: securityGroupTagPrefix
+      tf_name: security_group_tag_prefix
+      description: >-
+        The prefix used for newly created security groups. It must contain 1 through 10
+        letters, digits, hyphens, or underscores.
+      type: String
+      # validator: 'LengthBetween(1, 10), stringvalidator.RegexMatches(regexp.MustCompile(`^[A-Za-z0-9_-]+$`), "may contain only letters, digits, hyphens, and underscores")'
+      ndfc_nested:
+        - management
+
+    - model_name: securityGroupTagMacSegmentation
+      tf_name: security_group_tag_mac_segmentation
+      description: >-
+        Enables MAC-based segmentation for security groups. Defaults to `false` when not
+        specified in the configuration.
+      type: Bool
+      ndfc_type: bool
+      default_value: false
+      ndfc_nested:
+        - management
+
+    - model_name: securityGroupTagIdRange
+      tf_name: security_group_tag_id_range
+      description: >-
+        The security-group tag identifier range. Identifiers must be between 16 and
+        65535.
+      type: String
+      ndfc_nested:
+        - management
+
+    - model_name: securityGroupTagPreprovision
+      tf_name: security_group_tag_preprovision
+      description: >-
+        Generates security-group configuration for non-enforced VRFs. Defaults to `false`
+        when not specified in the configuration.
+      type: Bool
+      ndfc_type: bool
+      default_value: false
+      ndfc_nested:
+        - management
+
+    - model_name: securityGroupStatus
+      tf_name: security_group_status
+      description: The status of the security-group.
+      type: String
+      computed: true
+      ndfc_nested:
+        - management
+
+    - model_name: multisiteLoopbackIpRange
+      tf_name: multisite_loopback_ip_range
+      description: >-
+        The IPv4 CIDR range typically used for Loopback100.
+      type: String
+      ndfc_nested:
+        - management
+
+    - model_name: multisiteUnderlaySubnetRange
+      tf_name: multisite_underlay_subnet_range
+      description: >-
+        The IPv4 CIDR range used for point-to-point DCI links.
+      type: String
+      ndfc_nested:
+        - management
+
+    - model_name: multisiteUnderlaySubnetTargetMask
+      tf_name: multisite_underlay_subnet_target_mask
+      description: >-
+        The target prefix length for subnets allocated from
+        `multisite_underlay_subnet_range`. Valid values are 8 through 31.
+      type: Int64
+      # validator: 'Between(8, 31)'
+      ndfc_nested:
+        - management
+
+    - model_name: scheduledBackup
+      tf_name: scheduled_backup
+      description: >-
+        Enables daily configuration backup. When set to `true`,
+        `scheduled_backup_time` is required.
+      type: Bool
+      ndfc_type: bool
+      optional: true
+      # validator: 'Any(boolvalidator.Equals(false), boolvalidator.AlsoRequires(path.MatchRoot("scheduled_backup_time"))), boolvalidator.Any(boolvalidator.Equals(true), boolvalidator.ConflictsWith(path.MatchRoot("scheduled_backup_time")))'
+      ndfc_nested:
+        - management
+
+    - model_name: scheduledBackupTime
+      tf_name: scheduled_backup_time
+      description: >-
+        The UTC time for daily configuration backup, from `00:00` through `23:59` in
+        24-hour `HH:MM` format. Required when `scheduled_backup` is `true` and must
+        be omitted otherwise.
+      type: String
+      optional: true
+      # validator: 'RegexMatches(regexp.MustCompile(`^([01]\d|2[0-3]):([0-5]\d)$`), "must be a UTC time in 24-hour HH:MM format"), stringvalidator.AlsoRequires(path.MatchRoot("scheduled_backup"))'
+      ndfc_nested:
+        - management
+
+# Payload:
+# {
+#   "name": "Sab-VXLAN-ACI-Test",
+#   "management": {
+#     "type": "vxlanAci",
+#     "anycastGatewayMac": "0022.bdf8.19ff"
+#   },
+#   "category": "fabricGroup"
+# }
+
+# Response:
+# {
+#   "category": "fabricGroup",
+#   "management": {
+#     "anycastGatewayMac": "0022.bdf8.19ff",
+#     "autoMultisiteUnderlayInterConnect": false,
+#     "multisiteInterConnectBgpAuthentication": false,
+#     "routeServerRedistributeDirectRouteMap": false,
+#     "securityGroupTagMacSegmentation": false,
+#     "securityGroupTagPreprovision": false,
+#     "type": "vxlanAci"
+#   },
+#   "name": "Sab-VXLAN-ACI-Test",
+#   "type": "vxlanAci",
+#   "fabricMembers": {}
+# }
+
+
+# vxlan
+# external

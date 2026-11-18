@@ -374,6 +374,21 @@ type NDFCManagementValue struct {
 	SyslogServerCollection                     []string                            `json:"syslogServerCollection,omitempty"`
 	SyslogSeverityCollection                   []int64                             `json:"syslogSeverityCollection,omitempty"`
 	SyslogServerVrfCollection                  []string                            `json:"syslogServerVrfCollection,omitempty"`
+	MultisiteOverlayInterConnectType           string                              `json:"multisiteOverlayInterConnectType,omitempty"`
+	RouteServerCollection                      NDFCRouteServerCollectionValues     `json:"routeServerCollection,omitempty"`
+	RouteServerRedistributeDirectRouteMap      *bool                               `json:"routeServerRedistributeDirectRouteMap,omitempty"`
+	RouteServerRoutingTag                      *int64                              `json:"routeServerRoutingTag,omitempty"`
+	EnableMsOverlayIfcBgpDesc                  *bool                               `json:"enableMsOverlayIfcBgpDesc,omitempty"`
+	AutoMultisiteUnderlayInterConnect          *bool                               `json:"autoMultisiteUnderlayInterConnect,omitempty"`
+	MultisiteDelayRestore                      *int64                              `json:"multisiteDelayRestore,omitempty"`
+	MultisiteInterConnectBgpAuthentication     *bool                               `json:"multisiteInterConnectBgpAuthentication,omitempty"`
+	MultisiteInterConnectBgpAuthKeyType        string                              `json:"multisiteInterConnectBgpAuthKeyType,omitempty"`
+	MultisiteInterConnectBgpKey                string                              `json:"multisiteInterConnectBgpKey,omitempty"`
+	MultisiteLoopbackId                        *int64                              `json:"multisiteLoopbackId,omitempty"`
+	BorderGatewayRoutingTag                    *int64                              `json:"borderGatewayRoutingTag,omitempty"`
+	MultisiteLoopbackIpRange                   string                              `json:"multisiteLoopbackIpRange,omitempty"`
+	MultisiteUnderlaySubnetRange               string                              `json:"multisiteUnderlaySubnetRange,omitempty"`
+	MultisiteUnderlaySubnetTargetMask          *int64                              `json:"multisiteUnderlaySubnetTargetMask,omitempty"`
 	NetflowSettings                            NDFCManagementNetflowSettingsValue  `json:"netflowSettings,omitempty"`
 }
 
@@ -384,6 +399,13 @@ type NDFCBootstrapSubnetCollectionValue struct {
 	EndIp          string `json:"endIp,omitempty"`
 	DefaultGateway string `json:"defaultGateway,omitempty"`
 	SubnetPrefix   *int64 `json:"subnetPrefix,omitempty"`
+}
+
+type NDFCRouteServerCollectionValues []NDFCRouteServerCollectionValue
+
+type NDFCRouteServerCollectionValue struct {
+	RouteServerIp  string `json:"routeServerIp,omitempty"`
+	RouteServerAsn string `json:"routeServerAsn,omitempty"`
 }
 
 type NDFCManagementNetflowSettingsValue struct {

@@ -11,8 +11,10 @@ package resource_fabric_common
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"terraform-provider-nd/internal/common/ndapi"
 	"terraform-provider-nd/internal/manage/api"
@@ -46,6 +48,32 @@ type FabricPostUnmarshal interface {
 	PostUnmarshal(ctx context.Context, data *NDFCFabricCommonModel)
 }
 
+// FabricCRUDAPI is the request surface used by the shared fabric handler.
+type FabricCRUDAPI interface {
+	Get() ([]byte, error)
+	Post([]byte, *ndapi.APIOptions) (nd.Res, error)
+	Put([]byte, *ndapi.APIOptions) (nd.Res, error)
+	Delete(...[]byte) (nd.Res, error)
+}
+
+// FabricAPIOverride supplies resource-specific request handling for shared CRUD.
+// Implementations must omit sensitive response bodies from request errors.
+type FabricAPIOverride interface {
+	WrapFabricAPI(context.Context, *api.FabricAPI) FabricCRUDAPI
+}
+
+// FabricWriteReadback handles readback after a successful POST or PUT.
+type FabricWriteReadback interface {
+	ReadAfterFabricWrite(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, method string)
+}
+
+func fabricAPIForModel(ctx context.Context, model FabricModel, fabricAPI *api.FabricAPI) FabricCRUDAPI {
+	if override, ok := model.(FabricAPIOverride); ok {
+		return override.WrapFabricAPI(ctx, fabricAPI)
+	}
+	return fabricAPI
+}
+
 // RscCreateFabric creates a fabric resource via the NDFC API.
 func RscCreateFabric(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) {
 	fabricHandler(model.GetFabricType()).Create(ctx, client, dg, model)
@@ -71,12 +99,16 @@ func createDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics,
 		return
 	}
 
-	res, err := fabricAPI.Post(fabricPayload, nil)
+	res, err := fabricAPIForModel(ctx, model, fabricAPI).Post(fabricPayload, nil)
 	if err != nil {
 		dg.AddError(
 			"Error Creating Fabric",
 			fmt.Sprintf("Could not create fabric, unexpected error: %v: %s", err, res.String()),
 		)
+		return
+	}
+	if readback, ok := model.(FabricWriteReadback); ok {
+		readback.ReadAfterFabricWrite(ctx, client, dg, http.MethodPost)
 		return
 	}
 	// ND BUG - license_tier is not set in the response. Try delaying the read
@@ -113,10 +145,9 @@ func RscValidateFabricType(dg *diag.Diagnostics, model FabricModel, allowedTypes
 }
 
 // readDefault is the built-in read logic.
-// Returns true if the resource was found and read successfully, false if the
-// resource no longer exists on the remote infrastructure (HTTP 404). When false
-// is returned, no error diagnostic is added — the caller should remove the
-// resource from state so Terraform can plan a re-create.
+// Returns true if the resource was found and read successfully. Callers must
+// check error diagnostics before treating false as a missing resource (HTTP 404)
+// and removing it from state.
 func readDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, model FabricModel) bool {
 	fabricName := model.GetFabricName()
 	tflog.Debug(ctx, "Read fabric", map[string]interface{}{
@@ -124,9 +155,13 @@ func readDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, m
 	})
 	fabricAPI := api.NewFabricAPI(client, ndapi.DefaultFabric)
 	fabricAPI.FabricName = fabricName
-	respData, err := fabricAPI.Get()
+	_, overridden := model.(FabricAPIOverride)
+	respData, err := fabricAPIForModel(ctx, model, fabricAPI).Get()
 	if err != nil {
-		if strings.Contains(err.Error(), "StatusCode 404") {
+		if overridden && errors.Is(err, ndapi.ErrNotFound) {
+			return false
+		}
+		if !overridden && strings.Contains(err.Error(), "StatusCode 404") {
 			tflog.Warn(ctx, "Fabric not found on remote, marking for re-creation", map[string]interface{}{
 				"fabric_name": fabricName,
 			})
@@ -142,6 +177,10 @@ func readDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, m
 
 	err = json.Unmarshal(respData, &outData)
 	if err != nil {
+		if overridden {
+			dg.AddError("Error reading Fabric", fmt.Sprintf("Could not decode the API response for fabric %q.", fabricName))
+			return false
+		}
 		dg.AddError(
 			"Error reading Fabric",
 			fmt.Sprintf("Could not read fabric, unexpected error: %v %v", err, respData),
@@ -152,8 +191,8 @@ func readDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics, m
 	if pu, ok := model.(FabricPostUnmarshal); ok {
 		pu.PostUnmarshal(ctx, &outData)
 	}
-	model.SetModelData(&outData)
-	return true
+	dg.Append(model.SetModelData(&outData)...)
+	return !dg.HasError()
 }
 
 // RscUpdateFabric updates a fabric resource via the NDFC API.
@@ -184,13 +223,17 @@ func updateDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics,
 		tflog.Error(ctx, "Error Updating Fabric", map[string]interface{}{"error": err.Error()})
 		return
 	}
-	res, err := fabricAPI.Put(inDataBytes, nil)
+	res, err := fabricAPIForModel(ctx, model, fabricAPI).Put(inDataBytes, nil)
 	if err != nil {
 		dg.AddError(
 			"Error Updating Fabric",
 			fmt.Sprintf("Could not update fabric, unexpected error: %v: %s", err, res.String()),
 		)
 		tflog.Error(ctx, "Error Updating Fabric", map[string]interface{}{"error": err.Error()})
+		return
+	}
+	if readback, ok := model.(FabricWriteReadback); ok {
+		readback.ReadAfterFabricWrite(ctx, client, dg, http.MethodPut)
 		return
 	}
 	// Read the updated fabric
@@ -217,7 +260,7 @@ func deleteDefault(ctx context.Context, client *nd.Client, dg *diag.Diagnostics,
 	tflog.Debug(ctx, "Delete fabric", map[string]interface{}{
 		"fabric_name": fabricName,
 	})
-	res, err := fabricAPI.Delete()
+	res, err := fabricAPIForModel(ctx, model, fabricAPI).Delete()
 	if err != nil {
 		dg.AddError(
 			"Error Deleting Fabric",
