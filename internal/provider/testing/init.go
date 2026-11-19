@@ -30,7 +30,7 @@ type NDConfig struct {
 	Insecure                 string                         `yaml:"insecure"`
 	Fabric                   string                         `yaml:"fabric"`
 	DeployHistoryDataSource  DeployHistoryDataSourceConfig  `yaml:"deploy_history_datasource"`
-	SwitchDataSource         SwitchDataSourceConfig         `yaml:"switch_datasource"`
+	SwitchDataSource         SwitchDataSourceConfig         `yaml:"inventory_switch_datasource"`
 	Switches                 []string                       `yaml:"switches"`
 	SwitchIP                 []string                       `yaml:"switch_ip"`
 	FabricPrefix             string                         `yaml:"fabric_prefix"`
