@@ -1619,7 +1619,7 @@ resource:
     type: Bool
     optional: true
     computed: true
-    ndfc_type: bool
+    ndfc_type: any
     ndfc_nested:
     - management
     description: If set to strict, only security groups enabled child fabrics will be allowed

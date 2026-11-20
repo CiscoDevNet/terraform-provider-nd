@@ -1836,7 +1836,7 @@ datasource:
     tf_name: security_group_tag
     type: Bool
     computed: true
-    ndfc_type: bool
+    ndfc_type: any
     ndfc_nested:
     - management
     description: Security group tag enforcement mode. In strict mode, only child fabrics with security groups are allowed.
