@@ -1,0 +1,47 @@
+datasource:
+  name: switch_config_diff
+  generate_tf_resource: true
+  skip_equality: true
+  category: manage
+  subcategory: Fabrics
+  doc_category: Fabrics
+  description: Returns a line-by-line comparison of a switch's running configuration and the configuration expected by the fabric.
+  attributes:
+  - model_name: fabricName
+    tf_name: fabric_name
+    description: Name of the fabric whose expected switch's configuration is used for the comparison.
+    type: String
+    mandatory: true
+    example: fabric1
+
+  - model_name: switchId
+    tf_name: switch_id
+    description: ID of the switch whose running configuration is compared with the fabric's expected configuration.
+    type: String
+    mandatory: true
+    example: 9VHGPK71R8X
+
+  - model_name: diffConfigs
+    tf_name: diff_configs
+    description: Ordered line-by-line comparison for the selected switch. Each entry identifies whether a command matches, is missing from the running configuration, or is extra in the running configuration.
+    type: List
+    computed: true
+    attributes:
+    - model_name: differenceType
+      tf_name: difference_type
+      description: "Comparison result: equal means the running and expected lines match; insert means the line exists in expected configuration but not running configuration; delete means it exists in running configuration but not expected configuration."
+      type: String
+      computed: true
+      validator: 'OneOf("equal", "insert", "delete")'
+
+    - model_name: expectedConfig
+      tf_name: expected_config
+      description: Configuration command expected on the switch by the fabric. Empty when this difference has no corresponding expected line, such as a delete.
+      type: String
+      computed: true
+
+    - model_name: runningConfig
+      tf_name: running_config
+      description: Configuration command currently present in the switch's running configuration. Empty when this difference has no corresponding running line, such as an insert.
+      type: String
+      computed: true
