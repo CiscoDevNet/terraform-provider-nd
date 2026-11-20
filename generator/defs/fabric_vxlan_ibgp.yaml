@@ -1684,7 +1684,7 @@ resource:
     optional: true
     computed: true
     example: false
-    ndfc_type: bool
+    ndfc_type: any
     ndfc_nested:
     - management
     description: If set to strict, only security groups enabled child fabrics will be allowed
