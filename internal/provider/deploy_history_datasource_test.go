@@ -9,98 +9,82 @@
 package provider
 
 import (
-	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"testing"
 
 	helper "terraform-provider-nd/internal/provider/testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-func TestAccDeployHistoryDataSource(test *testing.T) {
+func TestAccManageDeployHistoryRead(test *testing.T) {
+	config := deployHistoryAcceptanceConfig(test)
+	runDeployHistoryAcceptanceTest(test, config, config.ND.Fabric, nil, nil)
+}
+
+func TestAccManageDeployHistoryInvalidFabric(test *testing.T) {
+	config := deployHistoryAcceptanceConfig(test)
+	fabricName := "tf_missing_" + acctest.RandStringFromCharSet(12, acctest.CharSetAlphaNum)
+	runDeployHistoryAcceptanceTest(test, config, fabricName, nil, regexp.MustCompile(`Error Reading Deployment History`))
+}
+
+func TestAccManageDeployHistoryZeroRecordCount(test *testing.T) {
+	config := deployHistoryAcceptanceConfig(test)
+	zeroLimit := 0
+	runDeployHistoryAcceptanceTest(test, config, config.ND.Fabric, &zeroLimit, regexp.MustCompile(`(?is)(no_of_records.*(between|at least|greater than or equal to).*1|Invalid Record Count.*at least 1)`))
+}
+
+func TestAccManageDeployHistoryValidRecordCount(test *testing.T) {
+	config := deployHistoryAcceptanceConfig(test)
+	validLimit := 5
+	runDeployHistoryAcceptanceTest(test, config, config.ND.Fabric, &validLimit, nil)
+}
+
+func TestAccManageDeployHistoryRecordCountOverLimit(test *testing.T) {
+	config := deployHistoryAcceptanceConfig(test)
+	overLimit := 51
+	runDeployHistoryAcceptanceTest(test, config, config.ND.Fabric, &overLimit, regexp.MustCompile(`(?is)(no_of_records|invalid record count).*50`))
+}
+
+func deployHistoryAcceptanceConfig(test *testing.T) *helper.Config {
+	test.Helper()
 	if os.Getenv("TF_ACC") == "" {
 		test.Skip("Set TF_ACC to run acceptance tests")
 	}
 	config := helper.GetConfig("global")
-	fabricName := config.ND.Fabric
-	if fabricName == "" {
+	if config.ND.Fabric == "" {
 		test.Skip("Need nd.fabric in the testbed config")
 	}
-	const sourceName = "data.nd_deploy_history.test"
-	validLimit := 5
-	zeroLimit := 0
-	overLimit := 51
-	missingFabric := "tf_missing_" + acctest.RandStringFromCharSet(12, acctest.CharSetAlphaNum)
-	testCases := []struct {
-		name        string
-		fabricName  string
-		recordLimit *int
-		wantError   *regexp.Regexp
-	}{
-		{name: "valid fabric", fabricName: fabricName},
-		{name: "invalid fabric", fabricName: missingFabric, wantError: regexp.MustCompile(`Error Reading Deployment History`)},
-		{name: "zero record count", fabricName: fabricName, recordLimit: &zeroLimit, wantError: regexp.MustCompile(`(?is)(no_of_records.*(between|at least|greater than or equal to).*1|Invalid Record Count.*at least 1)`)},
-		{name: "valid record count", fabricName: fabricName, recordLimit: &validLimit},
-		{name: "record count over 50", fabricName: fabricName, recordLimit: &overLimit, wantError: regexp.MustCompile(`(?is)(no_of_records|invalid record count).*50`)},
-	}
-	for _, testCase := range testCases {
-		test.Run(testCase.name, func(test *testing.T) {
-			recordCountConfig := ""
-			if testCase.recordLimit != nil {
-				recordCountConfig = fmt.Sprintf("  no_of_records = %d\n", *testCase.recordLimit)
-			}
-			step := resource.TestStep{
-				Config: fmt.Sprintf(`
-provider "nd" {
-  username = %q
-  password = %q
-  url      = %q
-  insecure = %t
+	return config
 }
 
-data "nd_deploy_history" "test" {
-  fabric_name = %q
-%s}
-`, config.ND.User, config.ND.Password, config.ND.URL, config.ND.Insecure == "true", testCase.fabricName, recordCountConfig),
-				ExpectError: testCase.wantError,
-			}
-			if testCase.wantError == nil {
-				checks := []resource.TestCheckFunc{
-					resource.TestCheckResourceAttr(sourceName, "fabric_name", testCase.fabricName),
-				}
-				if testCase.recordLimit != nil {
-					recordLimit := *testCase.recordLimit
-					checks = append(checks,
-						resource.TestCheckResourceAttr(sourceName, "no_of_records", strconv.Itoa(recordLimit)),
-						func(state *terraform.State) error {
-							saved, exists := state.RootModule().Resources[sourceName]
-							if !exists || saved.Primary == nil {
-								return fmt.Errorf("missing state for %s", sourceName)
-							}
-							countValue := saved.Primary.Attributes["deployment_records.#"]
-							if countValue == "" {
-								return nil
-							}
-							count, err := strconv.Atoi(countValue)
-							if err != nil || count < 0 || count > recordLimit {
-								return fmt.Errorf("expected at most %d records, got %q", recordLimit, countValue)
-							}
-							return nil
-						},
-					)
-				}
-				step.Check = resource.ComposeTestCheckFunc(checks...)
-			}
-			resource.Test(test, resource.TestCase{
-				PreCheck:                 func() { testAccPreCheck(test, "global") },
-				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-				Steps:                    []resource.TestStep{step},
-			})
-		})
+func runDeployHistoryAcceptanceTest(test *testing.T, config *helper.Config, fabricName string, recordLimit *int, expectedError *regexp.Regexp) {
+	test.Helper()
+	x := &map[string]string{
+		"RscType":  "nd_deploy_history",
+		"RscName":  "test",
+		"User":     config.ND.User,
+		"Password": config.ND.Password,
+		"Host":     config.ND.URL,
+		"Insecure": config.ND.Insecure,
 	}
+	tfConfig := new(string)
+
+	resource.Test(test, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(test, "global") },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: func() string {
+					helper.GetTFConfigWithSingleResource(test.Name(), *x, []interface{}{
+						helper.DeployHistoryDataSource("test", fabricName, recordLimit),
+					}, &tfConfig)
+					return *tfConfig
+				}(),
+				ExpectError: expectedError,
+			},
+		},
+	})
 }

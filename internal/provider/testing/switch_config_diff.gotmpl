@@ -1,0 +1,8 @@
+{{define "ND_SWITCH_CONFIG_DIFF_DS"}}
+{{with .SwitchConfigDiffDataSource}}
+data "nd_switch_config_diff" "{{.RscName}}" {
+    fabric_name = "{{.FabricName}}"
+    switch_id   = "{{.SwitchID}}"
+}
+{{end}}
+{{end}}

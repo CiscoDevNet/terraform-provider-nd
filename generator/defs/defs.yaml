@@ -21,4 +21,5 @@ files:
   - interface_common.yaml
   - interface_ethernet.yaml
   - deploy_history.yaml
+  - switch_config_diff.yaml
   #- sample.yaml
