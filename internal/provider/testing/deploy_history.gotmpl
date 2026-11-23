@@ -1,0 +1,10 @@
+{{define "ND_DEPLOY_HISTORY_DS"}}
+{{with .DeployHistoryDataSource}}
+data "nd_deploy_history" "{{.RscName}}" {
+    fabric_name = "{{.FabricName}}"
+    {{- if .NoOfRecords}}
+    no_of_records = {{.NoOfRecords}}
+    {{- end}}
+}
+{{end}}
+{{end}}

@@ -241,6 +241,20 @@ func GetTFConfigWithSingleResource(tt string, cfg map[string]string, rscs []inte
 				panic(fmt.Sprintf("Failed to execute ND_TENANT_DS template: %v", err))
 			}
 
+		case *SwitchConfigDiffDataSourceTestData:
+			args["SwitchConfigDiffDataSource"] = v
+			err = t.ExecuteTemplate(&output, "ND_SWITCH_CONFIG_DIFF_DS", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_SWITCH_CONFIG_DIFF_DS template: %v", err))
+			}
+
+		case *DeployHistoryDataSourceTestData:
+			args["DeployHistoryDataSource"] = v
+			err = t.ExecuteTemplate(&output, "ND_DEPLOY_HISTORY_DS", args)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to execute ND_DEPLOY_HISTORY_DS template: %v", err))
+			}
+
 		case *resource_multi_cluster_connectivity.NDFCMultiClusterConnectivityModel:
 			args["MultiClusterConnectivity"] = v
 			args["RscName"] = rscName
