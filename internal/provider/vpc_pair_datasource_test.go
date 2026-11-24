@@ -10,13 +10,32 @@ package provider
 
 import (
 	"fmt"
+	"strings"
 	"testing"
+
+	helper "terraform-provider-nd/internal/provider/testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccVpcPairDataSource(t *testing.T) {
 	vpcPairTestctx := loadVpcPairTestctx(t)
+	// Resolve discovery-mode inventory entries here so the resource acceptance
+	// test helper remains unchanged.
+	cfg := helper.GetConfig("global")
+	if cfg.ND.VpcPair != nil {
+		rolesBySerial := make(map[string]string)
+		for _, sw := range cfg.ND.Inventory.GetSwitchesByMode(cfg.ND.Inventory.Mode) {
+			rolesBySerial[sw.Serial] = sw.Role
+		}
+
+		vpcPairTestctx.leafSwitches = nil
+		for _, serial := range cfg.ND.VpcPair.Switches {
+			if strings.EqualFold(rolesBySerial[serial], "leaf") {
+				vpcPairTestctx.leafSwitches = append(vpcPairTestctx.leafSwitches, serial)
+			}
+		}
+	}
 	requireLeafPair(t, vpcPairTestctx)
 
 	terraformConfig := fmt.Sprintf(`
@@ -28,12 +47,11 @@ provider "nd" {
 }
 
 data "nd_vpc_pair" "vpc_pair_test" {
-  fabric_name = %q
   switch_id   = %q
 }
 `, vpcPairTestctx.configMap["User"], vpcPairTestctx.configMap["Password"],
 		vpcPairTestctx.configMap["Host"], vpcPairTestctx.configMap["Insecure"] == "true",
-		vpcPairTestctx.fabricName, vpcPairTestctx.leafSwitches[1])
+		vpcPairTestctx.leafSwitches[1])
 
 	const dataSourceName = "data.nd_vpc_pair.vpc_pair_test"
 

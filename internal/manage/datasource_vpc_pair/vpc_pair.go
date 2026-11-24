@@ -96,12 +96,14 @@ func (d *vpcPairDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	fabricName, ok := requiredDataSourceString(data.FabricName, "fabric_name", &resp.Diagnostics)
+	switchID, ok := requiredDataSourceString(data.SwitchId, "switch_id", &resp.Diagnostics)
 	if !ok {
 		return
 	}
-	switchID, ok := requiredDataSourceString(data.SwitchId, "switch_id", &resp.Diagnostics)
-	if !ok {
+
+	fabricName, err := resolveDataSourceVpcPairFabricName(ctx, d.manageClient, switchID)
+	if err != nil {
+		resp.Diagnostics.AddError("Error Resolving Fabric", err.Error())
 		return
 	}
 
@@ -162,6 +164,37 @@ func (d *vpcPairDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func resolveDataSourceVpcPairFabricName(_ context.Context, client *manage.NexusDashboardManage, switchID string) (string, error) {
+	data, err := client.ApiClient.GetRawJson("/manage/inventory/switches")
+	if err != nil {
+		return "", fmt.Errorf("could not read switch inventory: %w", err)
+	}
+	var inventory struct {
+		Switches []struct {
+			SerialNumber string `json:"serialNumber,omitempty"`
+			FabricName   string `json:"fabricName,omitempty"`
+			Fabric       string `json:"fabric,omitempty"`
+		} `json:"switches,omitempty"`
+	}
+	if err := json.Unmarshal(data, &inventory); err != nil {
+		return "", fmt.Errorf("could not decode switch inventory: %w", err)
+	}
+	for _, sw := range inventory.Switches {
+		if sw.SerialNumber != switchID {
+			continue
+		}
+		fabric := strings.TrimSpace(sw.FabricName)
+		if fabric == "" {
+			fabric = strings.TrimSpace(sw.Fabric)
+		}
+		if fabric == "" {
+			return "", fmt.Errorf("switch %q has no fabric association in inventory", switchID)
+		}
+		return fabric, nil
+	}
+	return "", fmt.Errorf("switch %q not found in inventory", switchID)
 }
 
 func requiredDataSourceString(value interface {

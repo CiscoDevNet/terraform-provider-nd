@@ -345,13 +345,13 @@ datasource:
   skip_equality: true
   category: manage
   doc_category: Fabrics
-  description: Reads a configured vPC pair from a fabric.
+  description: Reads a configured vPC pair by switch serial number.
   attributes:
   - model_name: fabricName
     tf_name: fabric_name
-    description: Name of the fabric containing the vPC pair.
+    description: Name of the fabric resolved from switch inventory.
     type: String
-    mandatory: true
+    computed: true
     example: FABRIC_VXLAN
 
   - model_name: switchId

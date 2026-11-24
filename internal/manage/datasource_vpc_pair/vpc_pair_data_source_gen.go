@@ -19,9 +19,9 @@ func VpcPairDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"fabric_name": schema.StringAttribute{
-				Required:            true,
-				Description:         "Name of the fabric containing the vPC pair.",
-				MarkdownDescription: "Name of the fabric containing the vPC pair.",
+				Computed:            true,
+				Description:         "Name of the fabric resolved from switch inventory.",
+				MarkdownDescription: "Name of the fabric resolved from switch inventory.",
 			},
 			"peer_switch_id": schema.StringAttribute{
 				Computed:            true,
@@ -173,8 +173,8 @@ func VpcPairDataSourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "Default-template and peer-link attributes returned for the vPC pair, including keepalive IP addresses. Free-form configuration fields are omitted.",
 			},
 		},
-		Description:         "Reads a configured vPC pair from a fabric.",
-		MarkdownDescription: "Reads a configured vPC pair from a fabric.",
+		Description:         "Reads a configured vPC pair by switch serial number.",
+		MarkdownDescription: "Reads a configured vPC pair by switch serial number.",
 	}
 }
 

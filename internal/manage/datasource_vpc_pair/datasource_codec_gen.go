@@ -301,12 +301,6 @@ func (v VpcPairModel) GetModelData() *NDFCVpcPairModel {
 
 	//MARSHAL_BODY
 
-	if !v.FabricName.IsNull() && !v.FabricName.IsUnknown() {
-		data.FabricName = v.FabricName.ValueString()
-	} else {
-		data.FabricName = ""
-	}
-
 	if !v.SwitchId.IsNull() && !v.SwitchId.IsUnknown() {
 		data.SwitchId = v.SwitchId.ValueString()
 	} else {

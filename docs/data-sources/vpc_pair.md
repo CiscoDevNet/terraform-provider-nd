@@ -3,19 +3,18 @@
 page_title: "nd_vpc_pair Data Source - terraform-provider-nd"
 subcategory: "Fabrics"
 description: |-
-  Reads a configured vPC pair from a fabric.
+  Reads a configured vPC pair by switch serial number.
 ---
 
 # nd_vpc_pair (Data Source)
 
-Reads a configured vPC pair from a fabric.
+Reads a configured vPC pair by switch serial number.
 
 ## Example Usage
 
 ```terraform
 data "nd_vpc_pair" "test_datasource_vpc_pair_1" {
-  fabric_name = "FABRIC_VXLAN"
-  switch_id   = "9U1QYJ2PUAU"
+  switch_id = "9U1QYJ2PUAU"
 }
 ```
 
@@ -24,11 +23,11 @@ data "nd_vpc_pair" "test_datasource_vpc_pair_1" {
 
 ### Required
 
-- `fabric_name` (String) Name of the fabric containing the vPC pair.
 - `switch_id` (String) Serial number of either switch in the vPC pair, used to look up the pair.
 
 ### Read-Only
 
+- `fabric_name` (String) Name of the fabric resolved from switch inventory.
 - `peer_switch_id` (String) Serial number of the other switch in the vPC pair.
 - `use_virtual_peerlink` (Boolean) Whether the vPC pair uses a virtual peer link.
 - `vpc_pair_details` (Attributes) Default-template and peer-link attributes returned for the vPC pair, including keepalive IP addresses. Free-form configuration fields are omitted. (see [below for nested schema](#nestedatt--vpc_pair_details))
