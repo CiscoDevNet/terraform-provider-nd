@@ -21,4 +21,5 @@ files:
   - interface_common.yaml
   - interface_ethernet.yaml
   - deploy_history.yaml
+  - fabric_group_vxlan_aci.yaml
   #- sample.yaml

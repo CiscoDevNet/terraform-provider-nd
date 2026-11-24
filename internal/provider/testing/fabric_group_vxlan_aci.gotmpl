@@ -1,0 +1,94 @@
+{{define "ND_FABRIC_GROUP_VXLAN_ACI_RSC"}}
+resource "nd_fabric_group_vxlan_aci" "{{.RscName}}" {
+{{- with .FabricGroupVxlanAci}}
+    fabric_name = {{printf "%q" .FabricName}}
+    {{- if .Management.AnycastGatewayMac}}
+    anycast_gateway_mac = {{printf "%q" .Management.AnycastGatewayMac}}
+    {{- end}}
+    {{- if .Management.L2VniRange}}
+    l2_vni_range = {{printf "%q" .Management.L2VniRange}}
+    {{- end}}
+    {{- if .Management.L3VniRange}}
+    l3_vni_range = {{printf "%q" .Management.L3VniRange}}
+    {{- end}}
+    {{- if .Management.ScheduledBackup}}
+    scheduled_backup = {{deref_bool .Management.ScheduledBackup}}
+    {{- end}}
+    {{- if .Management.ScheduledBackupTime}}
+    scheduled_backup_time = {{printf "%q" .Management.ScheduledBackupTime}}
+    {{- end}}
+    {{- if ne .Management.SecurityGroupTag nil}}
+    security_group_tag = {{printf "%q" (print .Management.SecurityGroupTag)}}
+    {{- end}}
+    {{- if .Management.SecurityGroupTagPrefix}}
+    security_group_tag_prefix = {{printf "%q" .Management.SecurityGroupTagPrefix}}
+    {{- end}}
+    {{- if .Management.SecurityGroupTagIdRange}}
+    security_group_tag_id_range = {{printf "%q" .Management.SecurityGroupTagIdRange}}
+    {{- end}}
+    {{- if .Management.SecurityGroupTagPreprovision}}
+    security_group_tag_preprovision = {{deref_bool .Management.SecurityGroupTagPreprovision}}
+    {{- end}}
+    {{- if .Management.SecurityGroupTagMacSegmentation}}
+    security_group_tag_mac_segmentation = {{deref_bool .Management.SecurityGroupTagMacSegmentation}}
+    {{- end}}
+    {{- if .Management.MultisiteOverlayInterConnectType}}
+    multisite_overlay_inter_connect_type = {{printf "%q" .Management.MultisiteOverlayInterConnectType}}
+    {{- end}}
+    {{- if .Management.RouteServerCollection}}
+    route_server_collection = [
+        {{- range .Management.RouteServerCollection}}
+        {
+            route_server_ip = {{printf "%q" .RouteServerIp}}
+            route_server_asn = {{printf "%q" .RouteServerAsn}}
+        },
+        {{- end}}
+    ]
+    {{- else if $.RenderEmptyRouteServerCollection}}
+    route_server_collection = []
+    {{- end}}
+    {{- if .Management.RouteServerRedistributeDirectRouteMap}}
+    route_server_redistribute_direct_route_map = {{deref_bool .Management.RouteServerRedistributeDirectRouteMap}}
+    {{- end}}
+    {{- if .Management.RouteServerRoutingTag}}
+    route_server_routing_tag = {{deref_int64 .Management.RouteServerRoutingTag}}
+    {{- end}}
+    {{- if .Management.EnableMsOverlayIfcBgpDesc}}
+    enable_ms_overlay_ifc_bgp_desc = {{deref_bool .Management.EnableMsOverlayIfcBgpDesc}}
+    {{- end}}
+    {{- if .Management.AutoMultisiteUnderlayInterConnect}}
+    auto_multisite_underlay_inter_connect = {{deref_bool .Management.AutoMultisiteUnderlayInterConnect}}
+    {{- end}}
+    {{- if .Management.MultisiteDelayRestore}}
+    multisite_delay_restore = {{deref_int64 .Management.MultisiteDelayRestore}}
+    {{- end}}
+    {{- if .Management.MultisiteInterConnectBgpAuthentication}}
+    multisite_inter_connect_bgp_authentication = {{deref_bool .Management.MultisiteInterConnectBgpAuthentication}}
+    {{- end}}
+    {{- if .Management.MultisiteInterConnectBgpAuthKeyType}}
+    multisite_inter_connect_bgp_auth_key_type = {{printf "%q" .Management.MultisiteInterConnectBgpAuthKeyType}}
+    {{- end}}
+    {{- if .Management.MultisiteInterConnectBgpKey}}
+    multisite_inter_connect_bgp_key = {{printf "%q" .Management.MultisiteInterConnectBgpKey}}
+    {{- end}}
+    {{- if .Management.MultisiteLoopbackId}}
+    multisite_loopback_id = {{deref_int64 .Management.MultisiteLoopbackId}}
+    {{- end}}
+    {{- if .Management.BorderGatewayRoutingTag}}
+    border_gateway_routing_tag = {{deref_int64 .Management.BorderGatewayRoutingTag}}
+    {{- end}}
+    {{- if .Management.MultisiteLoopbackIpRange}}
+    multisite_loopback_ip_range = {{printf "%q" .Management.MultisiteLoopbackIpRange}}
+    {{- end}}
+    {{- if .Management.MultisiteUnderlaySubnetRange}}
+    multisite_underlay_subnet_range = {{printf "%q" .Management.MultisiteUnderlaySubnetRange}}
+    {{- end}}
+    {{- if .Management.MultisiteUnderlaySubnetTargetMask}}
+    multisite_underlay_subnet_target_mask = {{deref_int64 .Management.MultisiteUnderlaySubnetTargetMask}}
+    {{- end}}
+    {{- if $.AdditionalAttributes}}
+    {{$.AdditionalAttributes}}
+    {{- end}}
+{{- end}}
+}
+{{end}}

@@ -11,7 +11,9 @@
 package provider
 
 import (
+	"fmt"
 	"strconv"
+	. "terraform-provider-nd/internal/common/types"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -786,7 +788,13 @@ func FabricVxlanEbgpModelHelperStateCheck(RscName string, c resource_fabric_comm
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("leafibgp_peer_template").String(), c.Management.LeafibgpPeerTemplate))
 	}
 	if c.Management.SecurityGroupTag != nil {
-		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("security_group_tag").String(), strconv.FormatBool(*c.Management.SecurityGroupTag)))
+		value, conversionErr := AnyToBool(c.Management.SecurityGroupTag)
+		if conversionErr != nil {
+			ret = append(ret, resource.TestCheckResourceAttrWith(RscName, attrPath.AtName("security_group_tag").String(), func(string) error { return conversionErr }))
+		} else {
+			ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("security_group_tag").String(), fmt.Sprint(value)))
+		}
+
 	}
 	if c.Management.SecurityGroupTagPrefix != "" {
 		ret = append(ret, resource.TestCheckResourceAttr(RscName, attrPath.AtName("security_group_tag_prefix").String(), c.Management.SecurityGroupTagPrefix))

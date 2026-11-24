@@ -1145,6 +1145,7 @@ func (v *NDFCAssociationListValue) CreatePlan(c NDFCAssociationListValue, cf *bo
 		log.Printf("Copy from state: v.PVlan=nil, c.PVlan=%v", *c.PVlan)
 		*v.PVlan = *c.PVlan
 	}
+
 	if v.SVlan != nil && c.SVlan != nil {
 		if *v.SVlan != *c.SVlan {
 			if action == ActionNone || action == RequiresUpdate {
@@ -1162,6 +1163,7 @@ func (v *NDFCAssociationListValue) CreatePlan(c NDFCAssociationListValue, cf *bo
 		log.Printf("Copy from state: v.SVlan=nil, c.SVlan=%v", *c.SVlan)
 		*v.SVlan = *c.SVlan
 	}
+
 	return action
 }
 
@@ -1185,6 +1187,7 @@ func (v *NDFCMappingListValue) CreatePlan(c NDFCMappingListValue, cf *bool) int 
 		log.Printf("Copy from state: v.PVlan=nil, c.PVlan=%v", *c.PVlan)
 		*v.PVlan = *c.PVlan
 	}
+
 	if v.SVlan != nil && c.SVlan != nil {
 		if *v.SVlan != *c.SVlan {
 			if action == ActionNone || action == RequiresUpdate {
@@ -1202,6 +1205,7 @@ func (v *NDFCMappingListValue) CreatePlan(c NDFCMappingListValue, cf *bool) int 
 		log.Printf("Copy from state: v.SVlan=nil, c.SVlan=%v", *c.SVlan)
 		*v.SVlan = *c.SVlan
 	}
+
 	return action
 }
 
@@ -1232,6 +1236,7 @@ func (v *NDFCIgmpGroupRangesValue) CreatePlan(c NDFCIgmpGroupRangesValue, cf *bo
 		log.Printf("Copy from state: v.Prefix=nil, c.Prefix=%v", *c.Prefix)
 		*v.Prefix = *c.Prefix
 	}
+
 	return action
 }
 
@@ -1266,6 +1271,7 @@ func (v *NDFCMstPathCostListValue) CreatePlan(c NDFCMstPathCostListValue, cf *bo
 		log.Printf("Copy from state: v.PathCost=nil, c.PathCost=%v", *c.PathCost)
 		*v.PathCost = *c.PathCost
 	}
+
 	return action
 }
 
@@ -1300,6 +1306,7 @@ func (v *NDFCMstPortPrioListValue) CreatePlan(c NDFCMstPortPrioListValue, cf *bo
 		log.Printf("Copy from state: v.PortPriority=nil, c.PortPriority=%v", *c.PortPriority)
 		*v.PortPriority = *c.PortPriority
 	}
+
 	return action
 }
 
@@ -1341,6 +1348,7 @@ func (v *NDFCVlanMappingEntriesValue) CreatePlan(c NDFCVlanMappingEntriesValue, 
 		log.Printf("Copy from state: v.CustomerInnerVlanId=nil, c.CustomerInnerVlanId=%v", *c.CustomerInnerVlanId)
 		*v.CustomerInnerVlanId = *c.CustomerInnerVlanId
 	}
+
 	if v.ProviderVlanId != nil && c.ProviderVlanId != nil {
 		if *v.ProviderVlanId != *c.ProviderVlanId {
 			if action == ActionNone || action == RequiresUpdate {
@@ -1358,6 +1366,7 @@ func (v *NDFCVlanMappingEntriesValue) CreatePlan(c NDFCVlanMappingEntriesValue, 
 		log.Printf("Copy from state: v.ProviderVlanId=nil, c.ProviderVlanId=%v", *c.ProviderVlanId)
 		*v.ProviderVlanId = *c.ProviderVlanId
 	}
+
 	return action
 }
 
